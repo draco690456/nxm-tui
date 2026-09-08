@@ -4,6 +4,7 @@ use crossterm::event::{self, Event, KeyEvent};
 
 pub enum AppEvent {
     Key(KeyEvent),
+    #[allow(dead_code)] // dimensions carried for future resize-aware layout
     Resize(u16, u16),
     Tick,
 }

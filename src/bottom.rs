@@ -7,7 +7,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
-use crate::app::{App, ModelRoleInfo, Role, AgentMode};
+use crate::app::{App, ModelRoleInfo};
 
 /// Render the bottom 3 status lines.
 pub fn render_bottom_3(f: &mut Frame, app: &App, area: Rect) {

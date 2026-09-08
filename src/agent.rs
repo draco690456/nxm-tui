@@ -195,7 +195,7 @@ impl<'a> Agent<'a> {
         if !has_tool_calls {
             return Ok(Vec::new());
         }
-        let invocations: Vec<ToolInvocation> = pending.into_iter().map(|(_, v)| v).collect();
+        let invocations: Vec<ToolInvocation> = pending.into_values().collect();
         let parts: Vec<ToolPart> = invocations
             .iter()
             .map(|i| ToolPart::ToolInvocation(i.clone()))

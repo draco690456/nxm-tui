@@ -166,7 +166,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                             }
                             app.set_status(status);
                         }
-                        crate::app::ConfigCommand::Generate { engine, model } => {
+                        crate::app::ConfigCommand::Generate { engine: _, model } => {
                             if model.is_empty() {
                                 app.set_status("Usage: /config generate <model_path> [engine]".into());
                                 return;
@@ -238,12 +238,9 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 Command::Server(cmd) => {
                     match cmd {
                         crate::app::ServerCommand::Start => {
-                            match crate::server_proc::server_running_by_pid() {
-                                Some(pid) => {
-                                    tracing::warn!(target: "nexum::server", pid, "Server already running via PID file");
-                                    app.set_status(format!("Server already running (PID {pid})"));
-                                }
-                                None => {}
+                            if let Some(pid) = crate::server_proc::server_running_by_pid() {
+                                tracing::warn!(target: "nexum::server", pid, "Server already running via PID file");
+                                app.set_status(format!("Server already running (PID {pid})"));
                             }
                             if app.server_is_running() {
                                 app.set_status(format!(
@@ -286,7 +283,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                                 }
                                 Err(e) => {
                                     tracing::warn!(target: "nexum::server", error = %e, "No server to stop");
-                                    app.set_status(format!("{e}"));
+                                    app.set_status(e.to_string());
                                 }
                             }
                         }

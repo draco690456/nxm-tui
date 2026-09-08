@@ -269,7 +269,7 @@ pub fn parse_command(input: &str) -> Command {
 }
 
 // Re-export session functions for convenience
-pub use crate::session::{list_sessions, load_session, save_session, session_dir, sanitize_session_name};
+pub use crate::session::{list_sessions, load_session, save_session, session_dir};
 
 /// Get current directory name (for sidebar display).
 pub fn current_dir_name() -> String {
@@ -307,6 +307,7 @@ pub struct App {
     pub server_name: String,
     pub operation_label: String,
     pub operation_start: Option<Instant>,
+    #[allow(dead_code)] // reserved for NoServer menu keyboard selection
     pub menu_selection: usize,
     pub mode: AgentMode,
     pub session_name: Option<String>,
@@ -370,6 +371,7 @@ impl Metrics {
         self.response_char_count = 0;
     }
 
+    #[allow(dead_code)] // metrics helper; wired when per-token accounting lands
     pub fn record_chars(&mut self, n: usize) {
         self.response_char_count += n;
         self.total_chars += n as u64;
@@ -487,6 +489,7 @@ impl App {
         }
     }
 
+    #[allow(dead_code)] // exposed for /clear-session; not yet bound to a key
     pub fn clear_session(&mut self) {
         self.messages.clear();
         self.session_name = None;
@@ -535,6 +538,7 @@ impl App {
     }
 
     /// Get and clear the thinking content.
+    #[allow(dead_code)] // consumed by the reasoning-overlay path (not yet wired)
     pub fn take_thinking(&mut self) -> Option<String> {
         if self.thinking_content.is_empty() {
             None

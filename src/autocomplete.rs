@@ -68,6 +68,6 @@ pub fn find_matches(input: &str, limit: usize) -> Vec<(String, String)> {
         }
     }
     
-    matches.sort_by(|a, b| b.1.cmp(&a.1));
+    matches.sort_by_key(|m| std::cmp::Reverse(m.1));
     matches.into_iter().take(limit).map(|(c, _, d, _)| (c, d)).collect()
 }

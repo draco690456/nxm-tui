@@ -16,6 +16,7 @@ pub enum ToolPart {
     /// Tool call result.
     ToolResult(ToolResult),
     /// Error message.
+    #[allow(dead_code)] // emitted on the agent error path; asserted in tests
     Error(String),
 }
 
@@ -36,11 +37,13 @@ pub struct ToolResult {
 
 impl ToolPart {
     /// Creates a text part.
+    #[allow(dead_code)] // convenience constructor for callers/tests
     pub fn text(content: String) -> Self {
         ToolPart::Text(content)
     }
 
     /// Creates a reasoning part.
+    #[allow(dead_code)] // convenience constructor for callers/tests
     pub fn reasoning(content: String) -> Self {
         ToolPart::Reasoning(content)
     }

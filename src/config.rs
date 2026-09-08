@@ -95,6 +95,7 @@ impl TuiConfig {
 
     /// Validate config values.
     /// Returns Ok(()) if valid, Err(String) with error message.
+    #[allow(dead_code)] // used by config validation path (not yet called on load)
     pub fn validate(&self) -> Result<(), String> {
         if let Some(ref ep) = self.endpoint {
             if !ep.starts_with("http://") && !ep.starts_with("https://") {
@@ -103,7 +104,7 @@ impl TuiConfig {
         }
 
         if let Some(ctx) = self.max_context {
-            if ctx < 256 || ctx > 1_000_000 {
+            if !(256..=1_000_000).contains(&ctx) {
                 return Err("Max context must be between 256 and 1,000,000".into());
             }
         }

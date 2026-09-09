@@ -23,7 +23,7 @@ use serde_json::Value;
 use tokio::sync::mpsc;
 
 use crate::app::{apply_token, Message, Role};
-use crate::tool_types::{ToolInvocation, ToolPart, ToolResult};
+use crate::tool_types::{needs_approval, ApprovalRequest, ToolInvocation, ToolPart, ToolResult};
 
 /// A streaming OpenAI-compatible agent backed by `nexum-tools`.
 pub struct Agent<'a> {
@@ -36,6 +36,10 @@ pub struct Agent<'a> {
     /// across turns (assistant tool-call messages + their `role:"tool"` results)
     /// so each request serializes the full conversation.
     transcript: Vec<Message>,
+    /// Channel back to the UI loop for tool approvals. `None` means headless
+    /// (tests): the policy still applies but without a UI every gated tool is
+    /// auto-approved so non-interactive runs never hang.
+    approval_tx: Option<mpsc::UnboundedSender<ApprovalRequest>>,
     /// Local mirrors of `App.{in_thinking, thinking_content}`. Only fed to
     /// `apply_token` (which writes them) so the transcript is `<thinking>`-clean;
     /// the *live* reasoning display is driven by `App` via the main loop.
@@ -52,6 +56,7 @@ impl<'a> Agent<'a> {
         model: &'a str,
         api_key: Option<String>,
         initial_messages: Vec<Message>,
+        approval_tx: Option<mpsc::UnboundedSender<ApprovalRequest>>,
     ) -> Self {
         Self {
             client,
@@ -60,6 +65,7 @@ impl<'a> Agent<'a> {
             api_key,
             registry: default_registry(),
             transcript: initial_messages,
+            approval_tx,
             in_thinking: false,
             thinking_content: String::new(),
         }
@@ -209,7 +215,9 @@ impl<'a> Agent<'a> {
     }
 
     /// Resolve each tool call through `nexum-tools` and record the results as
-    /// `role:"tool"` transcript messages + UI `ToolResult` parts.
+    /// `role:"tool"` transcript messages + UI `ToolResult` parts. Gated tools
+    /// wait for the UI approval overlay; a denial is recorded as a tool result
+    /// so the model can react to it on the next turn.
     async fn dispatch_tool_calls(
         &mut self,
         tx: &mpsc::UnboundedSender<ToolPart>,
@@ -219,6 +227,19 @@ impl<'a> Agent<'a> {
             let args: Value = serde_json::from_str(&inv.args).unwrap_or_else(|e| {
                 serde_json::json!({ "_raw": &inv.args, "_parse_error": e.to_string() })
             });
+            if !self.approve(&inv).await {
+                let denied = format!(
+                    "denied by user — tool `{}` was not executed; proceed without its output",
+                    inv.name
+                );
+                let tpart = ToolResult {
+                    call_id: inv.id.clone(),
+                    output: denied.clone(),
+                };
+                let _ = tx.send(ToolPart::ToolResult(tpart));
+                self.transcript.push(Message::tool(&inv.id, denied));
+                continue;
+            }
             let output = match self.registry.call(&inv.name, &args) {
                 Ok(r) => r.content,
                 Err(e) => format!("tool dispatch error: {e}"),
@@ -231,6 +252,26 @@ impl<'a> Agent<'a> {
             self.transcript.push(Message::tool(&inv.id, output));
         }
         Ok(())
+    }
+
+    /// Ask the UI whether `inv` may run. Fail-safe deny: if the UI is gone
+    /// (channel closed, reply dropped, quit) the tool does not run.
+    async fn approve(&self, inv: &ToolInvocation) -> bool {
+        if !needs_approval(&inv.name) {
+            return true;
+        }
+        let Some(tx) = &self.approval_tx else {
+            return true; // headless (tests): never hang without a UI
+        };
+        let (reply_tx, reply_rx) = tokio::sync::oneshot::channel();
+        let req = ApprovalRequest {
+            invocation: inv.clone(),
+            reply: reply_tx,
+        };
+        if tx.send(req).is_err() {
+            return false;
+        }
+        reply_rx.await.unwrap_or(false)
     }
 }
 

@@ -63,7 +63,8 @@ pub fn render_history(f: &mut Frame, app: &App, area: Rect) {
         }
     }
 
-    f.render_widget(Paragraph::new(lines).scroll((app.scroll_offset, 0)), area);
+    let offset = App::viewport_offset(lines.len(), area.height as usize, app.scrollback);
+    f.render_widget(Paragraph::new(lines).scroll((offset, 0)), area);
 }
 
 /// Wrap text to fit within max width.

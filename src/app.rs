@@ -4,6 +4,15 @@ use std::time::Instant;
 // Re-export ServerProcess for App struct
 use crate::server_proc::ServerProcess;
 
+/// A tool call waiting for the user's Y/N decision in the approval overlay.
+/// Holds the oneshot `reply` back to the agent task: `resolve_approval`
+/// answers it and clears the slot. Dropped without answering only on quit,
+/// which aborts the agent task first (fail-safe deny on its end).
+pub struct PendingApproval {
+    pub invocation: crate::tool_types::ToolInvocation,
+    pub reply: tokio::sync::oneshot::Sender<bool>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RunState {
     Running,
@@ -70,6 +79,23 @@ pub enum Role {
     Tool,
 }
 
+/// Append streaming text to the thinking buffer, stripping a trailing partial
+/// tag fragment ("hidden</thinking" arriving before its ">") so the overlay
+/// never shows tag noise.
+fn push_thinking(thinking: &mut String, token: &str) {
+    if token == "<" || token == "thinking" || token == "/thinking" || token == "</thinking" {
+        return;
+    }
+    let mut clean = token;
+    for frag in ["</thinking", "</think", "</", "<"] {
+        if let Some(stripped) = clean.strip_suffix(frag) {
+            clean = stripped;
+            break;
+        }
+    }
+    thinking.push_str(clean);
+}
+
 /// Absorb one token delta into `messages`, filtering `<thinking>` tags into
 /// `thinking` (stateful via `in_thinking`) and otherwise appending to the last
 /// assistant message. Shared by `App::push_token` (main loop) and
@@ -81,15 +107,32 @@ pub(crate) fn apply_token(
     thinking: &mut String,
     token: &str,
 ) {
-    if token == "<" || token == "thinking" || token == ">" || token == "/thinking" {
-        return;
-    }
+    // Inside a thinking span the closing tag must exit thinking mode even when
+    // the tokenizer splits it ("hidden", "</thinking", ">", "visible"). Text
+    // before the tag belongs to thinking, text after belongs to the answer.
     if *in_thinking {
-        if token.contains('>') {
+        if let Some((before, after)) = token.split_once("</thinking>") {
+            push_thinking(thinking, before);
             *in_thinking = false;
+            if !after.is_empty() {
+                apply_token(messages, in_thinking, thinking, after);
+            }
             return;
         }
-        thinking.push_str(token);
+        if let Some(idx) = token.find('>') {
+            // Bare closing bracket (standalone ">" or ">visible"): anything
+            // before it is tag noise, anything after is the answer.
+            *in_thinking = false;
+            let after = token[idx + 1..].to_string();
+            if !after.is_empty() {
+                apply_token(messages, in_thinking, thinking, &after);
+            }
+            return;
+        }
+        push_thinking(thinking, token);
+        return;
+    }
+    if token == "<" || token == "thinking" || token == ">" || token == "/thinking" {
         return;
     }
     if token.contains("<thinking>") {
@@ -99,10 +142,39 @@ pub(crate) fn apply_token(
             if let Some(last_msg) = messages.last_mut() {
                 if last_msg.role == Role::Assistant {
                     last_msg.content.push_str(parts[0]);
-                    return;
+                } else {
+                    messages.push(Message::new(Role::Assistant, parts[0].to_string()));
                 }
+            } else {
+                messages.push(Message::new(Role::Assistant, parts[0].to_string()));
             }
-            messages.push(Message::new(Role::Assistant, parts[0].to_string()));
+        }
+        // Content after the opening tag belongs to thinking (and may itself
+        // contain the closing tag), so feed it back through.
+        if parts.len() > 1 && !parts[1].is_empty() {
+            apply_token(messages, in_thinking, thinking, parts[1]);
+        }
+        return;
+    }
+    // A closing tag arriving outside thinking mode (single token carrying both
+    // tags, e.g. "foo</thinking>bar"): drop the tag, keep both sides.
+    if token.contains("</thinking>") {
+        let parts: Vec<&str> = token.split("</thinking>").collect();
+        for (i, part) in parts.iter().enumerate() {
+            if part.is_empty() {
+                continue;
+            }
+            if i == 0 {
+                if let Some(last_msg) = messages.last_mut() {
+                    if last_msg.role == Role::Assistant {
+                        last_msg.content.push_str(part);
+                        continue;
+                    }
+                }
+                messages.push(Message::new(Role::Assistant, part.to_string()));
+            } else {
+                apply_token(messages, in_thinking, thinking, part);
+            }
         }
         return;
     }
@@ -300,7 +372,10 @@ pub struct App {
     /// Prompt state for multiline input + history.
     pub prompt_state: crate::prompt::PromptState,
     pub messages: Vec<Message>,
-    pub scroll_offset: u16,
+    /// Lines hidden below the viewport (0 = pinned to the live tail).
+    /// Up scrolls into older lines, Down returns toward the tail; any new
+    /// token keeps a pinned view glued to the bottom automatically.
+    pub scrollback: u16,
     pub tick: u32,
     pub pending_message: Option<String>,
     pub endpoint: String,
@@ -315,6 +390,10 @@ pub struct App {
     pub show_sessions: bool,
     pub show_metrics: bool,
     pub show_context: bool,
+    pub show_thinking: bool,
+    pub show_tool: bool,
+    pub show_approval: bool,
+    pub pending_approval: Option<PendingApproval>,
     pub max_context: u32,
     pub metrics: Metrics,
     pub status_message: Option<String>,
@@ -371,7 +450,6 @@ impl Metrics {
         self.response_char_count = 0;
     }
 
-    #[allow(dead_code)] // metrics helper; wired when per-token accounting lands
     pub fn record_chars(&mut self, n: usize) {
         self.response_char_count += n;
         self.total_chars += n as u64;
@@ -429,7 +507,7 @@ impl App {
             input: String::new(),
             prompt_state: crate::prompt::PromptState::new(),
             messages: Vec::new(),
-            scroll_offset: 0,
+            scrollback: 0,
             tick: 0,
             pending_message: None,
             endpoint: String::new(),
@@ -443,6 +521,10 @@ impl App {
             show_sessions: false,
             show_metrics: false,
             show_context: false,
+            show_thinking: false,
+            show_tool: false,
+            show_approval: false,
+            pending_approval: None,
             max_context: 8192,
             metrics: Metrics::new(),
             status_message: None,
@@ -493,7 +575,7 @@ impl App {
     pub fn clear_session(&mut self) {
         self.messages.clear();
         self.session_name = None;
-        self.scroll_offset = 0;
+        self.scrollback = 0;
         self.metrics.reset_session();
         self.set_status("Session cleared".into());
     }
@@ -501,7 +583,7 @@ impl App {
     pub fn new_session(&mut self) {
         self.messages.clear();
         self.session_name = None;
-        self.scroll_offset = 0;
+        self.scrollback = 0;
         self.mode = AgentMode::Chat;
         self.metrics.reset_session();
         self.set_status("New session started".into());
@@ -562,6 +644,60 @@ impl App {
             &mut self.thinking_content,
             token,
         );
+    }
+
+    /// Scroll one line toward older history.
+    pub fn scroll_up(&mut self) {
+        self.scrollback = self.scrollback.saturating_add(1);
+    }
+
+    /// Scroll one page toward older history.
+    pub fn page_up(&mut self, page: u16) {
+        self.scrollback = self.scrollback.saturating_add(page.max(1));
+    }
+
+    /// Scroll one line toward the live tail.
+    pub fn scroll_down(&mut self) {
+        self.scrollback = self.scrollback.saturating_sub(1);
+    }
+
+    /// Scroll one page toward the live tail.
+    pub fn page_down(&mut self, page: u16) {
+        self.scrollback = self.scrollback.saturating_sub(page.max(1));
+    }
+
+    /// Pin the view to the live tail (new tokens stay visible).
+    pub fn stick_to_bottom(&mut self) {
+        self.scrollback = 0;
+    }
+
+    /// True while the view is pinned to the live tail.
+    #[allow(dead_code)] // public scroll-model API; the history overlay reads `scrollback` directly
+    pub fn following(&self) -> bool {
+        self.scrollback == 0
+    }
+
+    /// Ratatui scroll offset for a `total`-line buffer in a `height`-line
+    /// viewport with `scrollback` lines hidden below. Clamps so short buffers
+    /// pin to the top and deep scrollbacks pin to the oldest line.
+    pub fn viewport_offset(total: usize, height: usize, scrollback: u16) -> u16 {
+        let max = u16::try_from(total.saturating_sub(height)).unwrap_or(u16::MAX);
+        max.saturating_sub(scrollback.min(max))
+    }
+
+    /// Answer the pending tool approval (true = run, false = skip), hide the
+    /// overlay and clear the slot. A failed send means the agent task is
+    /// already gone — still clear so the UI never sticks on a dead prompt.
+    pub fn resolve_approval(&mut self, allow: bool) {
+        if let Some(pending) = self.pending_approval.take() {
+            let _ = pending.reply.send(allow);
+            self.set_status(if allow {
+                format!("Approved: {}", pending.invocation.name)
+            } else {
+                format!("Denied: {} (skipped)", pending.invocation.name)
+            });
+        }
+        self.show_approval = false;
     }
 
     pub fn context_pct(&self) -> f64 {

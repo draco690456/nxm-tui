@@ -30,6 +30,7 @@ mod provider;
 mod server_proc;
 mod session;
 mod sidebar;
+mod tool_overlay;
 mod tool_types;
 mod ui;
 
@@ -40,7 +41,7 @@ use app::{App, Message, Role, RunState};
 use config::TuiConfig;
 use event::AppEvent;
 use handler::handle_key;
-use tool_types::ToolPart;
+use tool_types::{ApprovalRequest, ToolPart};
 use ui::render;
 
 fn main() -> io::Result<()> {
@@ -127,6 +128,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
 
     // Main loop
     let (part_tx, mut part_rx) = mpsc::unbounded_channel::<ToolPart>();
+    let (approval_tx, mut approval_rx) = mpsc::unbounded_channel::<ApprovalRequest>();
     let mut inference_task: Option<tokio::task::JoinHandle<()>> = None;
 
     loop {
@@ -210,10 +212,12 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                     let api_key = cfg.api_key.clone();
                     let initial_msgs = app.messages.clone();
                     let tx = part_tx.clone();
+                    let approval = approval_tx.clone();
 
                     inference_task = Some(tokio::spawn(async move {
                         let mut agent = agent::Agent::new(
                             &client, &base, &model, api_key, initial_msgs,
+                            Some(approval),
                         );
                         agent.run(&tx).await.unwrap_or_else(|e| {
                             tracing::error!("agent error: {e}");
@@ -228,9 +232,19 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                 app.check_server_health();
 
                 if matches!(app.state, RunState::Thinking) {
+                    while let Ok(req) = approval_rx.try_recv() {
+                        app.pending_approval = Some(crate::app::PendingApproval {
+                            invocation: req.invocation,
+                            reply: req.reply,
+                        });
+                        app.show_approval = true;
+                    }
                     while let Ok(part) = part_rx.try_recv() {
                         match part {
-                            ToolPart::Text(s) => app.push_token(&s),
+                            ToolPart::Text(s) => {
+                                app.metrics.record_chars(s.chars().count());
+                                app.push_token(&s);
+                            }
                             ToolPart::Reasoning(s) => app.append_thinking_delta(&s),
                             ToolPart::ToolInvocation(inv) => {
                                 app.messages.push(Message::with_tool(

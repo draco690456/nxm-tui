@@ -13,6 +13,13 @@ an interactive chat interface in the terminal.
 - Server connection management
 - Autocomplete for commands
 - Configurable via TOML
+- Reasoning overlay (Ctrl+R) with live thinking stream
+- Tool detail overlay (Ctrl+O) with last invocation args + output
+- Tool approval gating (Y/N overlay; only list_resources auto-approved)
+- Risk badges in approval (sensitive path / network egress / unknown tool)
+- History auto-follow + scrollback (Up/Down/PgUp/PgDn)
+- Overlay render tests on TestBackend (no TTY)
+- Per-token metrics (tokens/sec now measured, Ctrl+M overlay)
 
 ## Dependencies
 - ratatui + crossterm for TUI rendering

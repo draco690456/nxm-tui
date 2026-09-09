@@ -7,6 +7,18 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         return;
     }
 
+    // Modal tool approval: force an explicit Y/N decision, swallow the rest
+    // so a gated tool can never run (or be skipped) by an unrelated key.
+    if app.pending_approval.is_some() {
+        match key.code {
+            KeyCode::Char('y') | KeyCode::Char('Y') => app.resolve_approval(true),
+            KeyCode::Char('n') | KeyCode::Char('N') => app.resolve_approval(false),
+            KeyCode::Esc => app.resolve_approval(false),
+            _ => {}
+        }
+        return;
+    }
+
     if key.code == KeyCode::Esc {
         if app.show_help {
             app.show_help = false;
@@ -22,6 +34,18 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         }
         if app.show_context {
             app.show_context = false;
+            return;
+        }
+        if app.show_thinking {
+            app.show_thinking = false;
+            return;
+        }
+        if app.show_tool {
+            app.show_tool = false;
+            return;
+        }
+        if app.show_approval {
+            app.show_approval = false;
             return;
         }
         if app.state == RunState::Thinking {
@@ -92,6 +116,24 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 app.show_sessions = false;
                 return;
             }
+            KeyCode::Char('r') => {
+                app.show_thinking = !app.show_thinking;
+                app.show_help = false;
+                app.show_sessions = false;
+                app.show_metrics = false;
+                app.show_context = false;
+                app.show_tool = false;
+                return;
+            }
+            KeyCode::Char('o') => {
+                app.show_tool = !app.show_tool;
+                app.show_help = false;
+                app.show_sessions = false;
+                app.show_metrics = false;
+                app.show_context = false;
+                app.show_thinking = false;
+                return;
+            }
             KeyCode::Char('b') => {
                 // Toggle sidebar visibility
                 app.sidebar_open = !app.sidebar_open;
@@ -117,7 +159,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 }
                 Command::Clear => {
                     app.messages.clear();
-                    app.scroll_offset = 0;
+                    app.stick_to_bottom();
                     app.set_status("Chat cleared".into());
                 }
                 Command::Help => {
@@ -218,7 +260,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                             app.messages = msgs;
                             app.mode = mode;
                             app.session_name = Some(name.clone());
-                            app.scroll_offset = 0;
+                            app.stick_to_bottom();
                             app.set_status(format!("Loaded: {name}"));
                         }
                         Err(e) => app.set_status(format!("Load error: {e}")),
@@ -319,7 +361,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                         }
                     }
                     app.messages.push(Message::new(Role::User, text.clone()));
-                    app.scroll_offset = 0;
+                    app.stick_to_bottom();
                     app.pending_message = Some(text);
                     app.state = RunState::Thinking;
                 }
@@ -366,15 +408,21 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             if key.modifiers == KeyModifiers::ALT || key.modifiers == KeyModifiers::CONTROL {
                 app.prompt_state.navigate_history(crate::prompt::HistoryDirection::Up);
             } else {
-                app.scroll_offset = app.scroll_offset.saturating_add(1);
+                app.scroll_up();
             }
         }
         KeyCode::Down => {
             if key.modifiers == KeyModifiers::ALT || key.modifiers == KeyModifiers::CONTROL {
                 app.prompt_state.navigate_history(crate::prompt::HistoryDirection::Down);
             } else {
-                app.scroll_offset = app.scroll_offset.saturating_sub(1);
+                app.scroll_down();
             }
+        }
+        KeyCode::PageUp => {
+            app.page_up(10);
+        }
+        KeyCode::PageDown => {
+            app.page_down(10);
         }
         KeyCode::Tab => {
             if app.input.starts_with('/') {

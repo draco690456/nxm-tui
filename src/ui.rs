@@ -28,6 +28,15 @@ pub fn render(f: &mut Frame, app: &App) {
             if app.show_context {
                 render_context_overlay(f, app);
             }
+            if app.show_thinking {
+                crate::overlays::render_thinking(f, app);
+            }
+            if app.show_tool {
+                crate::tool_overlay::render_tool(f, app);
+            }
+            if app.show_approval {
+                crate::tool_overlay::render_approval(f, app);
+            }
         }
     }
 }

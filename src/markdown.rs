@@ -27,8 +27,11 @@ pub fn render_markdown(content: &str, max_width: usize, prefix: &str) -> Vec<Lin
                 let inner_w = max_width.saturating_sub(prefix.len() + 3);
                 let style = highlight_style(&lang, &text);
                 for line in text.lines() {
-                    let truncated = if line.len() > inner_w {
-                        format!("{prefix}│ {}", &line[..inner_w])
+                    // Char-safe truncation: a byte slice would panic when
+                    // `inner_w` lands inside a multibyte codepoint.
+                    let truncated = if line.chars().count() > inner_w {
+                        let head: String = line.chars().take(inner_w.saturating_sub(1)).collect();
+                        format!("{prefix}│ {head}…")
                     } else {
                         format!("{prefix}│ {line}")
                     };

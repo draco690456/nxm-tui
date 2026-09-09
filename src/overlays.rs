@@ -13,16 +13,9 @@ use crate::app::App;
 pub fn render_help(f: &mut Frame, _app: &App) {
     let area = f.area();
     let w = 56.min(area.width);
-    let h = 24;
-    let x = (area.width.saturating_sub(w)) / 2;
-    let y = (area.height.saturating_sub(h)) / 3;
-
-    let overlay = Rect::new(x, y, w, h);
-    f.render_widget(Clear, overlay);
 
     let items = vec![
         Line::from(Span::styled(" Commands", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(""),
         Line::from(vec![
             Span::styled("  /help  /h  /?", Style::default().fg(Color::Magenta)),
             Span::raw("  Show this help"),
@@ -37,7 +30,6 @@ pub fn render_help(f: &mut Frame, _app: &App) {
         ]),
         Line::from(""),
         Line::from(Span::styled(" Server", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(""),
         Line::from(vec![
             Span::styled("  /server start", Style::default().fg(Color::Magenta)),
             Span::raw("   Start local server"),
@@ -52,19 +44,16 @@ pub fn render_help(f: &mut Frame, _app: &App) {
         ]),
         Line::from(""),
         Line::from(Span::styled(" Modes", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(""),
         Line::from(vec![
             Span::styled("  /mode chat|arch|dev|research", Style::default().fg(Color::Magenta)),
         ]),
         Line::from(""),
         Line::from(Span::styled(" Sessions", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(""),
         Line::from(vec![
             Span::styled("  /save [name]  /load <name>  /new", Style::default().fg(Color::Magenta)),
         ]),
         Line::from(""),
         Line::from(Span::styled(" Keys", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(""),
         Line::from(vec![
             Span::styled("  Ctrl+Q", Style::default().fg(Color::DarkGray)),
             Span::raw("  Quit   "),
@@ -73,7 +62,28 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::styled("Esc", Style::default().fg(Color::DarkGray)),
             Span::raw("  Cancel"),
         ]),
+        Line::from(vec![
+            Span::styled("  Ctrl+R", Style::default().fg(Color::DarkGray)),
+            Span::raw("  Reasoning overlay"),
+        ]),
+        Line::from(vec![
+            Span::styled("  Ctrl+O", Style::default().fg(Color::DarkGray)),
+            Span::raw("  Tool detail overlay"),
+        ]),
+        Line::from(vec![
+            Span::styled("  ↑/↓", Style::default().fg(Color::DarkGray)),
+            Span::raw("  Scroll history   "),
+            Span::styled("PgUp/PgDn", Style::default().fg(Color::DarkGray)),
+            Span::raw("  Page"),
+        ]),
     ];
+
+    // Size to content (+2 borders) so added hints never fall outside the box.
+    let h = ((items.len() + 2) as u16).min(area.height).max(8);
+    let x = (area.width.saturating_sub(w)) / 2;
+    let y = (area.height.saturating_sub(h)) / 3;
+    let overlay = Rect::new(x, y, w, h);
+    f.render_widget(Clear, overlay);
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -147,6 +157,61 @@ pub fn render_sessions(f: &mut Frame, app: &App) {
         Span::raw("  or  "),
         Span::styled("Esc", Style::default().fg(Color::DarkGray)),
         Span::raw(" to close"),
+    ]));
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
+        .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+    f.render_widget(block, overlay);
+
+    let inner = Rect::new(x + 1, y + 1, w.saturating_sub(2), h.saturating_sub(2));
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Render reasoning overlay dialog (live thinking stream).
+pub fn render_thinking(f: &mut Frame, app: &App) {
+    let area = f.area();
+    let w = 70.min(area.width);
+    let h = 18.min(area.height.saturating_sub(4)).max(8);
+    let x = (area.width.saturating_sub(w)) / 2;
+    let y = (area.height.saturating_sub(h)) / 3;
+
+    let overlay = Rect::new(x, y, w, h);
+    f.render_widget(Clear, overlay);
+
+    let mut lines: Vec<Line> = vec![
+        Line::from(Span::styled(
+            " Reasoning",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(""),
+    ];
+
+    let body = app.thinking_content.trim();
+    if body.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "  No reasoning yet — it appears here while the model thinks.",
+            Style::default().fg(Color::DarkGray),
+        )));
+    } else {
+        let inner_w = w.saturating_sub(4) as usize;
+        for chunk in body.split('\n') {
+            for wrapped in crate::history::wrap(chunk, inner_w.max(10)) {
+                lines.push(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(wrapped, Style::default().fg(Color::Rgb(200, 200, 200))),
+                ]));
+            }
+        }
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(vec![
+        Span::styled("  Ctrl+R", Style::default().fg(Color::Magenta)),
+        Span::raw("  toggle  ·  "),
+        Span::styled("Esc", Style::default().fg(Color::DarkGray)),
+        Span::raw("  close"),
     ]));
 
     let block = Block::default()

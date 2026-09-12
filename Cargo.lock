@@ -998,17 +998,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nxm-tools"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "reqwest",
- "serde",
- "serde_json",
- "tracing",
-]
-
-[[package]]
 name = "nxm-tui"
 version = "0.1.0"
 dependencies = [
@@ -1016,7 +1005,7 @@ dependencies = [
  "crossterm",
  "dirs",
  "futures",
- "nxm-tools",
+ "nxm-tui-tools",
  "ratatui",
  "reqwest",
  "serde",
@@ -1026,6 +1015,18 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "nxm-tui-tools"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
 ]
 
 [[package]]

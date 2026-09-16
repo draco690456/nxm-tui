@@ -54,4 +54,4 @@ chrono = "0.4"
 # Pure-Rust tool actuators (web_search, read_file, list_resources).
 # Now a workspace member (moved here from nxm-mcp-servers). Kept importable as
 # `nxm_tools` via package rename so existing `use nxm_tools::...` keeps working.
-nxm-tools = { package = "nxm-tui-tools", path = "nxm-tui-tools" }
+nxm-tui-tools = { path = "nxm-tui-tools" }

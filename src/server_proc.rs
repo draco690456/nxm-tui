@@ -167,18 +167,24 @@ impl App {
     }
 
     /// Check if the server child is still alive, and clean up if it exited.
-    pub fn check_server_health(&mut self) {
+    /// Returns true only when something visible changed (the process slot
+    /// was cleared / a status was set) — the main loop redraws only on change.
+    pub fn check_server_health(&mut self) -> bool {
         if let Some(ref mut proc) = self.server_process {
             match proc.child.try_wait() {
                 Ok(Some(_status)) => {
                     self.server_process = None;
                     self.set_status("Server exited".into());
+                    true
                 }
-                Ok(None) => {}
+                Ok(None) => false,
                 Err(_) => {
                     self.server_process = None;
+                    true
                 }
             }
+        } else {
+            false
         }
     }
 }

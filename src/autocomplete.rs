@@ -1,30 +1,22 @@
 //! Fuzzy autocomplete for nexum-terminal TUI.
 //! Provides command and history fuzzy matching with scoring.
 
-/// Available commands for autocomplete.
+/// Available commands for autocomplete, one entry per root command, kept in
+/// alphabetical order (the command popup relies on this ordering).
 static COMMANDS: &[(&str, &str)] = &[
-    ("/help", "Show this help"),
     ("/clear", "Clear chat history"),
-    ("/quit", "Quit"),
-    ("/server start", "Start local server"),
-    ("/server stop", "Stop local server"),
-    ("/server status", "Server status"),
-    ("/config status", "Show config"),
-    ("/config generate", "Generate engine/model config"),
-    ("/mode chat", "Chat mode"),
-    ("/mode architect", "Architect mode"),
-    ("/mode developer", "Developer mode"),
-    ("/mode researcher", "Researcher mode"),
-    ("/save", "Save session"),
-    ("/load", "Load session"),
-    ("/new", "New session"),
-    ("/metrics", "Show metrics"),
+    ("/config", "Show or generate config"),
     ("/context", "Set context limit"),
+    ("/help", "Show this help"),
+    ("/load", "Load session"),
+    ("/metrics", "Show metrics"),
+    ("/mode", "Set agent mode: chat|architect|developer|researcher"),
+    ("/new", "New session"),
+    ("/provider", "Manage LLM providers: list|add|use|remove"),
+    ("/quit", "Quit"),
+    ("/save", "Save session"),
+    ("/server", "Manage local server: start|stop|status"),
     ("/sidebar", "Toggle sidebar"),
-    ("/provider list", "List LLM providers"),
-    ("/provider add", "Add a custom provider: /provider add <name> <url>"),
-    ("/provider use", "Select a provider: /provider use <name>"),
-    ("/provider remove", "Remove a custom provider: /provider remove <name>"),
 ];
 
 /// Score match quality (higher = better).
@@ -70,4 +62,25 @@ pub fn find_matches(input: &str, limit: usize) -> Vec<(String, String)> {
     
     matches.sort_by_key(|m| std::cmp::Reverse(m.1));
     matches.into_iter().take(limit).map(|(c, _, d, _)| (c, d)).collect()
+}
+
+/// Commands shown in the slash-command popup.
+///
+/// Filters `COMMANDS` by the first whitespace-delimited token of `input`
+/// (the root command being typed, e.g. `/pro`), matching case-insensitively
+/// on the command prefix. `COMMANDS` is already alphabetical, so the returned
+/// list preserves that order. When `input` is just `/` (or empty after it),
+/// every command is returned.
+pub fn menu_matches(input: &str) -> Vec<(&'static str, &'static str)> {
+    if !input.starts_with('/') {
+        return Vec::new();
+    }
+    // Only the root token drives the popup; args (after a space) don't filter.
+    let root = input.split_whitespace().next().unwrap_or("/");
+    let needle = root.to_lowercase();
+    COMMANDS
+        .iter()
+        .filter(|(cmd, _)| cmd.to_lowercase().starts_with(&needle))
+        .copied()
+        .collect()
 }

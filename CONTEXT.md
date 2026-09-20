@@ -20,11 +20,15 @@ an interactive chat interface in the terminal.
 - History auto-follow + scrollback (Up/Down/PgUp/PgDn)
 - Overlay render tests on TestBackend (no TTY)
 - Per-token metrics (tokens/sec now measured, Ctrl+M overlay)
+- Draw-on-change + 30 Hz idle polling (no busy redraw at 60 Hz)
+- Per-message history render cache (streaming re-renders one message, not O(N))
 
 ## Dependencies
 - ratatui + crossterm for TUI rendering
 - reqwest for HTTP/SSE streaming
 - tokio for async runtime
+- Builds as bin + lib (`src/lib.rs`): the module graph is declared once and
+  shared between the binary and the headless tests in `tests/`
 
 ## NOT included
 - Inference logic (connects to external server)

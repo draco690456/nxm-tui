@@ -7,22 +7,9 @@
 
 #![allow(dead_code, unused_imports)]
 
-#[path = "../src/tool_types.rs"]
-mod tool_types;
-#[path = "../src/app.rs"]
-mod app;
-#[path = "../src/session.rs"]
-mod session;
-#[path = "../src/server_proc.rs"]
-mod server_proc;
-#[path = "../src/prompt.rs"]
-mod prompt;
-#[path = "../src/prompt_lines.rs"]
-mod prompt_lines;
-#[path = "../src/markdown.rs"]
-mod markdown;
 
-use app::App;
+use nxm_tui::app::App;
+use nxm_tui::markdown;
 
 #[test]
 fn viewport_pins_short_buffers_to_top() {

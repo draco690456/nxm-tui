@@ -352,7 +352,44 @@ pub fn current_dir_name() -> String {
 }
 
 /// Get current git branch name (if in a git repository).
+///
+/// Cached with a short TTL: the render loop calls this every frame, and
+/// spawning `git` per frame hammered macOS Gatekeeper/XProtect (syspolicyd
+/// pegged a core doing repeated malware scans of the un-notarized binary's
+/// child processes). The branch changes rarely, so we refresh at most once
+/// every few seconds and serve the cached value in between.
 pub fn git_branch() -> Option<String> {
+    use std::sync::{Mutex, OnceLock};
+    use std::time::{Duration, Instant};
+
+    const TTL: Duration = Duration::from_secs(5);
+    // (last_refresh, cached_branch)
+    static CACHE: OnceLock<Mutex<(Option<Instant>, Option<String>)>> = OnceLock::new();
+    let cache = CACHE.get_or_init(|| Mutex::new((None, None)));
+
+    let mut guard = match cache.lock() {
+        Ok(g) => g,
+        Err(_) => return None,
+    };
+
+    let fresh = guard
+        .0
+        .map(|t| t.elapsed() < TTL)
+        .unwrap_or(false);
+    if fresh {
+        return guard.1.clone();
+    }
+
+    // Stale (or first call): refresh by spawning git once.
+    let branch = git_branch_uncached();
+    guard.0 = Some(Instant::now());
+    guard.1 = branch.clone();
+    branch
+}
+
+/// Actually shell out to `git` to read the current branch. Not called per
+/// frame — only through `git_branch()`'s TTL cache.
+fn git_branch_uncached() -> Option<String> {
     let out = std::process::Command::new("git")
         .args(["branch", "--show-current"])
         .output()
@@ -372,6 +409,8 @@ pub struct App {
     /// Prompt state for multiline input + history.
     pub prompt_state: crate::prompt::PromptState,
     pub messages: Vec<Message>,
+    /// Per-message render cache for the chat history (see `history::HistoryCache`).
+    pub history_cache: crate::history::HistoryCache,
     /// Lines hidden below the viewport (0 = pinned to the live tail).
     /// Up scrolls into older lines, Down returns toward the tail; any new
     /// token keeps a pinned view glued to the bottom automatically.
@@ -406,6 +445,14 @@ pub struct App {
     pub model_worker: ModelRoleInfo,
     /// Sidebar visibility (auto/hide based on terminal width)
     pub sidebar_open: bool,
+    /// Selected index in the slash-command popup. The popup is visible
+    /// whenever the prompt text starts with '/' and has matches; this only
+    /// tracks which entry is highlighted.
+    pub command_menu_selected: usize,
+    /// Set when the user dismisses the popup (Esc, or after completing a
+    /// command) so it stays closed until they edit the prompt again. Reset
+    /// on the next keystroke that changes the prompt text.
+    pub command_menu_dismissed: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -507,6 +554,7 @@ impl App {
             input: String::new(),
             prompt_state: crate::prompt::PromptState::new(),
             messages: Vec::new(),
+            history_cache: crate::history::HistoryCache::new(),
             scrollback: 0,
             tick: 0,
             pending_message: None,
@@ -536,6 +584,8 @@ impl App {
             model_router: ModelRoleInfo::none("Router"),
             model_worker: ModelRoleInfo::none("Worker"),
             sidebar_open: true,
+            command_menu_selected: 0,
+            command_menu_dismissed: false,
         }
     }
 
@@ -562,13 +612,18 @@ impl App {
         self.status_timer = 120;
     }
 
-    pub fn tick_status(&mut self) {
+    /// Age the status timer one tick. Returns true only when something
+    /// visible changed (the status message expired and was cleared) — the
+    /// main loop redraws only on change.
+    pub fn tick_status(&mut self) -> bool {
         if self.status_timer > 0 {
             self.status_timer -= 1;
             if self.status_timer == 0 {
                 self.status_message = None;
+                return true;
             }
         }
+        false
     }
 
     #[allow(dead_code)] // exposed for /clear-session; not yet bound to a key
@@ -705,5 +760,112 @@ impl App {
         let max = self.max_context as f64;
         if max == 0.0 { return 0.0; }
         (used / max * 100.0).min(100.0)
+    }
+
+    /// Current slash-command popup entries for the prompt text, in the fixed
+    /// alphabetical order defined in `autocomplete::COMMANDS`. Empty when the
+    /// prompt does not start with '/' or nothing matches.
+    pub fn command_menu(&self) -> Vec<(&'static str, &'static str)> {
+        crate::autocomplete::menu_matches(&self.prompt_state.text())
+    }
+
+    /// True when the slash-command popup should be shown.
+    pub fn command_menu_open(&self) -> bool {
+        !self.command_menu_dismissed && !self.command_menu().is_empty()
+    }
+
+    /// Move the popup selection one entry up (wraps to the bottom).
+    pub fn command_menu_up(&mut self) {
+        let len = self.command_menu().len();
+        if len == 0 {
+            return;
+        }
+        self.command_menu_selected = (self.command_menu_selected + len - 1) % len;
+    }
+
+    /// Move the popup selection one entry down (wraps to the top).
+    pub fn command_menu_down(&mut self) {
+        let len = self.command_menu().len();
+        if len == 0 {
+            return;
+        }
+        self.command_menu_selected = (self.command_menu_selected + 1) % len;
+    }
+
+    /// The command string currently highlighted in the popup, if any.
+    pub fn command_menu_selection(&self) -> Option<&'static str> {
+        let menu = self.command_menu();
+        if menu.is_empty() {
+            return None;
+        }
+        let idx = self.command_menu_selected.min(menu.len() - 1);
+        Some(menu[idx].0)
+    }
+
+    /// Clamp the selection into range after the filtered list shrinks
+    /// (e.g. the user typed another character). Called when the prompt changes.
+    pub fn clamp_command_menu(&mut self) {
+        let len = self.command_menu().len();
+        if len == 0 {
+            self.command_menu_selected = 0;
+        } else if self.command_menu_selected >= len {
+            self.command_menu_selected = len - 1;
+        }
+    }
+
+    /// Complete the prompt with the currently highlighted command and dismiss
+    /// the popup. Commands that take arguments get a trailing space so the
+    /// user can keep typing; argument-less commands are left ready to submit.
+    pub fn complete_command(&mut self) {
+        if let Some(cmd) = self.command_menu_selection() {
+            let takes_args = matches!(
+                cmd,
+                "/config" | "/mode" | "/provider" | "/server" | "/load" | "/save" | "/context"
+            );
+            let text = if takes_args {
+                format!("{cmd} ")
+            } else {
+                cmd.to_string()
+            };
+            self.prompt_state.set_text(text);
+            self.command_menu_dismissed = true;
+            self.command_menu_selected = 0;
+        }
+    }
+}
+
+#[cfg(test)]
+mod git_branch_cache_tests {
+    use super::git_branch;
+    use std::time::Instant;
+
+    /// The render loop calls `git_branch()` every frame. The TTL cache must
+    /// make repeated calls cheap (no per-call `git` spawn) and consistent.
+    /// A per-frame spawn is what pegged macOS syspolicyd; this guards it.
+    #[test]
+    fn repeated_calls_are_cached_and_cheap() {
+        // Prime the cache once (may spawn git a single time).
+        let first = git_branch();
+
+        // Simulate a burst of frames. If each call spawned `git`, 2000
+        // iterations would take hundreds of ms to seconds; with the cache
+        // they are in-memory clones and finish near-instantly.
+        let start = Instant::now();
+        for _ in 0..2000 {
+            let b = git_branch();
+            // Value stays consistent within the TTL window.
+            assert_eq!(b, first);
+        }
+        let elapsed = start.elapsed();
+
+        // Generous bound: 2000 cached reads must be well under the time a
+        // single process spawn per call would cost. Even one git spawn is
+        // typically >1ms, so 2000 real spawns would be >>200ms.
+        assert!(
+            elapsed.as_millis() < 200,
+            "2000 cached git_branch() calls took {:?} — cache likely not working \
+             (would spawn git per frame)",
+            elapsed
+        );
     }
 }

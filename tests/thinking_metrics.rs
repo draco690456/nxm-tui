@@ -8,20 +8,8 @@
 
 #![allow(dead_code, unused_imports)]
 
-#[path = "../src/tool_types.rs"]
-mod tool_types;
-#[path = "../src/app.rs"]
-mod app;
-#[path = "../src/session.rs"]
-mod session;
-#[path = "../src/server_proc.rs"]
-mod server_proc;
-#[path = "../src/prompt.rs"]
-mod prompt;
-#[path = "../src/prompt_lines.rs"]
-mod prompt_lines;
 
-use app::{App, Role};
+use nxm_tui::app::{App, Role};
 
 #[test]
 fn push_token_streams_text_into_assistant_message() {

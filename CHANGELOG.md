@@ -1,5 +1,24 @@
 # Changelog
 
+# 2026-09-20
+
+## perf: draw-on-change + per-message history render cache (T3)
+- `event.rs`: idle poll 16 ms → 33 ms (~30 Hz wake-up; halves idle CPU).
+- `main.rs`: dirty flag — `terminal.draw` only on key/resize/token drain/
+  status/health change; the Thinking spinner keeps animating while working.
+- `history.rs`: per-message render cache (`HistoryCache`, key = content_len
+  + tool_parts + width): streaming re-renders only the last message instead
+  of reparsing the whole O(N) history each frame; resize invalidates all.
+- New `tests/history_cache.rs` (3 tests): repeated frames identical, streaming
+  token invalidation, resize re-wrap (output differential, not internals).
+- Infra forced by the perf change: lib target (`src/lib.rs`) — one module
+  graph; tests consume `nxm_tui::`, per-test `#[path]` mirrors deleted (they
+  had gone stale: test crates couldn't resolve `crate::autocomplete`). 9 test
+  files now compile: 64/64 green, clippy 0 error.
+- Includes the uncommitted command-menu work from the previous session
+  (autocomplete/handler/sidebar + tests/command_menu.rs) — entangled with the
+  lib conversion, so it rides in the same commit.
+
 # 2026-09-08
 
 ## feat: overlay render regression net + content-sized help

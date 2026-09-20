@@ -19,6 +19,36 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         return;
     }
 
+    // Slash-command popup: while open, arrows move the selection, Tab/Enter
+    // complete the highlighted command, Esc dismisses it. Handled before the
+    // generic key logic so it takes over navigation only when visible.
+    if app.command_menu_open() {
+        match key.code {
+            KeyCode::Up => {
+                app.command_menu_up();
+                return;
+            }
+            KeyCode::Down => {
+                app.command_menu_down();
+                return;
+            }
+            KeyCode::Tab => {
+                app.complete_command();
+                return;
+            }
+            KeyCode::Enter if key.modifiers != KeyModifiers::ALT => {
+                app.complete_command();
+                return;
+            }
+            KeyCode::Esc => {
+                app.command_menu_dismissed = true;
+                app.command_menu_selected = 0;
+                return;
+            }
+            _ => {}
+        }
+    }
+
     if key.code == KeyCode::Esc {
         if app.show_help {
             app.show_help = false;
@@ -399,9 +429,15 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             } else {
                 app.prompt_state.delete_char();
             }
+            // Editing the prompt re-opens the command popup if it applies.
+            app.command_menu_dismissed = false;
+            app.clamp_command_menu();
         }
         KeyCode::Char(c) => {
             app.prompt_state.insert_char(c);
+            // Editing the prompt re-opens the command popup if it applies.
+            app.command_menu_dismissed = false;
+            app.clamp_command_menu();
         }
         KeyCode::Up => {
             // History navigation with Alt/Ctrl modifiers

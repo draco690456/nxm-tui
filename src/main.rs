@@ -12,37 +12,13 @@ use ratatui::Terminal;
 use tokio::sync::mpsc;
 use tracing::info;
 
-mod app;
-mod agent;
-mod autocomplete;
-mod bottom;
-mod config;
-mod connection;
-mod event;
-mod handler;
-mod history;
-mod markdown;
-mod mode_bar;
-mod overlays;
-mod prompt;
-mod prompt_lines;
-mod provider;
-mod server_proc;
-mod session;
-mod sidebar;
-mod tool_overlay;
-mod tool_types;
-mod ui;
-
-// Utils module
-mod utils;
-
-use app::{App, Message, Role, RunState};
-use config::TuiConfig;
-use event::AppEvent;
-use handler::handle_key;
-use tool_types::{ApprovalRequest, ToolPart};
-use ui::render;
+use nxm_tui::app::{App, Message, Role, RunState};
+use nxm_tui::config::TuiConfig;
+use nxm_tui::event::AppEvent;
+use nxm_tui::handler::handle_key;
+use nxm_tui::tool_types::{ApprovalRequest, ToolPart};
+use nxm_tui::ui::render;
+use nxm_tui::{app, agent, event, provider};
 
 fn main() -> io::Result<()> {
     // Init logging (file-based, daily rotation)
@@ -131,6 +107,11 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
     let (approval_tx, mut approval_rx) = mpsc::unbounded_channel::<ApprovalRequest>();
     let mut inference_task: Option<tokio::task::JoinHandle<()>> = None;
 
+    // Draw-on-change (T3): the frame is rebuilt only when something visible
+    // changed (key, resize, token drain, status/health change, spinner tick).
+    // Idle ticks do no draw work at all.
+    let mut dirty = true;
+
     loop {
         if app.state == RunState::Quit {
             // D4: cancel any in-flight agent stream on quit (Ctrl-C / Ctrl-Q)
@@ -142,7 +123,10 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
             break;
         }
 
-        terminal.draw(|f| render(f, &app))?;
+        if dirty {
+            terminal.draw(|f| render(f, &mut app))?;
+            dirty = false;
+        }
 
         match event::poll_event()? {
             AppEvent::Key(key) => {
@@ -224,20 +208,24 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         });
                     }));
                 }
+                dirty = true;
             }
-            AppEvent::Resize(_, _) => {}
+            AppEvent::Resize(_, _) => {
+                dirty = true;
+            }
             AppEvent::Tick => {
                 app.tick = app.tick.wrapping_add(1);
-                app.tick_status();
-                app.check_server_health();
+                let mut changed = app.tick_status();
+                changed |= app.check_server_health();
 
                 if matches!(app.state, RunState::Thinking) {
                     while let Ok(req) = approval_rx.try_recv() {
-                        app.pending_approval = Some(crate::app::PendingApproval {
+                        app.pending_approval = Some(app::PendingApproval {
                             invocation: req.invocation,
                             reply: req.reply,
                         });
                         app.show_approval = true;
+                        changed = true;
                     }
                     while let Ok(part) = part_rx.try_recv() {
                         match part {
@@ -257,14 +245,21 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                             }
                             ToolPart::Error(e) => app.set_status(e),
                         }
+                        changed = true;
                     }
                     if let Some(ref handle) = inference_task {
                         if handle.is_finished() {
                             inference_task = None;
                             app.metrics.finish_response();
                             app.state = RunState::Running;
+                            changed = true;
                         }
                     }
+                }
+                // The Thinking spinner animates per tick: keep redrawing while
+                // working even when the stream stalls between tokens.
+                if changed || app.is_working() {
+                    dirty = true;
                 }
             }
         }

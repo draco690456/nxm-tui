@@ -10,7 +10,7 @@ use crate::sidebar::SidebarInfo;
 /// Sidebar threshold width - only show if terminal is wider than this.
 const SIDEBAR_THRESHOLD: u16 = 120;
 
-pub fn render(f: &mut Frame, app: &App) {
+pub fn render(f: &mut Frame, app: &mut App) {
     match app.state {
         RunState::NoServer => render_no_server(f),
         _ => {
@@ -41,7 +41,7 @@ pub fn render(f: &mut Frame, app: &App) {
     }
 }
 
-fn render_chat(f: &mut Frame, app: &App) {
+fn render_chat(f: &mut Frame, app: &mut App) {
     let area = f.area();
     let width = area.width;
     
@@ -87,6 +87,73 @@ fn render_chat(f: &mut Frame, app: &App) {
     crate::prompt::render_prompt(&app.prompt_state, chunks[4], f.buffer_mut());
     render_separator(f, chunks[5]);
     crate::bottom::render_bottom_3(f, app, chunks[6]);
+
+    // Slash-command popup floats just above the prompt when the user is
+    // typing a '/' command. Rendered last so it overlays the history.
+    render_command_menu(f, app, chunks[4]);
+}
+
+/// Render the slash-command completion popup anchored to the bottom of
+/// `prompt_area` (it grows upward, over the chat history). Highlights the
+/// selected entry. No-op when the popup is not open.
+fn render_command_menu(f: &mut Frame, app: &App, prompt_area: Rect) {
+    if !app.command_menu_open() {
+        return;
+    }
+    let menu = app.command_menu();
+    if menu.is_empty() {
+        return;
+    }
+
+    // Width: fit the longest "cmd  desc" line, clamped to the prompt width.
+    let content_w = menu
+        .iter()
+        .map(|(cmd, desc)| cmd.len() + 2 + desc.len())
+        .max()
+        .unwrap_or(20) as u16;
+    let popup_w = (content_w + 2).min(prompt_area.width).max(10); // +2 borders
+    let rows = menu.len() as u16;
+    let popup_h = rows + 2; // +2 borders
+
+    // Anchor bottom edge just above the prompt; clamp to the screen top.
+    let y = prompt_area.y.saturating_sub(popup_h);
+    let popup = Rect {
+        x: prompt_area.x,
+        y,
+        width: popup_w,
+        height: popup_h.min(prompt_area.y.max(1)),
+    };
+
+    let selected = app.command_menu_selected.min(menu.len().saturating_sub(1));
+    let lines: Vec<Line> = menu
+        .iter()
+        .enumerate()
+        .map(|(i, (cmd, desc))| {
+            let is_sel = i == selected;
+            let cmd_style = if is_sel {
+                Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::Cyan)
+            };
+            let desc_style = if is_sel {
+                Style::default().fg(Color::Black).bg(Color::Cyan)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+            Line::from(vec![
+                Span::styled(format!("{cmd}  "), cmd_style),
+                Span::styled((*desc).to_string(), desc_style),
+            ])
+        })
+        .collect();
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .title(" Commands (↑/↓ · Tab/Enter · Esc) ")
+        .border_style(Style::default().fg(Color::Cyan));
+
+    f.render_widget(Clear, popup);
+    f.render_widget(Paragraph::new(lines).block(block), popup);
 }
 
 fn render_no_server(f: &mut Frame) {

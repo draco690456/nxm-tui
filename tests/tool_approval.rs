@@ -13,24 +13,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
-#[path = "../src/tool_types.rs"]
-mod tool_types;
-#[path = "../src/app.rs"]
-mod app;
-#[path = "../src/session.rs"]
-mod session;
-#[path = "../src/server_proc.rs"]
-mod server_proc;
-#[path = "../src/prompt.rs"]
-mod prompt;
-#[path = "../src/prompt_lines.rs"]
-mod prompt_lines;
-#[path = "../src/agent.rs"]
-mod agent;
 
-use agent::Agent;
-use app::{App, Message, PendingApproval, Role};
-use tool_types::{needs_approval, risk_badge, ApprovalRequest, ToolInvocation, ToolPart};
+use nxm_tui::agent::Agent;
+use nxm_tui::app::{App, Message, PendingApproval, Role};
+use nxm_tui::tool_types::{self, needs_approval, risk_badge, ApprovalRequest, ToolInvocation, ToolPart};
 
 #[test]
 fn policy_auto_approves_only_list_resources() {

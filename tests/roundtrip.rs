@@ -16,24 +16,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
-#[path = "../src/tool_types.rs"]
-mod tool_types;
-#[path = "../src/app.rs"]
-mod app;
-#[path = "../src/session.rs"]
-mod session;
-#[path = "../src/server_proc.rs"]
-mod server_proc;
-#[path = "../src/prompt.rs"]
-mod prompt;
-#[path = "../src/prompt_lines.rs"]
-mod prompt_lines;
-#[path = "../src/agent.rs"]
-mod agent;
 
-use agent::Agent;
-use app::{Message, Role};
-use tool_types::ToolPart;
+use nxm_tui::agent::Agent;
+use nxm_tui::app::{Message, Role};
+use nxm_tui::tool_types::ToolPart;
 
 /// Wrap an SSE `data:` payload in a minimal HTTP/1.1 response.
 fn sse(payload: &str) -> String {

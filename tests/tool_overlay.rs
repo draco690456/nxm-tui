@@ -7,23 +7,10 @@
 
 #![allow(dead_code, unused_imports)]
 
-#[path = "../src/tool_types.rs"]
-mod tool_types;
-#[path = "../src/app.rs"]
-mod app;
-#[path = "../src/session.rs"]
-mod session;
-#[path = "../src/server_proc.rs"]
-mod server_proc;
-#[path = "../src/prompt.rs"]
-mod prompt;
-#[path = "../src/prompt_lines.rs"]
-mod prompt_lines;
-#[path = "../src/tool_overlay.rs"]
-mod tool_overlay;
 
-use app::{App, Message, Role};
-use tool_types::{ToolInvocation, ToolPart, ToolResult};
+use nxm_tui::app::{App, Message, Role};
+use nxm_tui::tool_overlay;
+use nxm_tui::tool_types::{ToolInvocation, ToolPart, ToolResult};
 
 fn invocation(id: &str, name: &str, args: &str) -> Message {
     Message::with_tool(

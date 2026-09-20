@@ -10,7 +10,9 @@ pub enum AppEvent {
 }
 
 pub fn poll_event() -> std::io::Result<AppEvent> {
-    if event::poll(Duration::from_millis(16))? {
+    // ponytail: 33 ms idle wake-up (~30 Hz) — tokens drained per tick appear
+    // within one frame, imperceptible; halves idle CPU vs the old 16 ms poll.
+    if event::poll(Duration::from_millis(33))? {
         match event::read()? {
             Event::Key(key) => Ok(AppEvent::Key(key)),
             Event::Resize(w, h) => Ok(AppEvent::Resize(w, h)),

@@ -51,23 +51,12 @@ impl SidebarInfo {
 
 /// Get current git branch if in a git repository.
 /// Returns None if not in a git repo or if git command fails.
+///
+/// Delegates to the TTL-cached `app::git_branch()` so the sidebar (rendered
+/// every frame) does not spawn `git` per frame — that triggered a macOS
+/// Gatekeeper/syspolicyd malware-scan loop on the un-notarized binary.
 pub fn get_git_branch() -> Option<String> {
-    std::process::Command::new("git")
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()
-        .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .map(|s| s.trim().to_string())
-            } else {
-                None
-            }
-        })
-        .filter(|s| !s.is_empty())
+    crate::app::git_branch().filter(|s| !s.is_empty())
 }
 
 /// Render the sidebar into the provided buffer.

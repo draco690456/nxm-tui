@@ -6,31 +6,13 @@
 
 #![allow(dead_code, unused_imports)]
 
-#[path = "../src/tool_types.rs"]
-mod tool_types;
-#[path = "../src/app.rs"]
-mod app;
-#[path = "../src/session.rs"]
-mod session;
-#[path = "../src/server_proc.rs"]
-mod server_proc;
-#[path = "../src/prompt.rs"]
-mod prompt;
-#[path = "../src/prompt_lines.rs"]
-mod prompt_lines;
-#[path = "../src/history.rs"]
-mod history;
-#[path = "../src/markdown.rs"]
-mod markdown;
-#[path = "../src/overlays.rs"]
-mod overlays;
-#[path = "../src/tool_overlay.rs"]
-mod tool_overlay;
 
-use app::{App, Message, PendingApproval, Role};
+use nxm_tui::app::{App, Message, PendingApproval, Role};
+use nxm_tui::overlays;
+use nxm_tui::tool_overlay;
+use nxm_tui::tool_types::{ToolInvocation, ToolPart};
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
-use tool_types::{ToolInvocation, ToolPart};
 
 /// Render `draw` on an 80x24 headless terminal and return the whole screen
 /// as one string (all cell symbols concatenated row by row).

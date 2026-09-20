@@ -1,3 +1,4 @@
+use std::cell::Cell;
 use std::collections::VecDeque;
 use std::time::Instant;
 
@@ -344,11 +345,23 @@ pub fn parse_command(input: &str) -> Command {
 pub use crate::session::{list_sessions, load_session, save_session, session_dir};
 
 /// Get current directory name (for sidebar display).
+///
+/// Cached once: the render loop calls this every frame and
+/// `std::env::current_dir()` is a syscall per frame, while the process never
+/// chdirs mid-session. ponytail: computed once per process; switch to a TTL
+/// cache (like `git_branch`) if a future feature ever chdirs.
 pub fn current_dir_name() -> String {
-    std::env::current_dir()
-        .ok()
-        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-        .unwrap_or_default()
+    use std::sync::OnceLock;
+
+    static CACHE: OnceLock<String> = OnceLock::new();
+    CACHE
+        .get_or_init(|| {
+            std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_default()
+        })
+        .clone()
 }
 
 /// Get current git branch name (if in a git repository).
@@ -443,6 +456,10 @@ pub struct App {
     pub model_indexer: ModelRoleInfo,
     pub model_router: ModelRoleInfo,
     pub model_worker: ModelRoleInfo,
+    /// Memoized `estimated_tokens` — O(N) over messages, called several
+    /// times per frame by the render path. Fingerprinted by (len, last
+    /// message) so it recomputes only when messages actually change.
+    token_estimate_cache: Cell<Option<((usize, Option<(usize, u8)>), usize)>>,
     /// Sidebar visibility (auto/hide based on terminal width)
     pub sidebar_open: bool,
     /// Selected index in the slash-command popup. The popup is visible
@@ -583,6 +600,7 @@ impl App {
             model_indexer: ModelRoleInfo::none("Indexer"),
             model_router: ModelRoleInfo::none("Router"),
             model_worker: ModelRoleInfo::none("Worker"),
+            token_estimate_cache: Cell::new(None),
             sidebar_open: true,
             command_menu_selected: 0,
             command_menu_dismissed: false,
@@ -684,8 +702,35 @@ impl App {
         }
     }
 
+    /// Fingerprint of `messages` for the token-estimate cache: cheap O(1)
+    /// (message count + last-message identity). Sound because only the last
+    /// assistant message is ever mutated after push (`apply_token`); the
+    /// count changes on any new/cleared message.
+    fn messages_fingerprint(&self) -> (usize, Option<(usize, u8)>) {
+        (
+            self.messages.len(),
+            self.messages.last().map(|m| (m.content.len(), m.role as u8)),
+        )
+    }
+
+    /// Estimated token count for the transcript (len/4+4 per message,
+    /// floored at 8). Memoized — the render path calls this several times
+    /// per frame; recomputed only when messages change.
     pub fn estimated_tokens(&self) -> usize {
-        self.messages.iter().map(|m| m.content.len() / 4 + 4).sum::<usize>().max(8)
+        let fp = self.messages_fingerprint();
+        if let Some((cached_fp, value)) = self.token_estimate_cache.get() {
+            if cached_fp == fp {
+                return value;
+            }
+        }
+        let value = self
+            .messages
+            .iter()
+            .map(|m| m.content.len() / 4 + 4)
+            .sum::<usize>()
+            .max(8);
+        self.token_estimate_cache.set(Some((fp, value)));
+        value
     }
 
     pub fn server_is_running(&self) -> bool {

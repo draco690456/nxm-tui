@@ -2,6 +2,16 @@
 
 # 2026-09-20
 
+## perf: memoized token estimate + cached cwd (T4)
+- `app.rs`: `estimated_tokens` memoized in a `Cell` fingerprinted by
+  (messages.len(), last message) — O(N) walk ran 3-4× per frame in the
+  render path; recomputes only when messages change.
+- `app.rs`: `current_dir_name` cached once (`OnceLock`) — was a syscall
+  per frame; the process never chdirs (upgrade path: TTL if that changes).
+- New `tests/render_caches.rs` (4 tests): streaming growth (a len-only
+  cache key would serve stale 8), new-message recompute, differential
+  oracle vs a fresh App, cwd consistency. 68/68 green, clippy 0 error.
+
 ## perf: draw-on-change + per-message history render cache (T3)
 - `event.rs`: idle poll 16 ms → 33 ms (~30 Hz wake-up; halves idle CPU).
 - `main.rs`: dirty flag — `terminal.draw` only on key/resize/token drain/

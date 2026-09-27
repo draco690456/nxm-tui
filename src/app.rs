@@ -218,6 +218,8 @@ pub enum ProviderCommand {
     Use(String),
     /// `/provider remove <name>` — remove a custom provider.
     Remove(String),
+    /// `/provider set-key <name>` — store API key in keychain for provider.
+    SetKey(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -333,6 +335,10 @@ pub fn parse_command(input: &str) -> Command {
             },
             Some("remove") | Some("rm") | Some("del") => match tokens.get(2) {
                 Some(name) => Command::Provider(ProviderCommand::Remove(name.to_string())),
+                None => Command::Normal(input.to_string()),
+            },
+            Some("set-key") => match tokens.get(2) {
+                Some(name) => Command::Provider(ProviderCommand::SetKey(name.to_string())),
                 None => Command::Normal(input.to_string()),
             },
             _ => Command::Normal(input.to_string()),
@@ -470,6 +476,16 @@ pub struct App {
     /// command) so it stays closed until they edit the prompt again. Reset
     /// on the next keystroke that changes the prompt text.
     pub command_menu_dismissed: bool,
+    /// Pending `/provider set-key` entry: provider name + secret buffer.
+    /// The buffer is ZEROED after save or Esc — key never lingers in memory.
+    pub set_key_pending: Option<SetKeyEntry>,
+}
+
+/// Entry for `/provider set-key` prompt: provider name + masked buffer.
+#[derive(Debug, Clone)]
+pub struct SetKeyEntry {
+    pub provider: String,
+    pub buffer: String,
 }
 
 #[derive(Debug, Clone)]
@@ -604,6 +620,7 @@ impl App {
             sidebar_open: true,
             command_menu_selected: 0,
             command_menu_dismissed: false,
+            set_key_pending: None,
         }
     }
 

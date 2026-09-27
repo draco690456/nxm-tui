@@ -16,6 +16,7 @@ use nxm_tui::app::{App, Message, Role, RunState};
 use nxm_tui::config::TuiConfig;
 use nxm_tui::event::AppEvent;
 use nxm_tui::handler::handle_key;
+use nxm_tui::keys::{resolve_key, KeyResolution};
 use nxm_tui::tool_types::{ApprovalRequest, ToolPart};
 use nxm_tui::ui::render;
 use nxm_tui::{app, agent, event, provider};
@@ -193,10 +194,35 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                     let base = app.endpoint.clone();
                     let client = reqwest::Client::new();
                     let model = cfg.model_name.clone().unwrap_or_else(|| "default".to_string());
-                    let api_key = cfg.api_key.clone();
                     let initial_msgs = app.messages.clone();
                     let tx = part_tx.clone();
                     let approval = approval_tx.clone();
+
+                    // Resolve API key for the active provider (once per agent spawn)
+                    let providers = provider::all_providers(&cfg.providers);
+                    let active_provider = providers.iter().find(|p| {
+                        p.base_url == base || p.base_url.trim_end_matches("/v1") == base.trim_end_matches("/v1")
+                    }).cloned();
+
+                    let api_key = if let Some(ref p) = active_provider {
+                        if p.requires_api_key {
+                            let provider = p.clone();
+                            match tokio::task::spawn_blocking(move || resolve_key(&provider)).await {
+                                Ok(resolution) => {
+                                    // One-time warning if keychain unavailable and key from env
+                                    if let KeyResolution::Env { keychain_available: false, .. } = &resolution {
+                                        app.set_status("keychain non disponibile — key da env (non persistente)".to_string());
+                                    }
+                                    resolution.into_key()
+                                }
+                                Err(_) => None,
+                            }
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    };
 
                     inference_task = Some(tokio::spawn(async move {
                         let mut agent = agent::Agent::new(

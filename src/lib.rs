@@ -19,6 +19,7 @@ pub mod mode_bar;
 pub mod overlays;
 pub mod prompt;
 pub mod prompt_lines;
+pub mod keys;
 pub mod provider;
 pub mod server_proc;
 pub mod session;

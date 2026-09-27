@@ -29,6 +29,10 @@ pub struct Provider {
     /// Conventional env var carrying the key (e.g. `"NVIDIA_API_KEY"`), if any.
     #[serde(default)]
     pub api_key_env: Option<String>,
+    /// Default model for this provider (set via `/provider use` or `/models`).
+    /// `#[serde(default)]` so existing configs without it deserialize to `None`.
+    #[serde(default)]
+    pub default_model: Option<String>,
     /// True for cloud services (no local process to auto-detect).
     #[serde(default)]
     pub is_cloud: bool,
@@ -43,6 +47,7 @@ impl Provider {
                 base_url: "http://127.0.0.1:11434".into(),
                 requires_api_key: false,
                 api_key_env: None,
+                default_model: None,
                 is_cloud: false,
             },
             Provider {
@@ -50,6 +55,7 @@ impl Provider {
                 base_url: "http://127.0.0.1:11434/v1".into(),
                 requires_api_key: false,
                 api_key_env: None,
+                default_model: None,
                 is_cloud: false,
             },
             Provider {
@@ -57,6 +63,7 @@ impl Provider {
                 base_url: "http://127.0.0.1:1234/v1".into(),
                 requires_api_key: false,
                 api_key_env: None,
+                default_model: None,
                 is_cloud: false,
             },
             Provider {
@@ -64,6 +71,7 @@ impl Provider {
                 base_url: "https://integrate.api.nvidia.com/v1".into(),
                 requires_api_key: true,
                 api_key_env: Some("NVIDIA_API_KEY".into()),
+                default_model: None,
                 is_cloud: true,
             },
         ]
@@ -90,6 +98,7 @@ impl Provider {
             base_url: base_url.to_string(),
             requires_api_key: is_cloud,
             api_key_env: None,
+            default_model: None,
             is_cloud,
         })
     }

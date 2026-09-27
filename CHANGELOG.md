@@ -1,5 +1,19 @@
 # Changelog
 
+# 2026-09-27
+
+## Sotto-tappa 2 — Migrazione a repo autonomo + fix remotes (Tappa 2 MIGRATION-PLAN)
+- **Remotes riordinati** (ADR-002/ADR-003):
+  - `origin` → `draco690456/nxm-tui` (privato, dev source of truth)
+  - `public` → `dangranaz/nxm-tui` (pubblico, mirror gestito da `nxm-sync` Tappa 3)
+  - Rimosso `upstream` → `nxm-ai/nxm-tui` (morto)
+  - `main` tracka `origin/main` (privato)
+- **Script smontato** (ADR-001 §3): `scripts/sync-nxm-tui-from-private.sh` → `nxm-tui/scripts/` (duplicato).
+  - Annotato: candidato per consolidamento in `nxm-sync` (Tappa 3, ADR-005).
+- **Già allineato ADR-001 rev**: nessuna core-lib esterna (`nxm-shared/core/model/sampler` non usate).
+- `cargo build --workspace` + `cargo test --workspace`: build **verde**, test 10/13 pass (3 flaky keychain mock).
+- Checkout spostato in `~/Projects/private/nxm-tui` (radice prodotti privati).
+
 # 2026-09-20
 
 ## perf: memoized token estimate + cached cwd (T4)

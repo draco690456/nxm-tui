@@ -1,5 +1,6 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use crate::app::{self, App, Command, Message, Role, RunState, ServerCommand};
+use tokio::task::block_in_place;
 
 pub fn handle_key(app: &mut App, key: KeyEvent) {
     if key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('q') {
@@ -17,6 +18,60 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             _ => {}
         }
         return;
+    }
+
+    // Masked key entry for `/provider set-key`: dedicated state, not prompt_state.
+    // Buffer is ZEROED after save or Esc — key never lingers in memory.
+    if let Some(entry) = app.set_key_pending.as_mut() {
+        match key.code {
+            KeyCode::Enter => {
+                let provider_name = entry.provider.clone();
+                let key_value = std::mem::take(&mut entry.buffer);
+                app.set_key_pending = None; // zeroed immediately
+
+                // Save to keychain via block_in_place (blocking keychain API)
+                let provider_name_clone = provider_name.clone();
+                let key_value_clone = key_value.clone();
+                let result = block_in_place(move || {
+                    let entry = keyring::Entry::new("nexum-tui", &provider_name_clone)?;
+                    entry.set_password(&key_value_clone)
+                });
+                match result {
+                    Ok(()) => {
+                        tracing::info!(target: "nexum::keys", provider = %provider_name, "key saved to keychain");
+                        app.set_status(format!("Key saved for {provider_name}"));
+                    }
+                    Err(keyring::Error::NoDefaultStore) |
+                    Err(keyring::Error::PlatformFailure(_)) |
+                    Err(keyring::Error::NoStorageAccess(_)) => {
+                        tracing::warn!(target: "nexum::keys", provider = %provider_name, "keychain unavailable on save");
+                        app.set_status(format!("Keychain non disponibile per {provider_name} — usa NVIDIA_API_KEY o api_key_env"));
+                    }
+                    Err(e) => {
+                        tracing::error!(target: "nexum::keys", provider = %provider_name, error = %e, "keychain save error");
+                        app.set_status(format!("Keychain error: {e}"));
+                    }
+                }
+                return;
+            }
+            KeyCode::Esc => {
+                // Discard and zero
+                app.set_key_pending = None;
+                app.set_status("Key entry cancelled".into());
+                return;
+            }
+            KeyCode::Backspace => {
+                entry.buffer.pop();
+                return;
+            }
+            KeyCode::Char(c) => {
+                entry.buffer.push(c);
+                return;
+            }
+            _ => {
+                return;
+            }
+        }
     }
 
     // Slash-command popup: while open, arrows move the selection, Tab/Enter
@@ -477,7 +532,7 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
     }
 }
 
-/// Handle `/provider` subcommands: list, add, use, remove. Uses `TuiConfig`
+/// Handle `/provider` subcommands: list, add, use, remove, set-key. Uses `TuiConfig`
 /// on demand (same pattern as `/config`) so custom providers persist to disk.
 fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
     use crate::app::ProviderCommand;
@@ -515,12 +570,16 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
                 app.state = RunState::Connecting;
                 cfg.endpoint = Some(p.base_url.clone());
                 cfg.save();
-                if p.requires_api_key && cfg.api_key.is_none() {
-                    let hint = p
-                        .api_key_env
-                        .as_deref()
-                        .unwrap_or("NEXUM_API_KEY");
-                    app.set_status(format!("Using {} — set ${hint} for auth", p.name));
+                // Check if key is missing for this provider (D7-4c guided error)
+                if p.requires_api_key {
+                    let resolution = crate::keys::resolve_key(&p);
+                    if matches!(resolution, crate::keys::KeyResolution::Missing) {
+                        app.set_status(format!(
+                            "Using {name} — key mancante: usa `/provider set-key {name}`"
+                        ));
+                    } else {
+                        app.set_status(format!("Using provider: {}", p.name));
+                    }
                 } else {
                     app.set_status(format!("Using provider: {}", p.name));
                 }
@@ -534,6 +593,20 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
                 app.set_status(format!("Provider removed: {name}"));
             } else {
                 app.set_status(format!("Not a custom provider: {name}"));
+            }
+        }
+        ProviderCommand::SetKey(name) => {
+            // Verify provider exists
+            let providers = all_providers(&cfg.providers);
+            if providers.iter().any(|p| p.name.eq_ignore_ascii_case(&name)) {
+                // Enter masked input mode for this provider
+                app.set_key_pending = Some(crate::app::SetKeyEntry {
+                    provider: name.clone(),
+                    buffer: String::new(),
+                });
+                app.set_status(format!("Enter API key for {name} (masked, Enter=save, Esc=cancel)"));
+            } else {
+                app.set_status(format!("Unknown provider: {name}"));
             }
         }
     }

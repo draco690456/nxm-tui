@@ -37,6 +37,10 @@ pub fn render(f: &mut Frame, app: &mut App) {
             if app.show_approval {
                 crate::tool_overlay::render_approval(f, app);
             }
+            // Set-key overlay (modal, on top)
+            if app.set_key_pending.is_some() {
+                render_set_key_overlay(f, app);
+            }
         }
     }
 }
@@ -460,6 +464,54 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
     let block = Block::default()
         .title(" Context Budget ")
         .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
+        .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+    f.render_widget(block, overlay);
+
+    let inner = Rect::new(x + 1, y + 1, w.saturating_sub(2), h.saturating_sub(2));
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Render the masked key entry overlay for `/provider set-key`.
+/// Shows provider name and masked buffer (• per character).
+fn render_set_key_overlay(f: &mut Frame, app: &mut App) {
+    if app.set_key_pending.is_none() {
+        return;
+    }
+    let area = f.area();
+    let w = area.width.min(60);
+    let h = 7u16;
+    let x = (area.width.saturating_sub(w)) / 2;
+    let y = (area.height.saturating_sub(h)) / 2;
+    let overlay = Rect::new(x, y, w, h);
+
+    let entry = app.set_key_pending.as_ref().unwrap();
+    let masked: String = "•".repeat(entry.buffer.len());
+
+    let lines = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Provider: ", Style::default().fg(Color::Cyan)),
+            Span::raw(&entry.provider),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Key:      ", Style::default().fg(Color::Cyan)),
+            Span::raw(&masked),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  Enter ", Style::default().fg(Color::Green)),
+            Span::raw(" save  ·  "),
+            Span::styled("Esc", Style::default().fg(Color::Red)),
+            Span::raw(" cancel"),
+        ]),
+    ];
+
+    let block = Block::default()
+        .title(" Set API Key ")
+        .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));

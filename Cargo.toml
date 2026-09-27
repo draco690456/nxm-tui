@@ -51,7 +51,13 @@ shellexpand = "3"
 toml = "1"
 chrono = "0.4"
 
+# Keychain access (Rust 1.88+)
+keyring = "4.2.0"
+
 # Pure-Rust tool actuators (web_search, read_file, list_resources).
 # Now a workspace member (moved here from nxm-mcp-servers). Kept importable as
 # `nxm_tools` via package rename so existing `use nxm_tools::...` keeps working.
 nxm-tui-tools = { path = "nxm-tui-tools" }
+
+[dev-dependencies]
+keyring-core = "1.0"

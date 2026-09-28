@@ -1,0 +1,28 @@
+[package]
+name = "p1-tui-skeleton"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "P1 prototype: minimal pure-Rust Nexum TUI skeleton (ratatua + crossterm). Throwaway — for reaction."
+publish = false
+
+[dependencies]
+# TUI stack (decided in D2 = ratatui + crossterm); versions match the in-house nxm-tui anchor.
+ratatui = "0.29"
+crossterm = "0.28"
+# Async runtime foundation (engines are reached over HTTP; streaming later).
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+tracing = "0.1"
+# NOTE: a throwaway prototype uses a minimal subscriber; the real crate must use
+# nxm-shared logging utilities per RULES.md (target "nexum::tui::runtime").
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[profile.release]
+opt-level = 3
+
+# Isolate this throwaway prototype from the nxm-harness workspace:
+# cargo auto-includes nested Cargo.tomls as workspace members; an empty
+# [workspace] table makes this crate its own workspace root.
+[workspace]

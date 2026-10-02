@@ -53,6 +53,7 @@ dirs = "6"
 shellexpand = "3"
 toml = "1"
 chrono = "0.4"
+regex = "1.13.1"
 
 # Keychain access (Rust 1.88+)
 keyring = "4.2.0"

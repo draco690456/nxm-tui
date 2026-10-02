@@ -22,6 +22,7 @@ pub mod prompt;
 pub mod prompt_lines;
 pub mod keys;
 pub mod provider;
+pub mod search;
 pub mod server_proc;
 pub mod session;
 pub mod sidebar;

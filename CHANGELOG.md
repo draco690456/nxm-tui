@@ -2,6 +2,28 @@
 
 # 2026-10-02
 
+## feat: scrollback search primitives — ported from grok-build (search module)
+- New `src/search.rs` (vendor adoption, prio #1 di VENDOR-TUI-ANALYSIS):
+  `QueryKind {Substring, Regex}` + `TextMatcher` (smart-case alla Vim/ripgrep:
+  case-insensitive salvo maiuscole nella query; substring via `regex::escape`)
+  e `next_index_after`/`prev_index_before` (navigazione `n`/`N` con wrap su
+  slice ordinata). Adattato da grok-build `xai-grok-pager-render/src/search`
+  (xai-org/grok-build, Apache-2.0).
+- **Conformità RULES.md** (il port corregge la fonte): niente `unwrap`/`expect`
+  in prod — il campo `regex` è `Option<regex::Regex>` (regex invalida → `None`
+  + `is_error`, `is_match` → false, nessun panic path); test spostati in
+  `tests/search.rs` (no `#[cfg(test)]` inline); logging `tracing` target
+  `nexum::search`; doc `///` con doctest; header licenza + `THIRD-PARTY-NOTICES.md`.
+- Cargo: `regex = "1.13.1"` (pin esatto, versione realmente risolta).
+- Verifica (revisore indipendente): `cargo test --test search` 9/9,
+  `cargo test --doc` 3/3, clippy 0 menzioni di `search.rs`. NON ancora cablato
+  nella UI (campo query in bottom bar + highlight match + tasti `n`/`N`) — step
+  successivo.
+- Debito preesistente confermato (non introdotto qui): i test inline di
+  `keys.rs` falliscono in esecuzione parallela per mock-keychain globale
+  condiviso (verdi con `--test-threads=1`); si lega alla violazione RULES.md
+  "test inline" di `keys.rs`.
+
 ## docs: riconciliazione ticket wayfinder col codice (P3 ✅, T2 parziale)
 - Audit tracker vs codice: l'handoff 2026-09-20 indicava "prossima sessione:
   implementa P3", ma P3 risulta **già implementato e committato** (arrivato con

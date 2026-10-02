@@ -11,6 +11,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 | Ticket | Labels | Nota |
 |---|---|---|
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
+| [I3-keystore-cleanup-migrate.md](I3-keystore-cleanup-migrate.md) | `wayfinder:task` | **Open · unblocked** (follow-up I2): decidere destino di `resolve_key` legacy (ancora usato da `tests/keys.rs`, NON morto) — rimuovere con test migrati sul seam, o documentare come legacy/test-only; + `/provider migrate-keys` (keychain nativo → file cifrato, idempotente, mai-log). |
 | *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale. `search` CABLATO (T5 ✅). |
 | *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). Residuo: `Message`/`Role`, split `main.rs::run`. |
 

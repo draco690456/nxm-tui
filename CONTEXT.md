@@ -25,8 +25,9 @@ an interactive chat interface in the terminal.
 - MCP host subsystem (`src/mcp/`): client/host that spawns an MCP server via
   stdio, declares the `sampling` capability, and serves `sampling/createMessage`
   by bridging to the LLM backend (auto-approved). Unblocks server tools like
-  `generate_handoff`. See `docs/mcp/ARCHITECTURE.md`. Not yet wired into the
-  `main.rs` runtime (refinement roadmap in the doc).
+  `generate_handoff`. See `docs/mcp/ARCHITECTURE.md`. Wired into the `main.rs`
+  runtime at startup via `mcp::connect_from_config` (clean skip when disabled or
+  the server binary is absent; chat never blocked).
 
 ## Dependencies
 - ratatui + crossterm for TUI rendering

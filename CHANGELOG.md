@@ -2,6 +2,23 @@
 
 # 2026-10-02
 
+## feat: wire MCP host into the runtime (startup session)
+- `src/mcp/mod.rs`: new `connect_from_config(cfg, endpoint) -> Result<Option<McpHandle>>`
+  helper — resolves the active provider's API key (keychain→env, off-runtime
+  via `spawn_blocking`, value never logged) and delegates to `connect_if_present`.
+  Clean no-op (`Ok(None)`) when `cfg.mcp.enabled=false` or the server binary is
+  absent.
+- `src/main.rs`: at startup, when the endpoint is `Running`, open an MCP session
+  and keep the `McpHandle` alive for the whole loop (`_mcp` binding; drop stops
+  the run loop). Connect failure logs a warning and continues — chat is never
+  blocked. (Closes roadmap item #6 in `docs/mcp/ARCHITECTURE.md`.)
+- Known limitation (noted, not addressed): a session connected via the NoServer
+  menu *after* startup is not yet given an MCP session (handle is computed once
+  pre-loop). Startup auto-detect path — the common case — is covered.
+- Tests: `tests/mcp_sampling.rs` +2 — `connect_from_config` clean-skip when
+  disabled and when the binary is absent (deterministic, headless). mcp_sampling
+  6/6, mcp_protocol 5/5. clippy: 0 on touched files.
+
 ## feat: scrollback search primitives — ported from grok-build (search module)
 - New `src/search.rs` (vendor adoption, prio #1 di VENDOR-TUI-ANALYSIS):
   `QueryKind {Substring, Regex}` + `TextMatcher` (smart-case alla Vim/ripgrep:

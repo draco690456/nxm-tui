@@ -103,6 +103,25 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
         }
     }
 
+    // MCP host (sampling): open a session if enabled and the server binary is
+    // present. Kept alive for the whole loop via `_mcp` (dropping it stops the
+    // run loop). A clean no-op when disabled/absent — never blocks chat.
+    let _mcp = if app.state == RunState::Running {
+        match nxm_tui::mcp::connect_from_config(&cfg, &app.endpoint).await {
+            Ok(Some(handle)) => {
+                info!(endpoint = %app.endpoint, "MCP session open");
+                Some(handle)
+            }
+            Ok(None) => None,
+            Err(e) => {
+                tracing::warn!(error = %e, "MCP connect failed; continuing without it");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     // Main loop
     let (part_tx, mut part_rx) = mpsc::unbounded_channel::<ToolPart>();
     let (approval_tx, mut approval_rx) = mpsc::unbounded_channel::<ApprovalRequest>();

@@ -30,7 +30,7 @@ pub mod transport;
 
 use anyhow::Result;
 use reqwest::Client;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::mcp::client::{spawn_session, McpClient, McpHandle};
 use crate::mcp::sampling::LlmSamplingHandler;
@@ -69,4 +69,71 @@ pub async fn connect_if_present(
     client.initialize().await?;
     let handle = spawn_session(client);
     Ok(Some(handle))
+}
+
+/// Open an MCP session from the TUI config and active endpoint, resolving the
+/// provider API key the same way the agent does.
+///
+/// This is the single entry point `main.rs` calls at startup. It is a clean
+/// no-op (returns `Ok(None)`) when `cfg.mcp.enabled` is false or the server
+/// binary is absent, so the normal chat path is never affected.
+///
+/// The resolved key value is NEVER logged (only its source), per `RULES.md`.
+///
+/// # Example
+///
+/// ```ignore
+/// let handle = nxm_tui::mcp::connect_from_config(&cfg, &endpoint).await?;
+/// // keep `handle` alive for the session; dropping it stops the run loop.
+/// ```
+pub async fn connect_from_config(
+    cfg: &crate::config::TuiConfig,
+    endpoint: &str,
+) -> Result<Option<McpHandle>> {
+    if !cfg.mcp.enabled {
+        info!(target: TARGET, "MCP disabled in config; skipping");
+        return Ok(None);
+    }
+
+    let model = cfg
+        .model_name
+        .clone()
+        .unwrap_or_else(|| "default".to_string());
+
+    // Resolve the active provider's key (keychain → env), off the async
+    // runtime for the blocking keychain call. Key source is logged, never the
+    // value.
+    let providers = crate::provider::all_providers(&cfg.providers);
+    let active = providers.iter().find(|p| {
+        p.base_url == endpoint
+            || p.base_url.trim_end_matches("/v1") == endpoint.trim_end_matches("/v1")
+    });
+
+    let api_key = match active {
+        Some(p) if p.requires_api_key => {
+            let provider = p.clone();
+            match tokio::task::spawn_blocking(move || crate::keys::resolve_key(&provider)).await {
+                Ok(resolution) => {
+                    debug!(target: TARGET, source = resolution.source(), "resolved MCP backend key");
+                    resolution.into_key()
+                }
+                Err(e) => {
+                    warn!(target: TARGET, error = %e, "key resolution task failed; proceeding without key");
+                    None
+                }
+            }
+        }
+        _ => None,
+    };
+
+    let http = Client::new();
+    connect_if_present(
+        &cfg.mcp.command,
+        &cfg.mcp.args,
+        http,
+        endpoint.to_string(),
+        model,
+        api_key,
+    )
+    .await
 }

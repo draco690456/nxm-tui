@@ -136,3 +136,35 @@ async fn live_initialize_against_real_server_if_present() {
         "expected a live session handle when the binary is present"
     );
 }
+
+/// `connect_from_config` is a clean no-op (`Ok(None)`) when MCP is disabled in
+/// config — it must never spawn anything or touch the network. Deterministic,
+/// headless-safe (no binary / PATH dependency).
+#[tokio::test]
+async fn connect_from_config_skips_when_disabled() {
+    let mut cfg = nxm_tui::config::TuiConfig::default();
+    cfg.mcp.enabled = false;
+
+    let result = nxm_tui::mcp::connect_from_config(&cfg, "http://127.0.0.1:11434")
+        .await
+        .expect("disabled MCP must not error");
+
+    assert!(result.is_none(), "disabled MCP must yield Ok(None)");
+}
+
+/// `connect_from_config` cleanly skips (`Ok(None)`) when enabled but the server
+/// binary is absent — the normal chat path must never be blocked by a missing
+/// MCP server. Uses an implausible binary name so the probe deterministically
+/// fails regardless of host.
+#[tokio::test]
+async fn connect_from_config_skips_when_binary_absent() {
+    let mut cfg = nxm_tui::config::TuiConfig::default();
+    cfg.mcp.enabled = true;
+    cfg.mcp.command = "nxm-nonexistent-mcp-binary-xyzzy".to_string();
+
+    let result = nxm_tui::mcp::connect_from_config(&cfg, "http://127.0.0.1:11434")
+        .await
+        .expect("absent binary must be a clean skip, not an error");
+
+    assert!(result.is_none(), "absent binary must yield Ok(None)");
+}

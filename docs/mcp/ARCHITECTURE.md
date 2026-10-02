@@ -100,9 +100,12 @@ binary is absent, `connect_if_present` returns `Ok(None)` — a clean skip.
 5. **Socket transport.** If an externally-launched, shared server must be
    reachable, add `--transport socket` on the server side and a Unix-socket
    transport here. `StdioTransport` is the interface to generalize.
-6. **Wiring into the app runtime.** `connect_if_present` is implemented and
-   verified but not yet called from `main.rs`; decide when a session is opened
-   (on demand for handoff vs. at startup) and surface status in the bottom bar.
+6. **Wiring into the app runtime.** ✅ Done (2026-10-02): `connect_from_config`
+   is called from `main.rs` at startup when the endpoint is `Running`; the
+   `McpHandle` is kept alive for the loop. Open sub-item: a session connected
+   via the NoServer menu *after* startup is not yet given an MCP session (the
+   handle is computed once, pre-loop) — wire it on the `Connecting→Running`
+   transition when needed. Status in the bottom bar is still TODO.
 7. **Model preferences → model selection.** `ModelPreferences` (hints +
    priorities) is parsed but not yet used to pick a model; map hints to the
    configured provider's models.

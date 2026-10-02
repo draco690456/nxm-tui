@@ -15,6 +15,7 @@ pub mod event;
 pub mod handler;
 pub mod history;
 pub mod markdown;
+pub mod mcp;
 pub mod mode_bar;
 pub mod overlays;
 pub mod prompt;

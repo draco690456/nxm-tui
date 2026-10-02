@@ -15,6 +15,33 @@ pub struct TuiConfig {
     /// API keys are NEVER stored on this struct's disk form (see `keys.rs`).
     #[serde(default)]
     pub providers: Vec<crate::provider::Provider>,
+    /// MCP host settings (server to spawn for sampling). See `crate::mcp`.
+    #[serde(default)]
+    pub mcp: McpConfig,
+}
+
+/// Configuration for the MCP host subsystem.
+///
+/// The TUI spawns `command args...` as its own stdio child when `enabled` and
+/// the binary is launchable, then serves `sampling/createMessage` from it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpConfig {
+    /// Whether to attempt an MCP session at all.
+    pub enabled: bool,
+    /// Server binary (name on PATH or absolute path).
+    pub command: String,
+    /// Arguments passed to the server binary.
+    pub args: Vec<String>,
+}
+
+impl Default for McpConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            command: "nxm-session-mcp".to_string(),
+            args: vec!["--transport".to_string(), "stdio".to_string()],
+        }
+    }
 }
 
 impl Default for TuiConfig {
@@ -25,6 +52,7 @@ impl Default for TuiConfig {
             sidebar_open: Some(true),
             max_context: Some(8192),
             providers: Vec::new(),
+            mcp: McpConfig::default(),
         }
     }
 }

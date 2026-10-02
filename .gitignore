@@ -2,3 +2,5 @@
 **/*.rs.bk
 .DS_Store
 /.cargo/config.toml
+# Runtime session registry/archives written by the MCP session server
+/sessions

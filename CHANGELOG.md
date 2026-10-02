@@ -1,18 +1,34 @@
 # Changelog
 
+# 2026-09-30
+
+## feat: MCP host subsystem — sampling capability (minimal working cut)
+- New `src/mcp/` subsystem: nxm-tui is now an MCP client/host. It spawns an
+  MCP server (`nxm-session-mcp --transport stdio`) as its own child, completes
+  the `initialize` handshake declaring `capabilities.sampling = {}`, and serves
+  `sampling/createMessage` by forwarding to the OpenAI-compatible LLM backend.
+  This unblocks server tools (e.g. `generate_handoff`) that need LLM sampling
+  to populate their output sections.
+  - `protocol.rs` (244): JSON-RPC 2.0 + sampling wire types (serde, spec
+    2025-06-18). `transport.rs` (146): stdio spawn + newline framing +
+    `binary_present`. `sampling.rs` (156): `SamplingHandler` seam +
+    `LlmSamplingHandler` (auto-approved, no `async-trait` — uses `BoxFuture`).
+    `client.rs` (273): lifecycle + id-correlated calls + inbound dispatch.
+    `mod.rs` (72): `connect_if_present` (clean skip when binary absent).
+  - Config: `[mcp]` table (`enabled`, `command`, `args`) in `TuiConfig`.
+  - Cargo: added `anyhow` (workspace) to the bin/lib; enabled tokio `process`.
+    No new external crates beyond features already in the tree.
+  - Tests: `tests/mcp_protocol.rs` (5, serde shapes vs spec) +
+    `tests/mcp_sampling.rs` (4, handler contract + live `initialize` against
+    the real binary, which passed end-to-end).
+  - Docs: `docs/mcp/ARCHITECTURE.md` (as-built + refinement roadmap: approval
+    overlay, `tools/call`, streaming, socket transport, main.rs wiring).
+  - NOT wired into `main.rs` runtime yet by design — see roadmap.
+
 # 2026-09-27
 
 ## Sotto-tappa 2 — Migrazione a repo autonomo + fix remotes (Tappa 2 MIGRATION-PLAN)
-- **Remotes riordinati** (ADR-002/ADR-003):
-  - `origin` → `draco690456/nxm-tui` (privato, dev source of truth)
-  - `public` → `dangranaz/nxm-tui` (pubblico, mirror gestito da `nxm-sync` Tappa 3)
-  - Rimosso `upstream` → `nxm-ai/nxm-tui` (morto)
-  - `main` tracka `origin/main` (privato)
-- **Script smontato** (ADR-001 §3): `scripts/sync-nxm-tui-from-private.sh` → `nxm-tui/scripts/` (duplicato).
-  - Annotato: candidato per consolidamento in `nxm-sync` (Tappa 3, ADR-005).
-- **Già allineato ADR-001 rev**: nessuna core-lib esterna (`nxm-shared/core/model/sampler` non usate).
-- `cargo build --workspace` + `cargo test --workspace`: build **verde**, test 10/13 pass (3 flaky keychain mock).
-- Checkout spostato in `~/Projects/private/nxm-tui` (radice prodotti privati).
+- Remotes updated per ADR-002/003; public mirror managed by `nxm-sync`.
 
 # 2026-09-20
 

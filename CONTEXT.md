@@ -22,6 +22,11 @@ an interactive chat interface in the terminal.
 - Per-token metrics (tokens/sec now measured, Ctrl+M overlay)
 - Draw-on-change + 30 Hz idle polling (no busy redraw at 60 Hz)
 - Per-message history render cache (streaming re-renders one message, not O(N))
+- MCP host subsystem (`src/mcp/`): client/host that spawns an MCP server via
+  stdio, declares the `sampling` capability, and serves `sampling/createMessage`
+  by bridging to the LLM backend (auto-approved). Unblocks server tools like
+  `generate_handoff`. See `docs/mcp/ARCHITECTURE.md`. Not yet wired into the
+  `main.rs` runtime (refinement roadmap in the doc).
 
 ## Dependencies
 - ratatui + crossterm for TUI rendering

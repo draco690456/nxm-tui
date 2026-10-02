@@ -2,6 +2,30 @@
 
 # 2026-10-02
 
+## feat: provider/model commands — /models, /model use, /provider remove-key (T2)
+- Nuovo `src/models.rs` (212 righe): `ModelEntry` + `parse_models` (parser
+  tollerante R2: due envelope OpenAI `data[]` / Ollama `models[]`, id→name→model,
+  `created` int o ISO, chiavi ignote ignorate, cap 100) + `models_candidate_paths`
+  (normalizza `/v1` → mai `.../v1/v1/models`) + `fetch_models` async (fallback
+  path `/v1/models` → `/models` → `/api/tags`, 401 azionabile, server-down).
+- `/models` — lista dal provider attivo (fetch async nel loop di `main.rs`,
+  stato pending come `inference_task`, UI mai bloccata; key risolta per-provider
+  via `resolve_key`+`spawn_blocking`, mai loggata).
+- `/model use <id|numero>` — seleziona il modello (indice sulla lista o id),
+  imposta `cfg.model_name` + `Provider.default_model`, salva config.
+- `/provider remove-key <name>` (alias `rm-key`) — elimina la key dal keychain
+  (`delete_credential`) con guided error se keychain non disponibile.
+- Modello attivo mostrato nella mode bar (`src/mode_bar.rs`); `app.model_name`
+  sincronizzato da `cfg.model_name` all'avvio (entrambi i rami → Running).
+- Help (`overlays.rs`) + autocomplete aggiornati; sezione Security "API keys are
+  NEVER printed or logged".
+- Eseguito da free agent esterno, **2 round di review indipendente** (round 1:
+  4 difetti trovati — mode bar `—`, doppio `/v1`, api_key None, report
+  incompleto; round 2: tutti corretti). Verifica: `tests/models.rs` 16/16,
+  clippy 0 sui file toccati, 0 unwrap/expect prod. T2 → Resolved.
+- Debito confermato (non regressione): flakiness `keys` in parallelo (mock
+  keychain) — la risolverà il seam `KeyStore` di R5.
+
 ## feat: dev-friendly key loading — .env fallback, no keychain prompt
 - **Problema risolto**: `resolve_key` interrogava SEMPRE il keychain OS per
   primo → su macOS un dialog password a ogni spawn Agent (ogni messaggio),

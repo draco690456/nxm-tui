@@ -17,6 +17,7 @@ pub mod history;
 pub mod markdown;
 pub mod mcp;
 pub mod mode_bar;
+pub mod models;
 pub mod overlays;
 pub mod prompt;
 pub mod prompt_lines;

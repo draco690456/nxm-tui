@@ -437,6 +437,14 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 Command::Provider(pcmd) => {
                     handle_provider_command(app, pcmd);
                 }
+                Command::Models => {
+                    // Set pending state; the async main loop will fetch models.
+                    app.models_fetch_pending = Some(app.endpoint.clone());
+                    app.set_status("Fetching models...".into());
+                }
+                Command::ModelUse(x) => {
+                    handle_model_use(app, &x);
+                }
                 Command::Normal(text) => {
                     if let Some(sys) = app.system_prompt_for_mode() {
                         if !app.messages.iter().any(|m| {
@@ -532,8 +540,48 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
     }
 }
 
-/// Handle `/provider` subcommands: list, add, use, remove, set-key. Uses `TuiConfig`
-/// on demand (same pattern as `/config`) so custom providers persist to disk.
+/// Handle `/model use <id|numero>`: select a model from the current list.
+///
+/// If `x` is a number, it maps to the index in `app.models_list`.
+/// If `x` is a string, it matches the model id directly.
+/// Sets `cfg.model_name` and `Provider.default_model` for the active provider.
+fn handle_model_use(app: &mut App, x: &str) {
+    let model_id = if let Ok(idx) = x.parse::<usize>() {
+        // Numeric index into the current list
+        if idx == 0 || idx > app.models_list.len() {
+            app.set_status(format!("Invalid model index: {idx} (1-{})", app.models_list.len()));
+            return;
+        }
+        app.models_list[idx - 1].id.clone()
+    } else {
+        // Direct id match
+        if !app.models_list.iter().any(|m| m.id == x) {
+            app.set_status(format!("Unknown model: {x} — use /models to list available models"));
+            return;
+        }
+        x.to_string()
+    };
+
+    // Update config and provider default_model
+    let mut cfg = crate::config::TuiConfig::load();
+    cfg.model_name = Some(model_id.clone());
+
+    // Update the active provider's default_model
+    let providers = crate::provider::all_providers(&cfg.providers);
+    if let Some(active) = providers.iter().find(|p| p.base_url == app.endpoint) {
+        let mut updated = active.clone();
+        updated.default_model = Some(model_id.clone());
+        cfg.upsert_provider(updated);
+    }
+
+    cfg.save();
+    app.model_name = Some(model_id.clone());
+    app.set_status(format!("Model set to: {model_id}"));
+    tracing::info!(target: "nexum::models", model = %model_id, "model selected");
+}
+
+/// Handle `/provider` subcommands: list, add, use, remove, set-key, remove-key.
+/// Uses `TuiConfig` on demand (same pattern as `/config`) so custom providers persist to disk.
 fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
     use crate::app::ProviderCommand;
     use crate::provider::{all_providers, find_provider, Provider};
@@ -607,6 +655,34 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
                 app.set_status(format!("Enter API key for {name} (masked, Enter=save, Esc=cancel)"));
             } else {
                 app.set_status(format!("Unknown provider: {name}"));
+            }
+        }
+        ProviderCommand::RemoveKey(name) => {
+            // Delete key from keychain via block_in_place (blocking keychain API)
+            let name_clone = name.clone();
+            let result = block_in_place(move || {
+                let entry = keyring::Entry::new("nexum-tui", &name_clone)?;
+                entry.delete_credential()
+            });
+            match result {
+                Ok(()) => {
+                    tracing::info!(target: "nexum::keys", provider = %name, "key removed from keychain");
+                    app.set_status(format!("Key removed for {name}"));
+                }
+                Err(keyring::Error::NoEntry) => {
+                    tracing::info!(target: "nexum::keys", provider = %name, "no keychain entry to remove");
+                    app.set_status(format!("No key found for {name}"));
+                }
+                Err(keyring::Error::NoDefaultStore) |
+                Err(keyring::Error::PlatformFailure(_)) |
+                Err(keyring::Error::NoStorageAccess(_)) => {
+                    tracing::warn!(target: "nexum::keys", provider = %name, "keychain unavailable on remove");
+                    app.set_status(format!("Keychain non disponibile per {name}"));
+                }
+                Err(e) => {
+                    tracing::error!(target: "nexum::keys", provider = %name, error = %e, "keychain remove error");
+                    app.set_status(format!("Keychain error: {e}"));
+                }
             }
         }
     }

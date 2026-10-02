@@ -11,6 +11,8 @@ static COMMANDS: &[(&str, &str)] = &[
     ("/load", "Load session"),
     ("/metrics", "Show metrics"),
     ("/mode", "Set agent mode: chat|architect|developer|researcher"),
+    ("/model use", "Select model by id or index"),
+    ("/models", "List models from active provider"),
     ("/new", "New session"),
     ("/provider", "Manage LLM providers: list|add|use|remove"),
     ("/quit", "Quit"),

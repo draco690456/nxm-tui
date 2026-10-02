@@ -28,31 +28,39 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::styled("  /quit  /q", Style::default().fg(Color::Magenta)),
             Span::raw("        Quit"),
         ]),
-        Line::from(""),
         Line::from(Span::styled(" Server", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
         Line::from(vec![
-            Span::styled("  /server start", Style::default().fg(Color::Magenta)),
-            Span::raw("   Start local server"),
+            Span::styled("  /server start|stop|status", Style::default().fg(Color::Magenta)),
+        ]),
+        Line::from(Span::styled(" Models", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(vec![
+            Span::styled("  /models", Style::default().fg(Color::Magenta)),
+            Span::raw("           List models from active provider"),
         ]),
         Line::from(vec![
-            Span::styled("  /server stop", Style::default().fg(Color::Magenta)),
-            Span::raw("    Stop local server"),
+            Span::styled("  /model use <id|n>", Style::default().fg(Color::Magenta)),
+            Span::raw("  Select model by id or index"),
         ]),
-        Line::from(vec![
-            Span::styled("  /server status", Style::default().fg(Color::Magenta)),
-            Span::raw("  Server status"),
-        ]),
-        Line::from(""),
         Line::from(Span::styled(" Modes", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
         Line::from(vec![
             Span::styled("  /mode chat|arch|dev|research", Style::default().fg(Color::Magenta)),
         ]),
-        Line::from(""),
         Line::from(Span::styled(" Sessions", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
         Line::from(vec![
             Span::styled("  /save [name]  /load <name>  /new", Style::default().fg(Color::Magenta)),
         ]),
-        Line::from(""),
+        Line::from(Span::styled(" Provider", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(vec![
+            Span::styled("  /provider list|add|use|remove", Style::default().fg(Color::Magenta)),
+        ]),
+        Line::from(vec![
+            Span::styled("  /provider set-key <name>", Style::default().fg(Color::Magenta)),
+            Span::raw("  Store API key (masked)"),
+        ]),
+        Line::from(vec![
+            Span::styled("  /provider remove-key <name>", Style::default().fg(Color::Magenta)),
+            Span::raw("  Delete API key"),
+        ]),
         Line::from(Span::styled(" Keys", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
         Line::from(vec![
             Span::styled("  Ctrl+Q", Style::default().fg(Color::DarkGray)),
@@ -75,6 +83,10 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::raw("  Scroll history   "),
             Span::styled("PgUp/PgDn", Style::default().fg(Color::DarkGray)),
             Span::raw("  Page"),
+        ]),
+        Line::from(Span::styled(" Security", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(vec![
+            Span::styled("  API keys are NEVER printed or logged.", Style::default().fg(Color::DarkGray)),
         ]),
     ];
 

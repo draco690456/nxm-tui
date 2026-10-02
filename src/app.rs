@@ -204,6 +204,8 @@ pub enum Command {
     Sidebar,
     Server(ServerCommand),
     Provider(ProviderCommand),
+    Models,
+    ModelUse(String),
     Quit,
     Normal(String),
 }
@@ -220,6 +222,8 @@ pub enum ProviderCommand {
     Remove(String),
     /// `/provider set-key <name>` — store API key in keychain for provider.
     SetKey(String),
+    /// `/provider remove-key <name>` — delete API key from keychain.
+    RemoveKey(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -341,7 +345,16 @@ pub fn parse_command(input: &str) -> Command {
                 Some(name) => Command::Provider(ProviderCommand::SetKey(name.to_string())),
                 None => Command::Normal(input.to_string()),
             },
+            Some("remove-key") | Some("rm-key") => match tokens.get(2) {
+                Some(name) => Command::Provider(ProviderCommand::RemoveKey(name.to_string())),
+                None => Command::Normal(input.to_string()),
+            },
             _ => Command::Normal(input.to_string()),
+        },
+        "/models" => Command::Models,
+        "/model" if tokens.len() > 1 && tokens[1] == "use" => match tokens.get(2) {
+            Some(x) => Command::ModelUse(x.to_string()),
+            None => Command::Normal(input.to_string()),
         },
         _ => Command::Normal(input.to_string()),
     }
@@ -479,6 +492,13 @@ pub struct App {
     /// Pending `/provider set-key` entry: provider name + secret buffer.
     /// The buffer is ZEROED after save or Esc — key never lingers in memory.
     pub set_key_pending: Option<SetKeyEntry>,
+    /// Pending `/models` fetch: base_url to fetch from. Set by the sync
+    /// handler, consumed by the async main loop (never blocks the UI).
+    pub models_fetch_pending: Option<String>,
+    /// Last fetched models list (populated by the async fetch).
+    pub models_list: Vec<crate::models::ModelEntry>,
+    /// Active model name (set via `/model use` or config).
+    pub model_name: Option<String>,
 }
 
 /// Entry for `/provider set-key` prompt: provider name + masked buffer.
@@ -621,6 +641,9 @@ impl App {
             command_menu_selected: 0,
             command_menu_dismissed: false,
             set_key_pending: None,
+            models_fetch_pending: None,
+            models_list: Vec::new(),
+            model_name: None,
         }
     }
 

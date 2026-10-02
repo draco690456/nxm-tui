@@ -34,6 +34,7 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
     let filled = ((pct / 100.0) * bar_w as f64).round() as usize;
     let bar = "▓".repeat(filled) + &"░".repeat(bar_w.saturating_sub(filled));
 
+    let model_display = app.model_name.as_deref().unwrap_or("—");
     let spans = vec![
         Span::styled(" M", mode_style.bold()),
         Span::styled(format!(" {}", app.mode.label()), mode_style),
@@ -42,6 +43,11 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
         Span::styled(
             format!("[{bar} {:.1}K/{max_k}K]", used as f64 / 1000.0),
             Style::default().fg(ctx_color),
+        ),
+        Span::raw(" "),
+        Span::styled(
+            format!("model: {model_display}"),
+            Style::default().fg(Color::Rgb(120, 120, 120)),
         ),
     ];
 

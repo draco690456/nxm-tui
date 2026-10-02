@@ -17,6 +17,7 @@ use nxm_tui::config::TuiConfig;
 use nxm_tui::event::AppEvent;
 use nxm_tui::handler::handle_key;
 use nxm_tui::keys::{resolve_key, KeyResolution};
+use nxm_tui::models::fetch_models;
 use nxm_tui::tool_types::{ApprovalRequest, ToolPart};
 use nxm_tui::ui::render;
 use nxm_tui::{app, agent, event, provider};
@@ -62,6 +63,9 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
             app.endpoint = url;
             app.server_name = name;
             app.state = RunState::Running;
+            // Sync model_name from config so the mode bar shows the configured
+            // model immediately (single source of truth: cfg.model_name).
+            app.model_name = cfg.model_name.clone();
 
             // Query /v1/status to get actual role assignments
             let client = reqwest::Client::new();
@@ -132,6 +136,9 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
     let (part_tx, mut part_rx) = mpsc::unbounded_channel::<ToolPart>();
     let (approval_tx, mut approval_rx) = mpsc::unbounded_channel::<ApprovalRequest>();
     let mut inference_task: Option<tokio::task::JoinHandle<()>> = None;
+    let mut models_fetch_task: Option<
+        tokio::task::JoinHandle<anyhow::Result<Vec<nxm_tui::models::ModelEntry>>>,
+    > = None;
 
     // Draw-on-change (T3): the frame is rebuilt only when something visible
     // changed (key, resize, token drain, status/health change, spinner tick).
@@ -149,6 +156,62 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
             break;
         }
 
+        // Consume pending /models fetch: spawn async task, never block the UI.
+        if app.models_fetch_pending.is_some() && models_fetch_task.is_none() {
+            let base_url = app.models_fetch_pending.take().unwrap_or_default();
+
+            // Resolve API key for the active provider (same pattern as Agent spawn)
+            let providers = provider::all_providers(&cfg.providers);
+            let active_provider = providers.iter().find(|p| {
+                p.base_url == base_url
+                    || p.base_url.trim_end_matches("/v1") == base_url.trim_end_matches("/v1")
+            }).cloned();
+
+            let api_key = if let Some(ref p) = active_provider {
+                if p.requires_api_key {
+                    let provider = p.clone();
+                    match tokio::task::spawn_blocking(move || resolve_key(&provider)).await {
+                        Ok(resolution) => resolution.into_key(),
+                        Err(_) => None,
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let client = reqwest::Client::new();
+            models_fetch_task = Some(tokio::spawn(async move {
+                fetch_models(&client, &base_url, api_key.as_deref()).await
+            }));
+        }
+
+        // Check if the models fetch task is finished
+        if let Some(ref handle) = models_fetch_task {
+            if handle.is_finished() {
+                if let Some(handle) = models_fetch_task.take() {
+                    let result = handle.await;
+                    match result {
+                        Ok(Ok(models)) => {
+                            let count = models.len();
+                            app.models_list = models;
+                            app.set_status(format!("Loaded {count} models"));
+                            dirty = true;
+                        }
+                        Ok(Err(e)) => {
+                            app.set_status(format!("Error: {e}"));
+                            dirty = true;
+                        }
+                        Err(e) => {
+                            app.set_status(format!("Fetch error: {e}"));
+                            dirty = true;
+                        }
+                    }
+                }
+            }
+        }
+
         if dirty {
             terminal.draw(|f| render(f, &mut app))?;
             dirty = false;
@@ -162,6 +225,8 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                 if app.state == RunState::Connecting {
                     let url = app.endpoint.clone();
                     app.state = RunState::Running;
+                    // Sync model_name from config (single source of truth: cfg.model_name)
+                    app.model_name = cfg.model_name.clone();
                     if app.server_name.is_empty() {
                         app.server_name = server_name_from_url(&url, &cfg);
                     }

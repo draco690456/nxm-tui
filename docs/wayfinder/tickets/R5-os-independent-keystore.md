@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:research`
 - **Type:** Research — study before deciding/implementing
-- **Status:** Open · charted 2026-10-02
+- **Status:** ✅ Resolved 2026-10-02 — studio completo in `nxm-docs/research/2026-10-02_os-independent-keystore-R5.md`
 - **Related:** [D7-key-resolution-config.md](D7-key-resolution-config.md),
   [R1-keyring-crate.md](R1-keyring-crate.md),
   [MAP-provider-keys-models.md](../MAP-provider-keys-models.md)

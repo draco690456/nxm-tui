@@ -10,10 +10,10 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Nota |
 |---|---|---|
-| [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` | **Study** (PROSSIMO): keystore portabile indipendente dall'OS + seam `KeyStore` iniettabile (testabilità). Motivato dal mismatch keyring/keyring_core. Mitigazione env-first `.env` già in essere. |
-| *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale (`docs/patterns/VENDOR-TUI-ANALYSIS.md`). `search` CABLATO (T5 ✅). |
-| *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). Residuo: spostare `Message`/`Role` (60+ call site), split `main.rs::run` (fn 340 righe). |
-| *(MCP wiring in main.rs — roadmap)* | | Wiring startup FATTO (`ec05222`). Residuo: status bar, sessione post-menu NoServer, `tools/call`. |
+| *(I1 — KeyStore seam + EncryptedFileStore)* | `wayfinder:task` | **Prossima impl** (da R5): trait `KeyStore` iniettabile (sblocca testabilità, rimuove `#[ignore]` da keychain_beats_env) + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600, portabile). Spec in `nxm-docs/research/2026-10-02_os-independent-keystore-R5.md`. |
+| [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
+| *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale. `search` CABLATO (T5 ✅). |
+| *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). Residuo: `Message`/`Role`, split `main.rs::run`. |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
 

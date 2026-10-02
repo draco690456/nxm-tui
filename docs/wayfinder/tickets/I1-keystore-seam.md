@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** Implementation (deriva da R5)
-- **Status:** 🔧 In progress (claimed 2026-10-02)
+- **Status:** ✅ Resolved 2026-10-02 (commit f2addf1; wiring runtime → I2)
 - **Related:** [R5-os-independent-keystore.md](R5-os-independent-keystore.md),
   [D7-key-resolution-config.md](D7-key-resolution-config.md),
   spec: `nxm-docs/research/2026-10-02_os-independent-keystore-R5.md`

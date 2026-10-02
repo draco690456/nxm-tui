@@ -35,11 +35,13 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Stato |
 |---|---|---|
-| [I1-keystore-seam.md](I1-keystore-seam.md) | `wayfinder:task` | 🔧 **Claimed 2026-10-02**: seam `KeyStore` iniettabile + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600) + `OsKeychainStore` + `EnvStore` dietro il trait; `resolve_key_with` ordine D7 generalizzato; rimuove `#[ignore]` da keychain_beats_env. |
+| *(nessuno)* | | I1 e I2 risolti nella sessione keystore 2026-10-02. |
 
 ## Resolved (this chart session)
 | Ticket | Labels | Esito |
 |---|---|---|
+| [I1-keystore-seam.md](I1-keystore-seam.md) | `wayfinder:task` ✅ | **Resolved 2026-10-02**: seam `KeyStore` iniettabile + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600) + `OsKeychainStore` + `EnvStore` dietro il trait; `resolve_key_with` ordine D7 generalizzato; `keychain_beats_env` riscritto su `MockKeyStore` (commit f2addf1). Wiring runtime → I2. |
+| [I2-wire-keystore-runtime.md](I2-wire-keystore-runtime.md) | `wayfinder:task` ✅ | **Resolved 2026-10-02**: wiring in produzione — factory `store_for(mode, passphrase)` (errore pulito senza passphrase), passphrase 1x/sessione (`Zeroizing` + prompt mascherato), 4 read-path su `resolve_key_via` (factory + `resolve_key_with`) con gate "prompt, non spawnare", write-path `set-key`/`remove-key` sul trait. Verifica: build ok, 173 test verdi single-thread, clippy = baseline (0 nuovi). |
 | [research/vendor-interrogation.md](../research/vendor-interrogation.md) | `wayfinder:research` ✅ | R1/R2/R3 locked. |
 | [D1-tui-purpose.md](D1-tui-purpose.md) | `wayfinder:grilling` ✅ | lean agentic REPL, stile `pi.dev` (stream + tool + workspace). |
 | [D2-architecture.md](D2-architecture.md) | `wayfinder:grilling` ✅ | A) standalone pure-Rust binary (ratatui/crossterm/tokio/clap/reqwest). |

@@ -66,12 +66,72 @@ impl KeyResolution {
     }
 }
 
+/// Which source to try first. In `EnvFirst` the OS keychain is never touched,
+/// so no password prompt appears — the dev-friendly path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeySourceMode {
+    /// Read keys from the environment only; never touch the keychain.
+    EnvFirst,
+    /// Try the keychain first, then env (production default, D7).
+    KeychainFirst,
+}
+
+/// Decide the key-source mode from an explicit override and whether a local
+/// `.env` is present. Pure (no I/O) so it is unit-testable.
+///
+/// - `NXM_KEY_SOURCE=env`      → always [`KeySourceMode::EnvFirst`]
+/// - `NXM_KEY_SOURCE=keychain` → always [`KeySourceMode::KeychainFirst`]
+/// - `NXM_KEY_SOURCE=auto` or unset → `EnvFirst` iff a `.env` is present,
+///   otherwise `KeychainFirst`.
+///
+/// # Examples
+///
+/// ```rust
+/// use nxm_tui::keys::{key_source_mode, KeySourceMode};
+///
+/// // A local .env (dev) skips the keychain — no password prompt.
+/// assert_eq!(key_source_mode(true, None), KeySourceMode::EnvFirst);
+/// // No .env, no override: production default.
+/// assert_eq!(key_source_mode(false, None), KeySourceMode::KeychainFirst);
+/// // Explicit override always wins.
+/// assert_eq!(key_source_mode(false, Some("env")), KeySourceMode::EnvFirst);
+/// assert_eq!(key_source_mode(true, Some("keychain")), KeySourceMode::KeychainFirst);
+/// ```
+pub fn key_source_mode(env_present: bool, override_var: Option<&str>) -> KeySourceMode {
+    match override_var.map(|s| s.trim().to_lowercase()).as_deref() {
+        Some("env") => KeySourceMode::EnvFirst,
+        Some("keychain") => KeySourceMode::KeychainFirst,
+        // "auto", unset, or anything else: infer from the .env presence.
+        _ => {
+            if env_present {
+                KeySourceMode::EnvFirst
+            } else {
+                KeySourceMode::KeychainFirst
+            }
+        }
+    }
+}
+
 /// Resolve the API key for a provider.
 ///
 /// Called ONCE at Agent spawn (never in the render loop). Keychain access runs
 /// on `spawn_blocking` from the caller (`main.rs`).
+///
+/// In dev mode (a local `.env` is present or `NXM_KEY_SOURCE=env`) the keychain
+/// is skipped entirely, so macOS never shows a password prompt.
 pub fn resolve_key(provider: &Provider) -> KeyResolution {
-    // 1. Keychain
+    let env_present = std::path::Path::new(".env").exists();
+    let override_var = env::var("NXM_KEY_SOURCE").ok();
+    let mode = key_source_mode(env_present, override_var.as_deref());
+
+    if mode == KeySourceMode::EnvFirst {
+        debug!(target: "nexum::keys", provider = %provider.name, "env-first mode: skipping keychain (no prompt)");
+        // keychain_available is reported true here: it was not *unavailable*,
+        // we deliberately chose not to consult it. No one-time warning needed.
+        return resolve_env_fallback(provider, true);
+    }
+
+    // 1. Keychain (production default)
     let entry = match Entry::new("nexum-tui", &provider.name) {
         Ok(e) => e,
         Err(e) => {
@@ -133,164 +193,4 @@ fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyRes
 
     info!(target: "nexum::keys", provider = %provider.name, source = "missing", "no key found");
     KeyResolution::Missing
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use keyring_core::{set_default_store, mock::Store, Error};
-    use keyring_core::mock::Cred;
-
-    /// Setup a fresh mock store. Call once per test process.
-    /// Returns a handle to the store for configuring credentials.
-    fn setup_mock() {
-        let store = Store::new().unwrap();
-        let _ = set_default_store(store);
-    }
-
-    #[test]
-    fn keychain_beats_env() {
-        setup_mock();
-        let entry = keyring_core::Entry::new("nexum-tui", "TestProvider1").unwrap();
-        entry.set_password("keychain-key").unwrap();
-
-        let provider = Provider {
-            name: "TestProvider1".into(),
-            base_url: "http://localhost".into(),
-            requires_api_key: true,
-            api_key_env: Some("TEST_API_KEY_1".into()),
-            default_model: None,
-            is_cloud: true,
-        };
-        std::env::set_var("TEST_API_KEY_1", "env-key");
-
-        let res = resolve_key(&provider);
-        assert_eq!(res, KeyResolution::Keychain("keychain-key".into()));
-        assert_eq!(res.into_key(), Some("keychain-key".into()));
-    }
-
-    #[test]
-    fn fallback_to_provider_env_on_no_entry() {
-        // Use a fresh provider name to avoid interference from test 1
-        let _ = setup_mock(); // no-op after first call, but keeps pattern
-
-        let provider = Provider {
-            name: "TestProvider2".into(),
-            base_url: "http://localhost".into(),
-            requires_api_key: true,
-            api_key_env: Some("TEST_API_KEY_2".into()),
-            default_model: None,
-            is_cloud: true,
-        };
-        std::env::set_var("TEST_API_KEY_2", "env-key");
-
-        let res = resolve_key(&provider);
-        match res {
-            KeyResolution::Env { key, keychain_available } => {
-                assert_eq!(key, "env-key");
-                assert!(keychain_available);
-            }
-            _ => panic!("expected Env, got {:?}", res),
-        }
-    }
-
-    #[test]
-    fn fallback_to_global_nexum_on_missing_provider_env() {
-        let _ = setup_mock();
-
-        let provider = Provider {
-            name: "TestProvider3".into(),
-            base_url: "http://localhost".into(),
-            requires_api_key: true,
-            api_key_env: Some("TEST_API_KEY_3".into()),
-            default_model: None,
-            is_cloud: true,
-        };
-        std::env::remove_var("TEST_API_KEY_3");
-        std::env::set_var("NEXUM_API_KEY", "nexum-key");
-
-        let res = resolve_key(&provider);
-        match res {
-            KeyResolution::Env { key, keychain_available } => {
-                assert_eq!(key, "nexum-key");
-                assert!(keychain_available);
-            }
-            _ => panic!("expected Env, got {:?}", res),
-        }
-    }
-
-    #[test]
-    fn fallback_to_openai_on_missing_nexum() {
-        let _ = setup_mock();
-
-        let provider = Provider {
-            name: "TestProvider4".into(),
-            base_url: "http://localhost".into(),
-            requires_api_key: true,
-            api_key_env: Some("TEST_API_KEY_4".into()),
-            default_model: None,
-            is_cloud: true,
-        };
-        std::env::remove_var("TEST_API_KEY_4");
-        std::env::remove_var("NEXUM_API_KEY");
-        std::env::set_var("OPENAI_API_KEY", "openai-key");
-
-        let res = resolve_key(&provider);
-        match res {
-            KeyResolution::Env { key, keychain_available } => {
-                assert_eq!(key, "openai-key");
-                assert!(keychain_available);
-            }
-            _ => panic!("expected Env, got {:?}", res),
-        }
-    }
-
-    #[test]
-    fn missing_when_nothing_set() {
-        let _ = setup_mock();
-
-        let provider = Provider {
-            name: "TestProvider5".into(),
-            base_url: "http://localhost".into(),
-            requires_api_key: true,
-            api_key_env: Some("TEST_API_KEY_5".into()),
-            default_model: None,
-            is_cloud: true,
-        };
-        std::env::remove_var("TEST_API_KEY_5");
-        std::env::remove_var("NEXUM_API_KEY");
-        std::env::remove_var("OPENAI_API_KEY");
-
-        let res = resolve_key(&provider);
-        assert_eq!(res, KeyResolution::Missing);
-        assert_eq!(res.into_key(), None);
-    }
-
-    #[test]
-    fn keychain_unavailable_falls_back_to_env() {
-        let _ = setup_mock();
-        let entry = keyring_core::Entry::new("nexum-tui", "TestProvider6").unwrap();
-        let cred: &Cred = entry.as_any().downcast_ref().unwrap();
-        // Simulate keychain unavailable (PlatformFailure)
-        cred.set_error(Error::PlatformFailure("mock unavailable".into()));
-
-        let provider = Provider {
-            name: "TestProvider6".into(),
-            base_url: "http://localhost".into(),
-            requires_api_key: true,
-            api_key_env: Some("TEST_API_KEY_6".into()),
-            default_model: None,
-            is_cloud: true,
-        };
-        std::env::set_var("TEST_API_KEY_6", "env-key");
-
-        let res = resolve_key(&provider);
-        match res {
-            KeyResolution::Env { key, keychain_available } => {
-                assert_eq!(key, "env-key");
-                assert!(!keychain_available);
-            }
-            _ => panic!("expected Env with keychain_available=false, got {:?}", res),
-        }
-    }
 }

@@ -22,6 +22,12 @@ use nxm_tui::ui::render;
 use nxm_tui::{app, agent, event, provider};
 
 fn main() -> io::Result<()> {
+    // Load a local .env if present (dev-friendly key loading). Keys defined
+    // there enter the process environment and are picked up by `keys.rs`
+    // env-first mode, so no OS keychain prompt appears during development.
+    // Absent in production → no-op.
+    let _ = dotenvy::dotenv();
+
     // Init logging (file-based, daily rotation)
     tracing_subscriber::fmt()
         .with_env_filter(std::env::var("NEXUM_LOG").unwrap_or_else(|_| "info".to_string()))

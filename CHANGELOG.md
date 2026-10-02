@@ -2,6 +2,31 @@
 
 # 2026-10-02
 
+## feat: dev-friendly key loading — .env fallback, no keychain prompt
+- **Problema risolto**: `resolve_key` interrogava SEMPRE il keychain OS per
+  primo → su macOS un dialog password a ogni spawn Agent (ogni messaggio),
+  anche quando la key era in una env var. Fastidioso in sviluppo.
+- **Nuovo**: `keys::KeySourceMode {EnvFirst, KeychainFirst}` + funzione pura
+  `key_source_mode(env_present, override)`. `resolve_key` sceglie il mode:
+  - `NXM_KEY_SOURCE=env` → **env-first**: keychain MAI toccato (zero prompt).
+  - `NXM_KEY_SOURCE=keychain` → keychain-first (default produzione, D7).
+  - `auto`/unset → env-first SE esiste un `.env` locale, altrimenti keychain-first.
+- `main.rs`: `dotenvy::dotenv()` all'avvio carica un `.env` locale (gitignored)
+  se presente → modalità dev automatica. Crea `.env` (template `.env.example`),
+  metti le chiavi, nessun prompt. Prod senza `.env` resta keychain-first.
+- Cargo: `dotenvy = "0.15.7"` (pin esatto). `.gitignore`: `/.env`. Nuovo
+  `.env.example`.
+- **Debito RULES.md risolto contestualmente**: i test inline di `keys.rs`
+  spostati in `tests/keys.rs` (keys.rs 356→196 righe, sotto il cap 300). La
+  FLAKINESS parallela del mock keychain è risolta: `ENV_LOCK` serializza i test
+  che toccano stato globale; la suite completa è ora verde IN PARALLELO (prima
+  richiedeva `--test-threads=1`).
+- **Scoperta onesta**: il test `keychain_beats_env` è `#[ignore]` — la prod usa
+  `keyring::Entry` (store nativo Apple), i test montano un mock su
+  `keyring_core`: namespace separati, il mock non è visibile a `keyring`.
+  Serve un seam `KeyStore` iniettabile per testarlo davvero (debito tracciato).
+  Il path env-first — quello usato in dev — è coperto e verde.
+
 ## feat: wire MCP host into the runtime (startup session)
 - `src/mcp/mod.rs`: new `connect_from_config(cfg, endpoint) -> Result<Option<McpHandle>>`
   helper — resolves the active provider's API key (keychain→env, off-runtime

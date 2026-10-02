@@ -4,3 +4,5 @@
 /.cargo/config.toml
 # Runtime session registry/archives written by the MCP session server
 /sessions
+# Local development API keys — NEVER commit (use .env.example as template)
+/.env

@@ -55,6 +55,9 @@ toml = "1"
 chrono = "0.4"
 regex = "1.13.1"
 
+# Dev-friendly key loading: load a local .env when present (gitignored).
+dotenvy = "0.15.7"
+
 # Keychain access (Rust 1.88+)
 keyring = "4.2.0"
 

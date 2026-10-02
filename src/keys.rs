@@ -19,6 +19,7 @@ use std::env;
 use keyring::Entry;
 use tracing::{debug, info, warn};
 
+use crate::keystore::KeyStore;
 use crate::provider::Provider;
 
 /// Result of key resolution for a provider.
@@ -68,12 +69,20 @@ impl KeyResolution {
 
 /// Which source to try first. In `EnvFirst` the OS keychain is never touched,
 /// so no password prompt appears — the dev-friendly path.
+///
+/// `EncryptedFile` and `OsKeychain` select a concrete [`crate::keystore`]
+/// backend for the generalized D7 order (see [`resolve_key_with`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum KeySourceMode {
     /// Read keys from the environment only; never touch the keychain.
     EnvFirst,
     /// Try the keychain first, then env (production default, D7).
     KeychainFirst,
+    /// Use the portable encrypted file store first, then env.
+    EncryptedFile,
+    /// Use the OS-native keychain store first, then env (same as
+    /// `KeychainFirst` but routed through the `KeyStore` seam).
+    OsKeychain,
 }
 
 /// Decide the key-source mode from an explicit override and whether a local
@@ -81,6 +90,8 @@ pub enum KeySourceMode {
 ///
 /// - `NXM_KEY_SOURCE=env`      → always [`KeySourceMode::EnvFirst`]
 /// - `NXM_KEY_SOURCE=keychain` → always [`KeySourceMode::KeychainFirst`]
+/// - `NXM_KEY_SOURCE=file`/`encrypted` → [`KeySourceMode::EncryptedFile`]
+/// - `NXM_KEY_SOURCE=os`/`os-keychain` → [`KeySourceMode::OsKeychain`]
 /// - `NXM_KEY_SOURCE=auto` or unset → `EnvFirst` iff a `.env` is present,
 ///   otherwise `KeychainFirst`.
 ///
@@ -96,11 +107,14 @@ pub enum KeySourceMode {
 /// // Explicit override always wins.
 /// assert_eq!(key_source_mode(false, Some("env")), KeySourceMode::EnvFirst);
 /// assert_eq!(key_source_mode(true, Some("keychain")), KeySourceMode::KeychainFirst);
+/// assert_eq!(key_source_mode(false, Some("file")), KeySourceMode::EncryptedFile);
 /// ```
 pub fn key_source_mode(env_present: bool, override_var: Option<&str>) -> KeySourceMode {
     match override_var.map(|s| s.trim().to_lowercase()).as_deref() {
         Some("env") => KeySourceMode::EnvFirst,
         Some("keychain") => KeySourceMode::KeychainFirst,
+        Some("file") | Some("encrypted") => KeySourceMode::EncryptedFile,
+        Some("os") | Some("os-keychain") => KeySourceMode::OsKeychain,
         // "auto", unset, or anything else: infer from the .env presence.
         _ => {
             if env_present {
@@ -193,4 +207,49 @@ fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyRes
 
     info!(target: "nexum::keys", provider = %provider.name, source = "missing", "no key found");
     KeyResolution::Missing
+}
+
+/// Resolve the API key for a provider through an injectable [`KeyStore`] seam.
+///
+/// This is the testable, backend-agnostic form of [`resolve_key`]. The
+/// resolution order generalizes D7:
+///
+/// 1. `store.get(provider.name)` — the chosen backend (encrypted file, OS
+///    keychain, env, or a test fake).
+/// 2. `provider.api_key_env` — the provider-specific env var.
+/// 3. `NEXUM_API_KEY` — global.
+/// 4. `OPENAI_API_KEY` — global.
+/// 5. Missing.
+///
+/// A store error (backend unavailable/corrupt) is treated as "not found here"
+/// and resolution falls through to the env layers, mirroring the historical
+/// keychain-unavailable behaviour. `keychain_available` in the returned
+/// [`KeyResolution::Env`] reflects whether the store was reachable.
+///
+/// mai-log (D7): the key value is never logged — only source/presence.
+pub fn resolve_key_with(provider: &Provider, store: &dyn KeyStore) -> KeyResolution {
+    let store_available = store.is_available();
+    if store_available {
+        match store.get(&provider.name) {
+            Ok(Some(secret)) => {
+                info!(target: "nexum::keys", provider = %provider.name, source = store.kind(), "key resolved");
+                // `Zeroizing<String>` → owned String for the resolution; the
+                // caller holds it only as long as needed (Agent spawn).
+                return KeyResolution::Keychain((*secret).clone());
+            }
+            Ok(None) => {
+                debug!(target: "nexum::keys", provider = %provider.name, kind = store.kind(), "no store entry");
+            }
+            Err(e) => {
+                warn!(target: "nexum::keys", provider = %provider.name, kind = store.kind(), error = %e, "store error");
+                return resolve_env_fallback(provider, false);
+            }
+        }
+    } else {
+        warn!(target: "nexum::keys", provider = %provider.name, kind = store.kind(), "store unavailable");
+        return resolve_env_fallback(provider, false);
+    }
+
+    // Store reachable but no entry → env fallback (keychain_available = true).
+    resolve_env_fallback(provider, true)
 }

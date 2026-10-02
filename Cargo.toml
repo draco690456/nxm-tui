@@ -61,6 +61,14 @@ dotenvy = "0.15.7"
 # Keychain access (Rust 1.88+)
 keyring = "4.2.0"
 
+# Portable encrypted keystore (I1): AES-256-GCM + Argon2id KDF + zeroize memory
+# hygiene. All RustCrypto, MIT/Apache-2.0, pinned exactly. `rand` matches the
+# version already pulled transitively (0.10) to avoid duplicate copies.
+aes-gcm = "0.11.1"
+argon2 = "0.6.0"
+zeroize = { version = "1.9.0", features = ["derive"] }
+rand = "0.10.3"
+
 # Pure-Rust tool actuators (web_search, read_file, list_resources).
 # Now a workspace member (moved here from nxm-mcp-servers). Kept importable as
 # `nxm_tools` via package rename so existing `use nxm_tools::...` keeps working.

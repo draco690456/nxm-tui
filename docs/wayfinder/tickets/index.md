@@ -10,7 +10,6 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Nota |
 |---|---|---|
-| *(I1 — KeyStore seam + EncryptedFileStore)* | `wayfinder:task` | **Prossima impl** (da R5): trait `KeyStore` iniettabile (sblocca testabilità, rimuove `#[ignore]` da keychain_beats_env) + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600, portabile). Spec in `nxm-docs/research/2026-10-02_os-independent-keystore-R5.md`. |
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
 | *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale. `search` CABLATO (T5 ✅). |
 | *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). Residuo: `Message`/`Role`, split `main.rs::run`. |
@@ -36,7 +35,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Stato |
 |---|---|---|
-| *(nessuno — sessione conclusa a T3 ✔ + T4 ✔ + D7 ✔)* | | |
+| [I1-keystore-seam.md](I1-keystore-seam.md) | `wayfinder:task` | 🔧 **Claimed 2026-10-02**: seam `KeyStore` iniettabile + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600) + `OsKeychainStore` + `EnvStore` dietro il trait; `resolve_key_with` ordine D7 generalizzato; rimuove `#[ignore]` da keychain_beats_env. |
 
 ## Resolved (this chart session)
 | Ticket | Labels | Esito |

@@ -110,31 +110,12 @@ fn env_first_missing_when_no_env_set() {
 
 // ---- resolve_key: keychain-first (production) path ----
 
-// NOTE: production `resolve_key` uses `keyring::Entry` (keyring 4), whose
-// default store on macOS is the native Apple keychain — NOT the
-// `keyring_core` mock store these tests install via `set_default_store`. The
-// two stores are separate namespaces, so a mock password set here is invisible
-// to `keyring::Entry::get_password()`. Asserting "keychain beats env" would
-// require either (a) a `KeyStore` trait seam in `keys.rs` injectable in tests,
-// or (b) building `keyring` against a mock-backed store. Ignored until the
-// seam exists (tracked as RULES.md/testability debt). The env-first path —
-// the dev path the user actually relies on — IS covered above and is green.
-#[test]
-#[ignore = "keyring native store not mock-backed; needs a KeyStore seam (debt)"]
-fn keychain_beats_env_when_keychain_first() {
-    let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    setup_mock();
-    std::env::set_var("NXM_KEY_SOURCE", "keychain");
-    let entry = keyring_core::Entry::new("nexum-tui", "KcProvider1").unwrap();
-    entry.set_password("keychain-key").unwrap();
-    std::env::set_var("TEST_KC_1", "env-key");
-    let p = provider("KcProvider1", "TEST_KC_1");
-
-    let res = resolve_key(&p);
-    assert_eq!(res, KeyResolution::Keychain("keychain-key".into()));
-    std::env::remove_var("NXM_KEY_SOURCE");
-    std::env::remove_var("TEST_KC_1");
-}
+// NOTE: the former `#[ignore]`d `keychain_beats_env` test lived here. It could
+// not run because production `resolve_key` used `keyring::Entry` (native store),
+// not the `keyring_core` mock these tests install — separate namespaces. The
+// I1 `KeyStore` seam fixed this: `tests/keystore.rs::store_beats_env_when_present`
+// is its deterministic, un-ignored successor, asserting "store beats env" via an
+// injectable `MockKeyStore`.
 
 #[test]
 fn keychain_first_falls_back_to_env_on_no_entry() {

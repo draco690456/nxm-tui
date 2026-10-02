@@ -24,6 +24,7 @@ pub mod overlays;
 pub mod prompt;
 pub mod prompt_lines;
 pub mod keys;
+pub mod keystore;
 pub mod provider;
 pub mod search;
 pub mod search_ui;

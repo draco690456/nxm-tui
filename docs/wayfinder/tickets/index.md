@@ -10,9 +10,10 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Nota |
 |---|---|---|
+| [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` | **Study**: keystore portabile indipendente dall'OS + seam `KeyStore` iniettabile (testabilità). Motivato dal mismatch keyring/keyring_core (2026-10-02). Mitigazione env-first `.env` già in essere. |
 | [T2-provider-model-commands.md](T2-provider-model-commands.md) | `wayfinder:task` | Residuo provider/model: `/models` + `/model use` + `remove-key` (vedi sezione sotto). |
-| *(vendor TUI adoption — non ancora ticketizzato)* | | Analisi in `docs/patterns/VENDOR-TUI-ANALYSIS.md`: wrap unicode (openviking), ricerca scrollback (`search/` grok), markdown+syntect, streaming incrementale. 0 righe adottate. |
-| *(MCP wiring in main.rs — roadmap)* | | Sottosistema MCP committato (`a20fb7c`) ma non cablato nel runtime. Roadmap in `docs/mcp/ARCHITECTURE.md`. |
+| *(vendor TUI adoption — non ancora ticketizzato)* | | Analisi in `docs/patterns/VENDOR-TUI-ANALYSIS.md`: wrap unicode (openviking), ricerca scrollback (`search/` grok, PORTATO), markdown+syntect, streaming incrementale. |
+| *(MCP wiring in main.rs — roadmap)* | | Wiring startup FATTO (`ec05222`). Residuo: status bar, sessione post-menu NoServer, `tools/call` (roadmap `docs/mcp/ARCHITECTURE.md`). |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
 

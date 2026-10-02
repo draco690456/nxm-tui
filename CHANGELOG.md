@@ -2,6 +2,28 @@
 
 # 2026-10-02
 
+# Changelog
+
+# 2026-10-02
+
+## refactor: split app.rs — commands.rs + metrics.rs (RULES.md debt, T6)
+- Estrazione behavior-preserving: `src/commands.rs` (165 righe: `Command`,
+  `ProviderCommand`, `ServerCommand`, `ConfigCommand`, `parse_command`) e
+  `src/metrics.rs` (100 righe: `Metrics` + impl) spostati **verbatim** fuori da
+  `app.rs`. `app.rs` 973 → 729 righe (diff +7/−251 = solo re-export + rimozioni).
+- Compat: `app.rs` ri-esporta i tipi (`pub use crate::commands::{...}` /
+  `crate::metrics::Metrics`), così gli import esistenti
+  (`nxm_tui::app::{parse_command, Command, Metrics, ...}` in handler + test)
+  restano validi **senza toccare un solo call site**.
+- Dipendenze pulite: `commands.rs` usa solo `crate::app::AgentMode`,
+  `metrics.rs` solo std (nessun ciclo).
+- Fuori scope (ticket futuri): spostare `Message`/`Role` (60+ call site), split
+  di `main.rs::run` (fn da 340 righe).
+- Eseguito da free agent + review indipendente. Verifica: build ok, suite verde
+  in parallelo, clippy = 3 lint IDENTICI alla baseline (type_complexity +
+  Default×2, preesistenti, provati con git stash), 0 nuovi, 0 unwrap nuovi.
+  T6 → Resolved.
+
 ## feat: interactive scrollback search in the TUI (T5 — wires src/search.rs)
 - Nuovo `src/search_ui.rs` (181 righe, funzioni pure testabili): `line_matches`
   (indici righe che matchano), `scrollback_for_line` (indice-riga → `scrollback`

@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** Task (refactor, behavior-preserving)
-- **Status:** In progress (claimed 2026-10-02) — free agent exec + independent review
+- **Status:** ✅ Resolved 2026-10-02 (free agent exec + independent review) — app.rs 973→729, commands.rs 165 + metrics.rs 100, clippy = baseline (3, no new)
 - **Map:** RULES.md debt (max 300 lines/file)
 
 ## Problem

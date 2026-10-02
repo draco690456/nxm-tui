@@ -1,5 +1,24 @@
 # Changelog
 
+# 2026-10-02
+
+## docs: riconciliazione ticket wayfinder col codice (P3 ✅, T2 parziale)
+- Audit tracker vs codice: l'handoff 2026-09-20 indicava "prossima sessione:
+  implementa P3", ma P3 risulta **già implementato e committato** (arrivato con
+  `cb05a5d` migrate, git pulito). Allineati i doc che erano rimasti indietro.
+- **P3 → ✅ Resolved**: `keys.rs::resolve_key` (keychain→api_key_env→
+  NEXUM_API_KEY→OPENAI_API_KEY→Missing), `ProviderCommand::SetKey`, overlay
+  mascherato (`ui.rs`), `set_password` via keyring (`handler.rs:37`), buffer
+  segreto dedicato azzerato dopo save/Esc, risoluzione per-provider allo spawn
+  Agent (`main.rs` `spawn_blocking`). `keyring = "4.2.0"` pinnato.
+- **T2 → resta Open · parziale**: `default_model` in `Provider` ✔ ma
+  `GET /v1/models` è presente **solo come health-probe** in `detect_endpoint`;
+  mancano comando `/models` (lista+selezione), `/model use <id>`,
+  `/provider remove-key`, modello attivo in mode/bottom bar.
+- Aggiornati: `tickets/index.md`, `tickets/P3-key-entry-prompt.md`.
+- Debito annotato (non in scope): modulo test inline in `keys.rs` viola la
+  regola RULES.md "test in tests/, no #[cfg(test)] inline".
+
 # 2026-09-30
 
 ## feat: MCP host subsystem — sampling capability (minimal working cut)

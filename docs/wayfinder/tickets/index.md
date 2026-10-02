@@ -10,7 +10,9 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Nota |
 |---|---|---|
-| *(nessuna — frontend MVP `pi.dev`-style chiuso a P2+D4)* | | Prossima: UX polish/layout; big-ticket → AgentAi. |
+| [T2-provider-model-commands.md](T2-provider-model-commands.md) | `wayfinder:task` | Residuo provider/model: `/models` + `/model use` + `remove-key` (vedi sezione sotto). |
+| *(vendor TUI adoption — non ancora ticketizzato)* | | Analisi in `docs/patterns/VENDOR-TUI-ANALYSIS.md`: wrap unicode (openviking), ricerca scrollback (`search/` grok), markdown+syntect, streaming incrementale. 0 righe adottate. |
+| *(MCP wiring in main.rs — roadmap)* | | Sottosistema MCP committato (`a20fb7c`) ma non cablato nel runtime. Roadmap in `docs/mcp/ARCHITECTURE.md`. |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
 
@@ -19,8 +21,8 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 | [R1-keyring-crate.md](R1-keyring-crate.md) | `wayfinder:research` ✅ | Resolved: `keyring = "4"` adatta (dettagli in research). |
 | [R2-models-api-shapes.md](R2-models-api-shapes.md) | `wayfinder:research` ✅ | Resolved: parser a due envelope (dettagli in research). |
 | [D7-key-resolution-config.md](D7-key-resolution-config.md) | `wayfinder:grilling` | ✅ Resolved 2026-09-20: `keys.rs::resolve_key` (keychain→api_key_env→env), `default_model` in Provider, `api_key` globale rimossa, headless a+b+c, mai-log rigido. |
-| [P3-key-entry-prompt.md](P3-key-entry-prompt.md) | `wayfinder:prototype` | **Frontier**: sbloccato da D7 — prossimo step. |
-| [T2-provider-model-commands.md](T2-provider-model-commands.md) | `wayfinder:task` | **Frontier**: sbloccato da D7 + R2 — dopo P3. |
+| [P3-key-entry-prompt.md](P3-key-entry-prompt.md) | `wayfinder:prototype` | ✅ **Resolved** (verificato nel codice 2026-10-02): `keys.rs::resolve_key`, `ProviderCommand::SetKey`, overlay mascherato (`ui.rs::render` set-key), `set_password` via keyring (`handler.rs:37`), buffer segreto dedicato azzerato dopo save/Esc, risoluzione per-provider allo spawn Agent (`main.rs` `spawn_blocking`). `keyring = "4.2.0"` pinnato. |
+| [T2-provider-model-commands.md](T2-provider-model-commands.md) | `wayfinder:task` | **Open · parziale** (verificato 2026-10-02): `default_model` in `Provider` ✔; `GET /v1/models` presente **solo come health-probe** in `detect_endpoint` (NON lista modelli). Mancano: comando `/models` (lista+selezione, parser due-envelope R2), `/model use <id>`, `/provider remove-key`, modello attivo in mode/bottom bar. **Frontier residua.** |
 
 ## Deferred (→ nexum-agentai backend, fuori da nxm-tui)
 

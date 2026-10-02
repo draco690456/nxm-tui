@@ -2,21 +2,26 @@
 
 - **Label:** `wayfinder:prototype`
 - **Type:** Prototype (HITL) — cheap rough artifact to react to
-- **Status:** Open · blocked (needs D7 shape)
-- **Blocked by:** [D7-key-resolution-config.md](D7-key-resolution-config.md)
+- **Status:** ✅ Resolved (verificato nel codice 2026-10-02)
+- **Blocked by:** [D7-key-resolution-config.md](D7-key-resolution-config.md) (risolto)
 - **Map:** [MAP-provider-keys-models.md](../MAP-provider-keys-models.md)
 
-## Question
+## Resolution (closed)
 
-Come si presenta l'inserimento key mascherato (`/provider set-key <nome>`)
-nella TUI ratatui esistente (stato `prompt_state`, multiline)? Il prototipo
-(money throwaway, non il codice finale) deve mostrare:
+Implementato e committato (arrivato con `cb05a5d` migrate; verificato pulito
+nel git 2026-10-02):
 
-1. Dove vive lo stato del prompt segreto (riuso `prompt_state` o stato
-   dedicato che non lascia la key in memoria oltre il salvataggio?).
-2. Mascheramento a schermo (echi `•`, niente preview) + conferma/annullo
-   (`Enter` salva nel keychain, `Esc` scarta e azzera il buffer).
-3. Reazione visiva minima (overlay dedicato vs riuso overlay esistenti).
+1. **Stato segreto dedicato** (non `prompt_state`): buffer in `App`
+   (`set_key_pending`), azzerato dopo save/Esc — la key non resta in memoria
+   oltre il salvataggio.
+2. **Mascheramento + conferma/annullo**: overlay dedicato modale
+   (`src/ui.rs::render` set-key overlay, `ui.rs:476` "masked key entry
+   overlay"); `Enter` → `keyring set_password` via `spawn_blocking`
+   (`handler.rs:37`), `Esc` → scarta + azzera.
+3. **Comando**: `ProviderCommand::SetKey(String)` in `app.rs` (`parse_command`
+   `set-key`), risoluzione per-provider allo spawn Agent (`main.rs`
+   `spawn_blocking(resolve_key)`), warning una tantum se keychain assente.
+4. **Mai-log rigido** rispettato (D7-5): nessun valore key stampato.
 
-Riferimento pattern: overlay modali esistenti (`render_approval` in
-`src/tool_overlay.rs`, Y/N modale in `handler.rs`).
+> Nota: `remove-key` e i comandi `/models` restano in **T2** (ancora aperto).
+

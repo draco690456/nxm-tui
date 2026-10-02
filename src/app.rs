@@ -433,6 +433,20 @@ fn git_branch_uncached() -> Option<String> {
     }
 }
 
+/// Interactive search state: query, compiled matcher, match indices, and
+/// current position within the matches list.
+#[derive(Debug, Clone)]
+pub struct SearchState {
+    /// Raw query string typed by the user.
+    pub query: String,
+    /// Compiled matcher (recompiled on query change).
+    pub matcher: Option<crate::search::TextMatcher>,
+    /// Indices of lines that match the query.
+    pub matches: Vec<usize>,
+    /// Current position within `matches` (for n/N navigation).
+    pub current: usize,
+}
+
 pub struct App {
     pub state: RunState,
     /// Legacy single-line input field (for compatibility).
@@ -499,6 +513,8 @@ pub struct App {
     pub models_list: Vec<crate::models::ModelEntry>,
     /// Active model name (set via `/model use` or config).
     pub model_name: Option<String>,
+    /// Interactive search state (Some when search mode is active).
+    pub search: Option<SearchState>,
 }
 
 /// Entry for `/provider set-key` prompt: provider name + masked buffer.
@@ -644,6 +660,7 @@ impl App {
             models_fetch_pending: None,
             models_list: Vec::new(),
             model_name: None,
+            search: None,
         }
     }
 

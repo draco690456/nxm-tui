@@ -2,6 +2,26 @@
 
 # 2026-10-02
 
+## feat: interactive scrollback search in the TUI (T5 — wires src/search.rs)
+- Nuovo `src/search_ui.rs` (181 righe, funzioni pure testabili): `line_matches`
+  (indici righe che matchano), `scrollback_for_line` (indice-riga → `scrollback`
+  così il match entra in viewport), `highlight_line` (restyle degli span
+  matchanti via `compiled_regex`, slice byte-safe allineati al regex).
+- Wiring: `/` (prompt vuoto) apre la ricerca; query live con highlight; `n`/`N`
+  navigano i match con wrap; `Esc`/Backspace-su-vuoto chiudono. Stato
+  `App::search: Option<SearchState>` (pattern modale come `set_key_pending`),
+  query bar overlay in `ui.rs`. La ricerca opera sulle RIGHE FINALI renderizzate
+  (`render_history`), così gli indici sono allineati a wrap/markdown; lo
+  scrollback-per-match è calcolato in `render_history` dove `lines.len()` e
+  `area.height` sono reali (il round-1 usava valori approssimati → non saltava).
+- Collega il modulo `search` portato da grok (commit `31b6f72`) → chiude il
+  cerchio sulla vendor-adoption prio #1.
+- Eseguito da free agent, **2 round di review indipendente** (round 1: `n`/`N`
+  non saltava al match per `scrollback_for_line` con `messages.len()`/height
+  hardcoded; round 2: calcolo spostato in render con valori reali + semantica
+  `current` chiarita). Verifica: `tests/search_ui.rs` 21/21 (incl. navigazione
+  wrap + jump), clippy 0 sui file toccati, 0 unwrap prod. T5 → Resolved.
+
 ## feat: provider/model commands — /models, /model use, /provider remove-key (T2)
 - Nuovo `src/models.rs` (212 righe): `ModelEntry` + `parse_models` (parser
   tollerante R2: due envelope OpenAI `data[]` / Ollama `models[]`, id→name→model,

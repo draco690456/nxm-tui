@@ -10,9 +10,8 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Nota |
 |---|---|---|
-| [T5-search-ui-wiring.md](T5-search-ui-wiring.md) | `wayfinder:task` | **IN PROGRESS** (claim 2026-10-02): cablare `src/search.rs` nella UI — `/` apri, query live, highlight (compiled_regex), `n`/`N` wrap, `Esc`. Free agent exec + review. |
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` | **Study**: keystore portabile indipendente dall'OS + seam `KeyStore` iniettabile (testabilità). Motivato dal mismatch keyring/keyring_core (2026-10-02). Mitigazione env-first `.env` già in essere. |
-| *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale (`docs/patterns/VENDOR-TUI-ANALYSIS.md`). |
+| *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale (`docs/patterns/VENDOR-TUI-ANALYSIS.md`). `search` CABLATO (T5 ✅). |
 | *(MCP wiring in main.rs — roadmap)* | | Wiring startup FATTO (`ec05222`). Residuo: status bar, sessione post-menu NoServer, `tools/call` (roadmap `docs/mcp/ARCHITECTURE.md`). |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)

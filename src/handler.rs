@@ -74,6 +74,89 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         }
     }
 
+    // Interactive search mode: when active, all input goes to the query.
+    // Esc closes, Enter confirms (keeps search active, closes query bar),
+    // n/N navigate matches, other chars update the query live.
+    if app.search.is_some() {
+        match key.code {
+            KeyCode::Esc => {
+                app.search = None;
+                app.set_status("Search closed".into());
+                return;
+            }
+            KeyCode::Enter => {
+                // Confirm: keep search active but close query bar
+                app.set_status("Search confirmed — use n/N to navigate, Esc to close".into());
+                return;
+            }
+            KeyCode::Char('n') | KeyCode::Char('N') => {
+                let status_msg = if let Some(ref mut search) = app.search {
+                    if search.matches.is_empty() {
+                        return;
+                    }
+                    let len = search.matches.len();
+                    let forward = key.code == KeyCode::Char('n');
+                    // search.current is the POSITION in the matches list (0-based),
+                    // not a line index. Wrap with modulo.
+                    search.current = if forward {
+                        (search.current + 1) % len
+                    } else {
+                        (search.current + len - 1) % len
+                    };
+                    // The actual scrollback jump is computed in render_history
+                    // where lines.len() and area.height are known.
+                    format!("Match {}/{}", search.current + 1, len)
+                } else {
+                    return;
+                };
+                app.set_status(status_msg);
+                return;
+            }
+            KeyCode::Char(c) => {
+                let status_msg = if let Some(ref mut search) = app.search {
+                    search.query.push(c);
+                    // Recompile matcher
+                    search.matcher = Some(crate::search::TextMatcher::new(
+                        search.query.clone(),
+                        crate::search::QueryKind::Substring,
+                    ));
+                    // Recalculate matches (will be updated on next render)
+                    search.matches.clear();
+                    search.current = 0;
+                    format!("Searching for: {}", search.query)
+                } else {
+                    return;
+                };
+                app.set_status(status_msg);
+                return;
+            }
+            KeyCode::Backspace => {
+                let status_msg = if let Some(ref mut search) = app.search {
+                    search.query.pop();
+                    if search.query.is_empty() {
+                        app.search = None;
+                        "Search closed".to_string()
+                    } else {
+                        search.matcher = Some(crate::search::TextMatcher::new(
+                            search.query.clone(),
+                            crate::search::QueryKind::Substring,
+                        ));
+                        search.matches.clear();
+                        search.current = 0;
+                        format!("Searching for: {}", search.query)
+                    }
+                } else {
+                    return;
+                };
+                app.set_status(status_msg);
+                return;
+            }
+            _ => {
+                return;
+            }
+        }
+    }
+
     // Slash-command popup: while open, arrows move the selection, Tab/Enter
     // complete the highlighted command, Esc dismisses it. Handled before the
     // generic key logic so it takes over navigation only when visible.
@@ -495,6 +578,16 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             // Editing the prompt re-opens the command popup if it applies.
             app.command_menu_dismissed = false;
             app.clamp_command_menu();
+        }
+        KeyCode::Char('/') if app.prompt_state.text().is_empty() && app.search.is_none() => {
+            // Open interactive search mode
+            app.search = Some(crate::app::SearchState {
+                query: String::new(),
+                matcher: None,
+                matches: Vec::new(),
+                current: 0,
+            });
+            app.set_status("Search: type query, n/N navigate, Enter confirm, Esc close".into());
         }
         KeyCode::Char(c) => {
             app.prompt_state.insert_char(c);

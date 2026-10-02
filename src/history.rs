@@ -36,6 +36,8 @@ impl HistoryCache {
 /// Render chat history into the provided area. Per-message renders are
 /// cached in `app.history_cache` (see [`HistoryCache`]) so streaming a token
 /// re-renders one message instead of reparsing the full transcript.
+///
+/// When search is active, computes match indices and highlights matching lines.
 pub fn render_history(f: &mut Frame, app: &mut App, area: Rect) {
     let w = area.width.saturating_sub(4) as usize;
     let mut lines: Vec<Line<'static>> = Vec::new();
@@ -63,6 +65,54 @@ pub fn render_history(f: &mut Frame, app: &mut App, area: Rect) {
             app.history_cache.entries[idx] = entry;
         }
         lines.extend(rendered);
+    }
+
+    // Search: compute matches and highlight.
+    // Note: search.matches is recomputed every frame while search is active.
+    // This is O(N) over rendered lines but only when the user is actively searching.
+    // A dirty-flag optimization (recompute only on query change) could be added
+    // if profiling shows this is a bottleneck.
+    if let Some(ref mut search) = app.search {
+        if let Some(ref matcher) = search.matcher {
+            // Extract text for each line and find matches
+            let lines_text: Vec<String> = lines
+                .iter()
+                .map(|line| {
+                    line.spans
+                        .iter()
+                        .map(|s| s.content.as_ref())
+                        .collect::<String>()
+                })
+                .collect();
+            search.matches = crate::search_ui::line_matches(&lines_text, matcher);
+            // search.current is the POSITION in the matches list (0-based),
+            // not a line index. Clamp to valid range.
+            search.current = search.current.min(search.matches.len().saturating_sub(1));
+
+            // Jump viewport to the current match using real line count and viewport height.
+            // This is where lines.len() and area.height are known.
+            if !search.matches.is_empty() {
+                let line_idx = search.matches[search.current];
+                app.scrollback = crate::search_ui::scrollback_for_line(
+                    line_idx,
+                    lines.len(),
+                    area.height as usize,
+                );
+            }
+
+            // Highlight matching lines
+            lines = lines
+                .iter()
+                .enumerate()
+                .map(|(idx, line)| {
+                    if search.matches.contains(&idx) {
+                        crate::search_ui::highlight_line(line, matcher)
+                    } else {
+                        line.clone()
+                    }
+                })
+                .collect();
+        }
     }
 
     let offset = App::viewport_offset(lines.len(), area.height as usize, app.scrollback);

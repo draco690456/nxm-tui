@@ -41,6 +41,10 @@ pub fn render(f: &mut Frame, app: &mut App) {
             if app.set_key_pending.is_some() {
                 render_set_key_overlay(f, app);
             }
+            // Search query bar (above history)
+            if app.search.is_some() {
+                render_search_overlay(f, app);
+            }
         }
     }
 }
@@ -467,6 +471,65 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+    f.render_widget(block, overlay);
+
+    let inner = Rect::new(x + 1, y + 1, w.saturating_sub(2), h.saturating_sub(2));
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Render the search query bar overlay (above the chat history).
+/// Shows the current query, match count, and navigation hints.
+fn render_search_overlay(f: &mut Frame, app: &App) {
+    let Some(ref search) = app.search else {
+        return;
+    };
+    let area = f.area();
+    let w = 60.min(area.width);
+    let h = 5u16;
+    let x = (area.width.saturating_sub(w)) / 2;
+    let y = area.height / 4;
+    let overlay = Rect::new(x, y, w, h);
+
+    let query = &search.query;
+    let match_info = if search.matches.is_empty() {
+        "no matches".to_string()
+    } else {
+        format!("{}/{} matches", search.current + 1, search.matches.len())
+    };
+
+    let lines = vec![
+        Line::from(Span::styled(
+            " Search",
+            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+        )),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  Query: ", Style::default().fg(Color::Rgb(150, 150, 150))),
+            Span::styled(query.clone(), Style::default().fg(Color::White)),
+        ]),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  ", Style::default()),
+            Span::styled(match_info, Style::default().fg(Color::Yellow)),
+            Span::raw("  "),
+            Span::styled("n", Style::default().fg(Color::Magenta)),
+            Span::raw("/"),
+            Span::styled("N", Style::default().fg(Color::Magenta)),
+            Span::raw(" navigate  "),
+            Span::styled("Enter", Style::default().fg(Color::Green)),
+            Span::raw(" confirm  "),
+            Span::styled("Esc", Style::default().fg(Color::Red)),
+            Span::raw(" close"),
+        ]),
+    ];
+
+    let block = Block::default()
+        .title(" Search ")
+        .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
+        .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+    f.render_widget(Clear, overlay);
     f.render_widget(block, overlay);
 
     let inner = Rect::new(x + 1, y + 1, w.saturating_sub(2), h.saturating_sub(2));

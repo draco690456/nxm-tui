@@ -1,6 +1,9 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use crate::app::{self, App, Command, Message, Role, RunState, ServerCommand};
 use tokio::task::block_in_place;
+use zeroize::Zeroizing;
+
+use crate::app::{self, App, Command, Message, Role, RunState, ServerCommand};
+use crate::keystore::KeyStoreError;
 
 pub fn handle_key(app: &mut App, key: KeyEvent) {
     if key.modifiers == KeyModifiers::CONTROL && key.code == KeyCode::Char('q') {
@@ -20,36 +23,104 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         return;
     }
 
+    // Masked session-passphrase entry (I2): asked at most once per session,
+    // buffer ZEROED after Enter/Esc — the passphrase is never logged (mai-log).
+    // Wins over set-key input so the save flow can prompt on top of a
+    // retained key buffer and resume afterwards.
+    if let Some(entry) = app.passphrase_pending.as_mut() {
+        match key.code {
+            KeyCode::Enter => {
+                let buffer = std::mem::take(&mut entry.buffer);
+                app.passphrase_pending = None;
+                // The buffer is `Zeroizing<String>`: take() moves the only
+                // copy straight into the session cache — bytes stay scrubbed.
+                app.passphrase = Some(buffer);
+                tracing::info!(target: "nexum::keystore", "passphrase captured for session");
+                let status = if app.set_key_pending.is_some() {
+                    "Passphrase pronta — premi di nuovo Enter per salvare la key".to_string()
+                } else {
+                    "Passphrase memorizzata per la sessione".to_string()
+                };
+                app.set_status(status);
+                return;
+            }
+            KeyCode::Esc => {
+                app.passphrase_pending = None;
+                // Declining cancels everything waiting on the passphrase, so
+                // no gated action hangs or re-prompts in a loop.
+                app.models_fetch_pending = None;
+                if app.mcp_connect_pending {
+                    app.mcp_connect_pending = false;
+                    tracing::info!(target: "nexum::mcp", "connect cancelled: passphrase declined");
+                }
+                if app.state == RunState::Thinking && app.pending_message.is_some() {
+                    app.stop_operation();
+                    app.state = RunState::Running;
+                    app.pending_message = None;
+                }
+                app.set_status("Passphrase annullata — azione in attesa annullata".into());
+                return;
+            }
+            KeyCode::Backspace => {
+                entry.buffer.pop();
+                return;
+            }
+            KeyCode::Char(c) => {
+                entry.buffer.push(c);
+                return;
+            }
+            _ => {
+                return;
+            }
+        }
+    }
+
+    // I2 write-path gate for `/provider set-key`: the save goes through the
+    // KeyStore seam, and an encrypted-file store cannot be opened without the
+    // session passphrase. Prompt FIRST (the key buffer is retained above) so
+    // a second Enter performs the save — never a panic, never a blind write.
+    if key.code == KeyCode::Enter
+        && app.set_key_pending.is_some()
+        && app.passphrase_missing(crate::keys::current_mode())
+    {
+        app.request_passphrase();
+        app.set_status(
+            "Keystore cifrato: inserisci la passphrase, poi premi di nuovo Enter".into(),
+        );
+        return;
+    }
+
     // Masked key entry for `/provider set-key`: dedicated state, not prompt_state.
     // Buffer is ZEROED after save or Esc — key never lingers in memory.
     if let Some(entry) = app.set_key_pending.as_mut() {
         match key.code {
             KeyCode::Enter => {
                 let provider_name = entry.provider.clone();
-                let key_value = std::mem::take(&mut entry.buffer);
+                let key_value = Zeroizing::new(std::mem::take(&mut entry.buffer));
                 app.set_key_pending = None; // zeroed immediately
 
-                // Save to keychain via block_in_place (blocking keychain API)
-                let provider_name_clone = provider_name.clone();
-                let key_value_clone = key_value.clone();
+                // I2 write-path: save through the KeyStore seam (factory by
+                // mode) via block_in_place — the store may hit the OS keychain
+                // or the encrypted file. mai-log: the key value is never logged.
+                let mode = crate::keys::current_mode();
+                let pass = app.passphrase.clone();
+                let store_name = provider_name.clone();
                 let result = block_in_place(move || {
-                    let entry = keyring::Entry::new("nexum-tui", &provider_name_clone)?;
-                    entry.set_password(&key_value_clone)
+                    let store = crate::keystore::store_for(mode, pass.as_ref())?;
+                    store.set(&store_name, &key_value)
                 });
                 match result {
                     Ok(()) => {
-                        tracing::info!(target: "nexum::keys", provider = %provider_name, "key saved to keychain");
+                        tracing::info!(target: "nexum::keystore", provider = %provider_name, mode = ?mode, "key stored");
                         app.set_status(format!("Key saved for {provider_name}"));
                     }
-                    Err(keyring::Error::NoDefaultStore) |
-                    Err(keyring::Error::PlatformFailure(_)) |
-                    Err(keyring::Error::NoStorageAccess(_)) => {
-                        tracing::warn!(target: "nexum::keys", provider = %provider_name, "keychain unavailable on save");
-                        app.set_status(format!("Keychain non disponibile per {provider_name} — usa NVIDIA_API_KEY o api_key_env"));
+                    Err(KeyStoreError::Unavailable(msg)) => {
+                        tracing::warn!(target: "nexum::keystore", provider = %provider_name, error = %msg, "keystore unavailable on save");
+                        app.set_status(format!("Keystore non disponibile per {provider_name}: {msg}"));
                     }
                     Err(e) => {
-                        tracing::error!(target: "nexum::keys", provider = %provider_name, error = %e, "keychain save error");
-                        app.set_status(format!("Keychain error: {e}"));
+                        tracing::error!(target: "nexum::keystore", provider = %provider_name, error = %e, "keystore save error");
+                        app.set_status(format!("Key save error for {provider_name}: {e}"));
                     }
                 }
                 return;
@@ -713,13 +784,27 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
                 cfg.save();
                 // Check if key is missing for this provider (D7-4c guided error)
                 if p.requires_api_key {
-                    let resolution = crate::keys::resolve_key(&p);
-                    if matches!(resolution, crate::keys::KeyResolution::Missing) {
+                    let mode = crate::keys::current_mode();
+                    if app.passphrase_missing(mode) {
+                        // I2: prompt instead of blocking on a store we cannot
+                        // open yet — no spawn, no inline keychain/file hit.
+                        app.request_passphrase();
                         app.set_status(format!(
-                            "Using {name} — key mancante: usa `/provider set-key {name}`"
+                            "Passphrase richiesta — poi riprova `/provider use {name}`"
                         ));
                     } else {
-                        app.set_status(format!("Using provider: {}", p.name));
+                        let pass = app.passphrase.clone();
+                        let provider = p.clone();
+                        let resolution = block_in_place(move || {
+                            crate::keys::resolve_key_via(&provider, mode, pass)
+                        });
+                        if matches!(resolution, crate::keys::KeyResolution::Missing) {
+                            app.set_status(format!(
+                                "Using {name} — key mancante: usa `/provider set-key {name}`"
+                            ));
+                        } else {
+                            app.set_status(format!("Using provider: {}", p.name));
+                        }
                     }
                 } else {
                     app.set_status(format!("Using provider: {}", p.name));
@@ -751,30 +836,36 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
             }
         }
         ProviderCommand::RemoveKey(name) => {
-            // Delete key from keychain via block_in_place (blocking keychain API)
+            // I2 gate: an encrypted-file store cannot be opened without the
+            // session passphrase — prompt instead of failing the delete.
+            let mode = crate::keys::current_mode();
+            if app.passphrase_missing(mode) {
+                app.request_passphrase();
+                app.set_status(format!(
+                    "Passphrase richiesta — poi riprova `/provider remove-key {name}`"
+                ));
+                return;
+            }
+            // I2 write-path: delete through the KeyStore seam (factory by
+            // mode) via block_in_place instead of a direct `keyring::Entry`.
+            let pass = app.passphrase.clone();
             let name_clone = name.clone();
             let result = block_in_place(move || {
-                let entry = keyring::Entry::new("nexum-tui", &name_clone)?;
-                entry.delete_credential()
+                let store = crate::keystore::store_for(mode, pass.as_ref())?;
+                store.delete(&name_clone)
             });
             match result {
                 Ok(()) => {
-                    tracing::info!(target: "nexum::keys", provider = %name, "key removed from keychain");
+                    tracing::info!(target: "nexum::keystore", provider = %name, mode = ?mode, "key deleted");
                     app.set_status(format!("Key removed for {name}"));
                 }
-                Err(keyring::Error::NoEntry) => {
-                    tracing::info!(target: "nexum::keys", provider = %name, "no keychain entry to remove");
-                    app.set_status(format!("No key found for {name}"));
-                }
-                Err(keyring::Error::NoDefaultStore) |
-                Err(keyring::Error::PlatformFailure(_)) |
-                Err(keyring::Error::NoStorageAccess(_)) => {
-                    tracing::warn!(target: "nexum::keys", provider = %name, "keychain unavailable on remove");
-                    app.set_status(format!("Keychain non disponibile per {name}"));
+                Err(KeyStoreError::Unavailable(msg)) => {
+                    tracing::warn!(target: "nexum::keystore", provider = %name, error = %msg, "keystore unavailable on delete");
+                    app.set_status(format!("Keystore non disponibile per {name}: {msg}"));
                 }
                 Err(e) => {
-                    tracing::error!(target: "nexum::keys", provider = %name, error = %e, "keychain remove error");
-                    app.set_status(format!("Keychain error: {e}"));
+                    tracing::error!(target: "nexum::keystore", provider = %name, error = %e, "keystore delete error");
+                    app.set_status(format!("Key delete error for {name}: {e}"));
                 }
             }
         }

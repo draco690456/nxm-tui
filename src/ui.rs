@@ -41,6 +41,11 @@ pub fn render(f: &mut Frame, app: &mut App) {
             if app.set_key_pending.is_some() {
                 render_set_key_overlay(f, app);
             }
+            // Session passphrase overlay (I2, modal, on top of set-key so the
+            // save flow can prompt over a retained key buffer)
+            if app.passphrase_pending.is_some() {
+                render_passphrase_overlay(f, app);
+            }
             // Search query bar (above history)
             if app.search.is_some() {
                 render_search_overlay(f, app);
@@ -578,6 +583,52 @@ fn render_set_key_overlay(f: &mut Frame, app: &mut App) {
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+    f.render_widget(block, overlay);
+
+    let inner = Rect::new(x + 1, y + 1, w.saturating_sub(2), h.saturating_sub(2));
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Render the masked session-passphrase overlay (I2). A bullet per character —
+/// the literal passphrase never reaches the screen (mai-log D7). Asked at most
+/// once per session; the cache lives in `app.passphrase` (a `Zeroizing` slot).
+fn render_passphrase_overlay(f: &mut Frame, app: &mut App) {
+    let Some(entry) = app.passphrase_pending.as_ref() else {
+        return;
+    };
+    let area = f.area();
+    let w = area.width.min(60);
+    let h = 8u16;
+    let x = (area.width.saturating_sub(w)) / 2;
+    let y = (area.height.saturating_sub(h)) / 2;
+    let overlay = Rect::new(x, y, w, h);
+
+    let masked: String = "•".repeat(entry.buffer.chars().count());
+
+    let lines = vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("Passphrase: ", Style::default().fg(Color::Cyan)),
+            Span::raw(masked),
+        ]),
+        Line::from(""),
+        Line::from("Dopo Enter resta in cache per la sessione (mai loggata)."),
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  Enter ", Style::default().fg(Color::Green)),
+            Span::raw(" conferma  ·  "),
+            Span::styled("Esc", Style::default().fg(Color::Red)),
+            Span::raw(" annulla l'azione in attesa"),
+        ]),
+    ];
+
+    let block = Block::default()
+        .title(" Keystore Passphrase ")
+        .title_style(Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
+        .style(Style::default().bg(Color::Rgb(20, 20, 20)));
+    f.render_widget(Clear, overlay);
     f.render_widget(block, overlay);
 
     let inner = Rect::new(x + 1, y + 1, w.saturating_sub(2), h.saturating_sub(2));

@@ -31,6 +31,7 @@ pub mod transport;
 use anyhow::Result;
 use reqwest::Client;
 use tracing::{debug, info, warn};
+use zeroize::Zeroizing;
 
 use crate::mcp::client::{spawn_session, McpClient, McpHandle};
 use crate::mcp::sampling::LlmSamplingHandler;
@@ -72,23 +73,27 @@ pub async fn connect_if_present(
 }
 
 /// Open an MCP session from the TUI config and active endpoint, resolving the
-/// provider API key the same way the agent does.
+/// provider API key through the `KeyStore` seam the same way the agent does
+/// (I2: `store_for(mode, passphrase)` + `resolve_key_with`, off the async
+/// runtime via `spawn_blocking`).
 ///
-/// This is the single entry point `main.rs` calls at startup. It is a clean
-/// no-op (returns `Ok(None)`) when `cfg.mcp.enabled` is false or the server
-/// binary is absent, so the normal chat path is never affected.
+/// The session passphrase (encrypted-file keystore) is passed in by the
+/// caller, which gates on it first — this function never prompts. It is a
+/// clean no-op (returns `Ok(None)`) when `cfg.mcp.enabled` is false or the
+/// server binary is absent, so the normal chat path is never affected.
 ///
 /// The resolved key value is NEVER logged (only its source), per `RULES.md`.
 ///
 /// # Example
 ///
 /// ```ignore
-/// let handle = nxm_tui::mcp::connect_from_config(&cfg, &endpoint).await?;
+/// let handle = nxm_tui::mcp::connect_from_config(&cfg, &endpoint, pass).await?;
 /// // keep `handle` alive for the session; dropping it stops the run loop.
 /// ```
 pub async fn connect_from_config(
     cfg: &crate::config::TuiConfig,
     endpoint: &str,
+    passphrase: Option<Zeroizing<String>>,
 ) -> Result<Option<McpHandle>> {
     if !cfg.mcp.enabled {
         info!(target: TARGET, "MCP disabled in config; skipping");
@@ -100,9 +105,9 @@ pub async fn connect_from_config(
         .clone()
         .unwrap_or_else(|| "default".to_string());
 
-    // Resolve the active provider's key (keychain → env), off the async
-    // runtime for the blocking keychain call. Key source is logged, never the
-    // value.
+    // Resolve the active provider's key through the KeyStore seam (mode →
+    // backend → env), off the async runtime for the blocking backend call.
+    // Key source is logged, never the value.
     let providers = crate::provider::all_providers(&cfg.providers);
     let active = providers.iter().find(|p| {
         p.base_url == endpoint
@@ -112,7 +117,12 @@ pub async fn connect_from_config(
     let api_key = match active {
         Some(p) if p.requires_api_key => {
             let provider = p.clone();
-            match tokio::task::spawn_blocking(move || crate::keys::resolve_key(&provider)).await {
+            let mode = crate::keys::current_mode();
+            match tokio::task::spawn_blocking(move || {
+                crate::keys::resolve_key_via(&provider, mode, passphrase)
+            })
+            .await
+            {
                 Ok(resolution) => {
                     debug!(target: TARGET, source = resolution.source(), "resolved MCP backend key");
                     resolution.into_key()

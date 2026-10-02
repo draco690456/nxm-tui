@@ -6,6 +6,39 @@
 
 # 2026-10-02
 
+## feat: KeyStore cablato in produzione (I2 — wiring del seam I1)
+- **Factory (TDD)**: `keystore::store_for(mode, passphrase) -> Result<Box<dyn KeyStore>, KeyStoreError>`
+  con mapping `EnvFirst→EnvStore`, `KeychainFirst`/`OsKeychain→OsKeychainStore`,
+  `EncryptedFile→EncryptedFileStore`; EncryptedFile senza (o con) passphrase
+  vuota = `KeyStoreError::Unavailable` **pulito**, mai panic.
+- **Passphrase 1x/sessione**: `app.passphrase: Option<Zeroizing<String>>` +
+  prompt mascherato in `handler.rs` modellato su `set_key_pending` (buffer
+  azzerato su Enter/Esc, mai loggato — D7) + overlay
+  `ui.rs::render_passphrase_overlay` (bullet per char, mai il valore). Esc
+  annulla tutte le azioni in attesa (models fetch, connect MCP, send accodata)
+  così niente loop di re-prompt.
+- **Read-path (4 call site) su `resolve_key_via` = factory + `resolve_key_with`**,
+  con `spawn_blocking`/`block_in_place` mantenuti: `main.rs` models-fetch,
+  `main.rs` agent spawn, `mcp/mod.rs::connect_from_config` (passphrase ora in
+  firma; il connect MCP è **differito al loop** per il gate), `handler.rs`
+  `/provider use`. Gate `needs_passphrase`: se serve la passphrase e manca →
+  apre il prompt, **non spawna**; Enter riprende, Esc annulla.
+- **Write-path sul trait**: `/provider set-key` (Enter) e `/provider
+  remove-key` usano `store.set`/`store.delete` via factory — niente più
+  `keyring::Entry` diretto in `handler.rs`. In modalità cifrata il set-key
+  prompta la passphrase retenendo il buffer e salva alla seconda Enter.
+- `keys.rs::resolve_key` legacy **non rimosso** (ancora coperto da
+  `tests/keys.rs`); `current_mode()` estratto e condiviso.
+- Tests: `tests/keystore_factory.rs` (6) + `tests/passphrase.rs` (6, incl.
+  overlay masked); `tests/mcp_sampling.rs` adattato alla nuova firma. Split
+  300-cap: le funzioni di risoluzione sono passate a `src/keys/resolve.rs`
+  (re-export da `keys.rs`, percorsi stabili). Verifica:
+  build ok, suite **173/173** verde con `--test-threads=1` + 15 doctest,
+  clippy = 3 lint **identici** alla baseline pre-cambiamento (verificata prima
+  di toccare il codice, senza `git stash` per non toccare le modifiche
+  untracked in `docs/patterns/`), 0 nuovi, 0 unwrap/expect nuovi in prod.
+  I2 → Resolved.
+
 ## refactor: split app.rs — commands.rs + metrics.rs (RULES.md debt, T6)
 - Estrazione behavior-preserving: `src/commands.rs` (165 righe: `Command`,
   `ProviderCommand`, `ServerCommand`, `ConfigCommand`, `parse_command`) e

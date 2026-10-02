@@ -12,6 +12,9 @@
 //! - [`OsKeychainStore`] — wraps `keyring::Entry` (OS-native, may prompt).
 //! - [`EncryptedFileStore`] — portable AES-256-GCM + Argon2id file (`keys.enc`).
 //!
+//! [`store_for`] is the runtime factory mapping `KeySourceMode` to one of
+//! these backends (I2 — production wiring).
+//!
 //! mai-log RIGID (D7): a secret value is NEVER logged or printed. Logs emit
 //! only the provider name, presence, and the backend kind.
 
@@ -24,6 +27,49 @@ pub use env::EnvStore;
 pub use os_keychain::OsKeychainStore;
 
 use zeroize::Zeroizing;
+
+use crate::keys::KeySourceMode;
+
+/// Build the backend for `mode` — the runtime factory behind the I2 wiring.
+///
+/// Mapping (from `KeySourceMode` via `key_source_mode()`): `EnvFirst` →
+/// [`EnvStore`], `KeychainFirst`/`OsKeychain` → [`OsKeychainStore`],
+/// `EncryptedFile` → [`EncryptedFileStore`].
+///
+/// `EncryptedFile` needs the session passphrase; a missing or empty one is a
+/// clean [`KeyStoreError::Unavailable`] (never a panic) so the caller can
+/// open the masked prompt instead of spawning blocking work.
+///
+/// # Examples
+///
+/// ```
+/// use nxm_tui::keys::KeySourceMode;
+/// use nxm_tui::keystore::store_for;
+///
+/// let store = store_for(KeySourceMode::EnvFirst, None).expect("env store");
+/// assert_eq!(store.kind(), "env");
+/// // Missing passphrase = clean error, not a panic.
+/// assert!(store_for(KeySourceMode::EncryptedFile, None).is_err());
+/// ```
+pub fn store_for(
+    mode: KeySourceMode,
+    passphrase: Option<&Zeroizing<String>>,
+) -> Result<Box<dyn KeyStore>, KeyStoreError> {
+    match mode {
+        KeySourceMode::EnvFirst => Ok(Box::new(EnvStore::new())),
+        KeySourceMode::KeychainFirst | KeySourceMode::OsKeychain => {
+            Ok(Box::new(OsKeychainStore::new()))
+        }
+        KeySourceMode::EncryptedFile => {
+            let pass = passphrase.filter(|p| !p.is_empty()).ok_or_else(|| {
+                KeyStoreError::Unavailable("encrypted keystore requires a passphrase".into())
+            })?;
+            // `&str → String` is moved straight into the store's `Zeroizing`
+            // buffer: no un-zeroized copy of the passphrase survives.
+            Ok(Box::new(EncryptedFileStore::new(pass.as_str())?))
+        }
+    }
+}
 
 /// Errors a [`KeyStore`] backend can surface.
 ///

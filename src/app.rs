@@ -1,6 +1,8 @@
 use std::cell::Cell;
 use std::time::Instant;
 
+use zeroize::Zeroizing;
+
 // Re-export ServerProcess for App struct
 use crate::server_proc::ServerProcess;
 
@@ -363,6 +365,28 @@ pub struct App {
     pub model_name: Option<String>,
     /// Interactive search state (Some when search mode is active).
     pub search: Option<SearchState>,
+    /// Session passphrase for the encrypted keystore (I2). Asked at most ONCE
+    /// per session via `passphrase_pending`, then cached here in a buffer that
+    /// is zeroized on drop. Never logged (mai-log D7).
+    pub passphrase: Option<Zeroizing<String>>,
+    /// Pending masked passphrase entry (modeled on `set_key_pending`). The
+    /// buffer is ZEROED after Enter or Esc — it never lingers in memory.
+    pub passphrase_pending: Option<PassphraseEntry>,
+    /// Deferred MCP connect (I2): set at startup, consumed once the keystore
+    /// passphrase situation is resolved (EncryptedFile mode may need the
+    /// prompt first), or cleared when the user declines the prompt.
+    pub mcp_connect_pending: bool,
+}
+
+/// Entry for the session passphrase prompt.
+///
+/// The buffer is [`Zeroizing<String>`]: dropping the entry — Enter *and* Esc —
+/// scrubs the bytes, so the "buffer azzerato" guarantee is type-enforced.
+/// Deliberately **not** `Debug`-derivable: a passphrase value must never be
+/// formatable into a log line (mai-log D7).
+#[derive(Default)]
+pub struct PassphraseEntry {
+    pub buffer: Zeroizing<String>,
 }
 
 /// Entry for `/provider set-key` prompt: provider name + masked buffer.
@@ -417,7 +441,44 @@ impl App {
             models_list: Vec::new(),
             model_name: None,
             search: None,
+            passphrase: None,
+            passphrase_pending: None,
+            mcp_connect_pending: false,
         }
+    }
+
+    /// Open the masked passphrase prompt if it is not already open (I2).
+    ///
+    /// Idempotent: a second call (another gated action) must not wipe what
+    /// the user is already typing. The passphrase itself is captured by
+    /// `handler.rs` and cached in `self.passphrase` — never logged.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nxm_tui::app::App;
+    ///
+    /// let mut app = App::new();
+    /// app.request_passphrase();
+    /// assert!(app.passphrase_pending.is_some());
+    /// // A second gate must not wipe a partially typed buffer.
+    /// app.request_passphrase();
+    /// assert!(app.passphrase_pending.is_some());
+    /// ```
+    pub fn request_passphrase(&mut self) {
+        if self.passphrase_pending.is_none() {
+            tracing::info!(target: "nexum::keystore", "passphrase prompt open");
+            self.passphrase_pending = Some(PassphraseEntry::default());
+            self.set_status("Keystore cifrato: inserisci la passphrase (una tantum, Esc annulla)".into());
+        }
+    }
+
+    /// I2 gate: `true` when `mode` needs the session passphrase and none is
+    /// cached yet — the caller must open the prompt instead of spawning any
+    /// blocking keystore work. Single home for the compound condition that
+    /// used to be repeated at every gated call site.
+    pub fn passphrase_missing(&self, mode: crate::keys::KeySourceMode) -> bool {
+        crate::keys::needs_passphrase(mode) && self.passphrase.is_none()
     }
 
     pub fn start_operation(&mut self, label: &str) {

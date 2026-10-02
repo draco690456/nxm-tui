@@ -16,11 +16,13 @@ use nxm_tui::app::{App, Message, Role, RunState};
 use nxm_tui::config::TuiConfig;
 use nxm_tui::event::AppEvent;
 use nxm_tui::handler::handle_key;
-use nxm_tui::keys::{resolve_key, KeyResolution};
+use nxm_tui::keys::{current_mode, resolve_key_via, KeyResolution};
+use nxm_tui::mcp::client::McpHandle;
 use nxm_tui::models::fetch_models;
 use nxm_tui::tool_types::{ApprovalRequest, ToolPart};
 use nxm_tui::ui::render;
 use nxm_tui::{app, agent, event, provider};
+use zeroize::Zeroizing;
 
 fn main() -> io::Result<()> {
     // Load a local .env if present (dev-friendly key loading). Keys defined
@@ -113,24 +115,18 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
         }
     }
 
-    // MCP host (sampling): open a session if enabled and the server binary is
-    // present. Kept alive for the whole loop via `_mcp` (dropping it stops the
+    // MCP host (sampling): connect as soon as the keystore passphrase
+    // situation is resolved (I2). In EncryptedFile mode the session
+    // passphrase is not cached yet at startup → the connect is DEFERRED to
+    // the loop, where the masked prompt runs first (Esc cancels it).
+    // Kept alive for the whole loop via `mcp_handle` (dropping it stops the
     // run loop). A clean no-op when disabled/absent — never blocks chat.
-    let _mcp = if app.state == RunState::Running {
-        match nxm_tui::mcp::connect_from_config(&cfg, &app.endpoint).await {
-            Ok(Some(handle)) => {
-                info!(endpoint = %app.endpoint, "MCP session open");
-                Some(handle)
-            }
-            Ok(None) => None,
-            Err(e) => {
-                tracing::warn!(error = %e, "MCP connect failed; continuing without it");
-                None
-            }
-        }
-    } else {
-        None
-    };
+    let mut mcp_handle: Option<McpHandle> = None;
+    app.mcp_connect_pending = app.state == RunState::Running;
+    if app.mcp_connect_pending && !app.passphrase_missing(current_mode()) {
+        app.mcp_connect_pending = false;
+        mcp_handle = open_mcp(&cfg, &app.endpoint, app.passphrase.clone()).await;
+    }
 
     // Main loop
     let (part_tx, mut part_rx) = mpsc::unbounded_channel::<ToolPart>();
@@ -156,35 +152,63 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
             break;
         }
 
+        // I2: deferred MCP connect — fires once the session passphrase is
+        // cached; while it is missing the masked prompt runs instead (Esc
+        // clears mcp_connect_pending and the connect dies quietly).
+        if app.mcp_connect_pending {
+            if app.passphrase_missing(current_mode()) {
+                app.request_passphrase();
+                dirty = true;
+            } else {
+                app.mcp_connect_pending = false;
+                mcp_handle = open_mcp(&cfg, &app.endpoint, app.passphrase.clone()).await;
+            }
+        }
+
         // Consume pending /models fetch: spawn async task, never block the UI.
         if app.models_fetch_pending.is_some() && models_fetch_task.is_none() {
-            let base_url = app.models_fetch_pending.take().unwrap_or_default();
-
-            // Resolve API key for the active provider (same pattern as Agent spawn)
+            let mode = current_mode();
+            let base_url_hint = app.models_fetch_pending.clone().unwrap_or_default();
             let providers = provider::all_providers(&cfg.providers);
             let active_provider = providers.iter().find(|p| {
-                p.base_url == base_url
-                    || p.base_url.trim_end_matches("/v1") == base_url.trim_end_matches("/v1")
+                p.base_url == base_url_hint
+                    || p.base_url.trim_end_matches("/v1") == base_url_hint.trim_end_matches("/v1")
             }).cloned();
 
-            let api_key = if let Some(ref p) = active_provider {
-                if p.requires_api_key {
-                    let provider = p.clone();
-                    match tokio::task::spawn_blocking(move || resolve_key(&provider)).await {
-                        Ok(resolution) => resolution.into_key(),
-                        Err(_) => None,
+            // I2 gate (same rule as the agent spawn): prompt instead of
+            // spawning only when the key is actually needed — the fetch
+            // resumes on Enter (pending kept) and dies on Esc (pending
+            // cleared in handler.rs).
+            let passphrase_gate = active_provider.as_ref().is_some_and(|p| p.requires_api_key)
+                && app.passphrase_missing(mode);
+
+            if passphrase_gate {
+                app.request_passphrase();
+                dirty = true;
+            } else {
+                let base_url = app.models_fetch_pending.take().unwrap_or_default();
+
+                // Resolve API key for the active provider (same pattern as Agent spawn)
+                let pass = app.passphrase.clone();
+                let api_key = if let Some(ref p) = active_provider {
+                    if p.requires_api_key {
+                        let provider = p.clone();
+                        match tokio::task::spawn_blocking(move || resolve_key_via(&provider, mode, pass)).await {
+                            Ok(resolution) => resolution.into_key(),
+                            Err(_) => None,
+                        }
+                    } else {
+                        None
                     }
                 } else {
                     None
-                }
-            } else {
-                None
-            };
+                };
 
-            let client = reqwest::Client::new();
-            models_fetch_task = Some(tokio::spawn(async move {
-                fetch_models(&client, &base_url, api_key.as_deref()).await
-            }));
+                let client = reqwest::Client::new();
+                models_fetch_task = Some(tokio::spawn(async move {
+                    fetch_models(&client, &base_url, api_key.as_deref()).await
+                }));
+            }
         }
 
         // Check if the models fetch task is finished
@@ -277,52 +301,65 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
 
                 // Start inference
                 if app.state == RunState::Thinking && app.pending_message.is_some() && inference_task.is_none() {
-                    app.start_operation("Thinking");
-                    app.metrics.start_response();
-                    let _msg = app.pending_message.take().unwrap();
-                    app.metrics.session_user_msgs += 1;
                     let base = app.endpoint.clone();
-                    let client = reqwest::Client::new();
-                    let model = cfg.model_name.clone().unwrap_or_else(|| "default".to_string());
-                    let initial_msgs = app.messages.clone();
-                    let tx = part_tx.clone();
-                    let approval = approval_tx.clone();
 
-                    // Resolve API key for the active provider (once per agent spawn)
+                    // Resolve the active provider once (I2): used by the
+                    // passphrase gate below and by the key resolution.
                     let providers = provider::all_providers(&cfg.providers);
                     let active_provider = providers.iter().find(|p| {
                         p.base_url == base || p.base_url.trim_end_matches("/v1") == base.trim_end_matches("/v1")
                     }).cloned();
+                    let mode = current_mode();
+                    let passphrase_gate = active_provider.as_ref().is_some_and(|p| p.requires_api_key)
+                        && app.passphrase_missing(mode);
 
-                    let api_key = if let Some(ref p) = active_provider {
-                        if p.requires_api_key {
-                            let provider = p.clone();
-                            match tokio::task::spawn_blocking(move || resolve_key(&provider)).await {
-                                Ok(resolution) => {
-                                    // One-time warning if keychain unavailable and key from env
-                                    if let KeyResolution::Env { keychain_available: false, .. } = &resolution {
-                                        app.set_status("keychain non disponibile — key da env (non persistente)".to_string());
+                    if passphrase_gate {
+                        // I2: prompt instead of spawning — pending_message is
+                        // kept intact, so Enter on the prompt resumes this
+                        // send and Esc cancels it (handler.rs).
+                        app.request_passphrase();
+                    } else if let Some(_msg) = app.pending_message.take() {
+                        app.start_operation("Thinking");
+                        app.metrics.start_response();
+                        app.metrics.session_user_msgs += 1;
+                        let client = reqwest::Client::new();
+                        let model = cfg.model_name.clone().unwrap_or_else(|| "default".to_string());
+                        let initial_msgs = app.messages.clone();
+                        let tx = part_tx.clone();
+                        let approval = approval_tx.clone();
+                        let pass = app.passphrase.clone();
+
+                        // Resolve API key for the active provider (once per agent spawn)
+                        let api_key = if let Some(ref p) = active_provider {
+                            if p.requires_api_key {
+                                let provider = p.clone();
+                                match tokio::task::spawn_blocking(move || resolve_key_via(&provider, mode, pass)).await {
+                                    Ok(resolution) => {
+                                        // One-time warning if keychain unavailable and key from env
+                                        if let KeyResolution::Env { keychain_available: false, .. } = &resolution {
+                                            app.set_status("keychain non disponibile — key da env (non persistente)".to_string());
+                                        }
+                                        resolution.into_key()
                                     }
-                                    resolution.into_key()
+                                    Err(_) => None,
                                 }
-                                Err(_) => None,
+                            } else {
+                                None
                             }
                         } else {
                             None
-                        }
-                    } else {
-                        None
-                    };
+                        };
 
-                    inference_task = Some(tokio::spawn(async move {
-                        let mut agent = agent::Agent::new(
-                            &client, &base, &model, api_key, initial_msgs,
-                            Some(approval),
-                        );
-                        agent.run(&tx).await.unwrap_or_else(|e| {
-                            tracing::error!("agent error: {e}");
-                        });
-                    }));
+                        inference_task = Some(tokio::spawn(async move {
+                            let mut agent = agent::Agent::new(
+                                &client, &base, &model, api_key, initial_msgs,
+                                Some(approval),
+                            );
+                            agent.run(&tx).await.unwrap_or_else(|e| {
+                                tracing::error!("agent error: {e}");
+                            });
+                        }));
+                    }
                 }
                 dirty = true;
             }
@@ -387,7 +424,31 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
         let _ = proc.child.wait();
     }
 
+    if mcp_handle.is_some() {
+        info!(target: "nexum::mcp", "MCP session closed");
+    }
+
     Ok(())
+}
+
+/// Open the MCP session from config, resolving the provider key through the
+/// KeyStore seam (I2). Returns `None` on skip/failure so chat is unaffected.
+async fn open_mcp(
+    cfg: &TuiConfig,
+    endpoint: &str,
+    passphrase: Option<Zeroizing<String>>,
+) -> Option<McpHandle> {
+    match nxm_tui::mcp::connect_from_config(cfg, endpoint, passphrase).await {
+        Ok(Some(handle)) => {
+            info!(target: "nexum::mcp", endpoint, "MCP session open");
+            Some(handle)
+        }
+        Ok(None) => None,
+        Err(e) => {
+            tracing::warn!(target: "nexum::mcp", error = %e, "MCP connect failed; continuing without it");
+            None
+        }
+    }
 }
 
 async fn detect_endpoint(cfg: &TuiConfig) -> Option<(String, String)> {

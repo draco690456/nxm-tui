@@ -13,14 +13,16 @@
 //!
 //! mai-log RIGID: key value NEVER logged/printed (overlay, debug log, test output).
 //! Logs emit only: source, presence, env var name.
+//!
+//! The resolution functions live in [`resolve`] (300-line cap) and are
+//! re-exported here, so `crate::keys::{resolve_key, resolve_key_with,
+//! resolve_key_via}` paths stay stable.
 
 use std::env;
 
-use keyring::Entry;
-use tracing::{debug, info, warn};
+mod resolve;
 
-use crate::keystore::KeyStore;
-use crate::provider::Provider;
+pub use resolve::{resolve_key, resolve_key_with, resolve_key_via};
 
 /// Result of key resolution for a provider.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -126,130 +128,38 @@ pub fn key_source_mode(env_present: bool, override_var: Option<&str>) -> KeySour
     }
 }
 
-/// Resolve the API key for a provider.
+/// Mode for the current process: explicit `NXM_KEY_SOURCE` override, else
+/// inferred from the presence of a local `.env`. Environment inspection only.
 ///
-/// Called ONCE at Agent spawn (never in the render loop). Keychain access runs
-/// on `spawn_blocking` from the caller (`main.rs`).
+/// # Examples
 ///
-/// In dev mode (a local `.env` is present or `NXM_KEY_SOURCE=env`) the keychain
-/// is skipped entirely, so macOS never shows a password prompt.
-pub fn resolve_key(provider: &Provider) -> KeyResolution {
+/// ```no_run
+/// use nxm_tui::keys::{current_mode, KeySourceMode};
+///
+/// // Reads `NXM_KEY_SOURCE` + local `.env` presence, so the value is
+/// // environment-dependent — this example compiles but does not run.
+/// let mode = current_mode();
+/// let _dev_box = mode == KeySourceMode::EnvFirst;
+/// ```
+pub fn current_mode() -> KeySourceMode {
     let env_present = std::path::Path::new(".env").exists();
     let override_var = env::var("NXM_KEY_SOURCE").ok();
-    let mode = key_source_mode(env_present, override_var.as_deref());
-
-    if mode == KeySourceMode::EnvFirst {
-        debug!(target: "nexum::keys", provider = %provider.name, "env-first mode: skipping keychain (no prompt)");
-        // keychain_available is reported true here: it was not *unavailable*,
-        // we deliberately chose not to consult it. No one-time warning needed.
-        return resolve_env_fallback(provider, true);
-    }
-
-    // 1. Keychain (production default)
-    let entry = match Entry::new("nexum-tui", &provider.name) {
-        Ok(e) => e,
-        Err(e) => {
-            warn!(target: "nexum::keys", provider = %provider.name, error = %e, "keychain entry creation failed");
-            return resolve_env_fallback(provider, false);
-        }
-    };
-    match entry.get_password() {
-        Ok(key) => {
-            info!(target: "nexum::keys", provider = %provider.name, source = "keychain", "key resolved");
-            return KeyResolution::Keychain(key);
-        }
-        Err(keyring::Error::NoEntry) => {
-            debug!(target: "nexum::keys", provider = %provider.name, "no keychain entry");
-        }
-        Err(keyring::Error::NoDefaultStore) |
-        Err(keyring::Error::PlatformFailure(_)) |
-        Err(keyring::Error::NoStorageAccess(_)) => {
-            warn!(target: "nexum::keys", provider = %provider.name, "keychain unavailable");
-            return resolve_env_fallback(provider, false);
-        }
-        Err(e) => {
-            // keyring::Error is #[non_exhaustive] — wildcard catch-all.
-            warn!(target: "nexum::keys", provider = %provider.name, error = %e, "keychain error");
-            return resolve_env_fallback(provider, false);
-        }
-    }
-
-    // 2-4. Env fallback (keychain was available but no entry)
-    resolve_env_fallback(provider, true)
+    key_source_mode(env_present, override_var.as_deref())
 }
 
-fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyResolution {
-    // Provider-specific env var
-    if let Some(ref env_var) = provider.api_key_env {
-        if let Ok(key) = env::var(env_var) {
-            if !key.is_empty() {
-                info!(target: "nexum::keys", provider = %provider.name, source = "env", env_var = %env_var, "key resolved");
-                return KeyResolution::Env { key, keychain_available };
-            }
-        }
-    }
-
-    // Global NEXUM_API_KEY
-    if let Ok(key) = env::var("NEXUM_API_KEY") {
-        if !key.is_empty() {
-            info!(target: "nexum::keys", provider = %provider.name, source = "env", env_var = "NEXUM_API_KEY", "key resolved");
-            return KeyResolution::Env { key, keychain_available };
-        }
-    }
-
-    // Global OPENAI_API_KEY
-    if let Ok(key) = env::var("OPENAI_API_KEY") {
-        if !key.is_empty() {
-            info!(target: "nexum::keys", provider = %provider.name, source = "env", env_var = "OPENAI_API_KEY", "key resolved");
-            return KeyResolution::Env { key, keychain_available };
-        }
-    }
-
-    info!(target: "nexum::keys", provider = %provider.name, source = "missing", "no key found");
-    KeyResolution::Missing
-}
-
-/// Resolve the API key for a provider through an injectable [`KeyStore`] seam.
+/// Whether `mode` needs the session passphrase before any store work runs
+/// (I2 gate). Only the portable encrypted file is passphrase-locked; the
+/// callers prompt when this is true and no passphrase is cached yet.
 ///
-/// This is the testable, backend-agnostic form of [`resolve_key`]. The
-/// resolution order generalizes D7:
+/// # Examples
 ///
-/// 1. `store.get(provider.name)` — the chosen backend (encrypted file, OS
-///    keychain, env, or a test fake).
-/// 2. `provider.api_key_env` — the provider-specific env var.
-/// 3. `NEXUM_API_KEY` — global.
-/// 4. `OPENAI_API_KEY` — global.
-/// 5. Missing.
+/// ```
+/// use nxm_tui::keys::{needs_passphrase, KeySourceMode};
 ///
-/// A store error (backend unavailable/corrupt) is treated as "not found here"
-/// and resolution falls through to the env layers, mirroring the historical
-/// keychain-unavailable behaviour. `keychain_available` in the returned
-/// [`KeyResolution::Env`] reflects whether the store was reachable.
-///
-/// mai-log (D7): the key value is never logged — only source/presence.
-pub fn resolve_key_with(provider: &Provider, store: &dyn KeyStore) -> KeyResolution {
-    let store_available = store.is_available();
-    if store_available {
-        match store.get(&provider.name) {
-            Ok(Some(secret)) => {
-                info!(target: "nexum::keys", provider = %provider.name, source = store.kind(), "key resolved");
-                // `Zeroizing<String>` → owned String for the resolution; the
-                // caller holds it only as long as needed (Agent spawn).
-                return KeyResolution::Keychain((*secret).clone());
-            }
-            Ok(None) => {
-                debug!(target: "nexum::keys", provider = %provider.name, kind = store.kind(), "no store entry");
-            }
-            Err(e) => {
-                warn!(target: "nexum::keys", provider = %provider.name, kind = store.kind(), error = %e, "store error");
-                return resolve_env_fallback(provider, false);
-            }
-        }
-    } else {
-        warn!(target: "nexum::keys", provider = %provider.name, kind = store.kind(), "store unavailable");
-        return resolve_env_fallback(provider, false);
-    }
-
-    // Store reachable but no entry → env fallback (keychain_available = true).
-    resolve_env_fallback(provider, true)
+/// assert!(needs_passphrase(KeySourceMode::EncryptedFile));
+/// assert!(!needs_passphrase(KeySourceMode::EnvFirst));
+/// assert!(!needs_passphrase(KeySourceMode::KeychainFirst));
+/// ```
+pub fn needs_passphrase(mode: KeySourceMode) -> bool {
+    mode == KeySourceMode::EncryptedFile
 }

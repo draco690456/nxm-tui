@@ -26,8 +26,16 @@ an interactive chat interface in the terminal.
   stdio, declares the `sampling` capability, and serves `sampling/createMessage`
   by bridging to the LLM backend (auto-approved). Unblocks server tools like
   `generate_handoff`. See `docs/mcp/ARCHITECTURE.md`. Wired into the `main.rs`
-  runtime at startup via `mcp::connect_from_config` (clean skip when disabled or
-  the server binary is absent; chat never blocked).
+  runtime via `mcp::connect_from_config` (clean skip when disabled or
+  the server binary is absent; chat never blocked; deferred to the loop when
+  the encrypted keystore still needs its session passphrase).
+- Secret storage behind the injectable `KeyStore` seam (`src/keystore/`):
+  `store_for(mode, passphrase)` maps `NXM_KEY_SOURCE` to `EnvStore` /
+  `OsKeychainStore` / `EncryptedFileStore` (AES-256-GCM + Argon2id, `keys.enc`
+  0600); every read path resolves via `resolve_key_with`, every write path
+  (`/provider set-key`, `/provider remove-key`) via `store.set`/`store.delete`.
+  The encrypted file asks its session passphrase at most once per session
+  (masked prompt, `Zeroizing` cache, never logged).
 
 ## Dependencies
 - ratatui + crossterm for TUI rendering

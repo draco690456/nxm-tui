@@ -145,7 +145,7 @@ async fn connect_from_config_skips_when_disabled() {
     let mut cfg = nxm_tui::config::TuiConfig::default();
     cfg.mcp.enabled = false;
 
-    let result = nxm_tui::mcp::connect_from_config(&cfg, "http://127.0.0.1:11434")
+    let result = nxm_tui::mcp::connect_from_config(&cfg, "http://127.0.0.1:11434", None)
         .await
         .expect("disabled MCP must not error");
 
@@ -162,7 +162,7 @@ async fn connect_from_config_skips_when_binary_absent() {
     cfg.mcp.enabled = true;
     cfg.mcp.command = "nxm-nonexistent-mcp-binary-xyzzy".to_string();
 
-    let result = nxm_tui::mcp::connect_from_config(&cfg, "http://127.0.0.1:11434")
+    let result = nxm_tui::mcp::connect_from_config(&cfg, "http://127.0.0.1:11434", None)
         .await
         .expect("absent binary must be a clean skip, not an error");
 

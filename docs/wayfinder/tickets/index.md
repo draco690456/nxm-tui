@@ -10,9 +10,10 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Nota |
 |---|---|---|
-| [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` | **Study**: keystore portabile indipendente dall'OS + seam `KeyStore` iniettabile (testabilità). Motivato dal mismatch keyring/keyring_core (2026-10-02). Mitigazione env-first `.env` già in essere. |
+| [T6-split-app-rs.md](T6-split-app-rs.md) | `wayfinder:task` | **IN PROGRESS** (claim 2026-10-02): debito RULES.md — estrai `commands.rs` + `metrics.rs` da `app.rs` (973 righe) con re-export per compat. Behavior-preserving. Free agent exec + review. |
+| [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` | **Study** (prossimo): keystore portabile indipendente dall'OS + seam `KeyStore` iniettabile (testabilità). Motivato dal mismatch keyring/keyring_core. Mitigazione env-first `.env` già in essere. |
 | *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale (`docs/patterns/VENDOR-TUI-ANALYSIS.md`). `search` CABLATO (T5 ✅). |
-| *(MCP wiring in main.rs — roadmap)* | | Wiring startup FATTO (`ec05222`). Residuo: status bar, sessione post-menu NoServer, `tools/call` (roadmap `docs/mcp/ARCHITECTURE.md`). |
+| *(MCP wiring in main.rs — roadmap)* | | Wiring startup FATTO (`ec05222`). Residuo: status bar, sessione post-menu NoServer, `tools/call`. Split `main.rs::run` (debito, dopo T6). |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
 

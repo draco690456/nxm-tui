@@ -192,8 +192,16 @@ unicode-segmentation = "1"   # solo per la finestra query grapheme-aware
 
 ## Verifica licenza openviking
 
-- File letto: `vendors/openviking/crates/LICENSE` → **Apache License, Version 2.0**.
-- `vendors/openviking/LICENSE` → anch'esso Apache-2.0.
+> **Correzione 2026-10-15 (verificata sul sorgente in `vendors/tooling/openviking/`).**
+> Questa sezione diceva che anche la root è Apache-2.0: **è falso**. La root è
+> **AGPL-3.0** (copre la *Main Project*, server/bot); solo **`crates/ov_cli`** (e
+> `examples/`) sono Apache-2.0. Vedi README §License e `crates/ov_cli/Cargo.toml`.
+> Copiare codice fuori da `crates/ov_cli` sarebbe una violazione AGPL.
+
+- File letto: `vendors/openviking/crates/LICENSE` → **Apache License, Version 2.0**
+  (vale per `crates/ov_cli`, che dichiara `license = "Apache-2.0"` nel suo Cargo.toml).
+- `vendors/openviking/LICENSE` → **AGPL-3.0** (Main Project: **non copiabile** in
+  un progetto MIT).
 - **Nessun file `NOTICE`** trovato in tutto `vendors/openviking/**` (ricerca `**/NOTICE*` → 0 risultati).
 - Sotto `vendors/openviking/third_party/` ci sono licenze di terze parti separate
   (spdlog, leveldb, rapidjson, croaring) — **da non toccare**; non riguardano `ov_cli`.
@@ -227,20 +235,23 @@ con **una eccezione preziosa**.
   stdout — non produce `Vec<Line>` per ratatui. È una **terza via** (diversa da
   syntect/grok e da pulldown), ma non integrabile nel transcript widget.
 
-**L'eccezione che vale una COPIA — `render_utils.rs::wrap_display_text` (MIT):**
+**L'eccezione che vale una COPIA — `render_utils.rs::wrap_display_text` (Apache-2.0):**
 - Word-wrap **unicode-width-aware**: usa `UnicodeWidthChar::width` / `UnicodeWidthStr::width`,
   spezza le parole troppo lunghe **carattere per carattere** rispettando la larghezza di
   cella (CJK/emoji), gestisce `max_lines` con ellipsis ASCII. ~90 righe self-contained
   (`wrap_display_text` + helper `append_word_to_line`), unica dep `unicode-width`.
-- **Copre un bug reale di nxm-tui**: l'attuale `markdown.rs` fa `&line[..inner_w]` (slice
-  per byte) → tronca male e **può panicare su boundary UTF-8**. `wrap_display_text` è un
-  rimpiazzo diretto sicuro.
+- **Copre un bug reale di nxm-tui**: `markdown.rs` misura in **byte**
+  (`cur.len() + word.len() + 1 > max`; `chars().count()` per i fence) → wrap sbagliato
+  su CJK/emoji e parole lunghe non spezzate. Il *panic* su boundary UTF-8 è già stato
+  tamponato (troncamento char-safe + test emoji); resta la **larghezza** sbagliata.
+  `wrap_display_text` è un rimpiazzo diretto sicuro.
 - **Verdetto: COPIA** (adattare, non è legato a ratatui: ritorna `Vec<String>`). Effort **S**.
   È il **secondo** pezzo copiabile 1:1 individuato, dopo `xai-grok-pager/src/search/`.
 
-**Licenza openviking:** Apache-2.0 (`crates/LICENSE` + root `LICENSE`), nessun `NOTICE`
-→ obblighi §4 standard. `wrap_display_text` però è codice applicativo di `ov_cli`; preservare
-l'attribuzione Apache-2.0 nel `THIRD-PARTY-NOTICES.md` di nxm-tui.
+**Licenza openviking:** **`crates/ov_cli` = Apache-2.0** (root = AGPL-3.0, non
+copiabile), nessun `NOTICE` → obblighi §4 standard. `wrap_display_text` è codice
+applicativo di `ov_cli`; preservare l'attribuzione Apache-2.0 nel
+`THIRD-PARTY-NOTICES.md` di nxm-tui.
 
 **Aggiornamento tabella:** openviking passa da _"Riferimento"_ a **_"Copia:
 `wrap_display_text`"_** (unicode-aware wrap, S).

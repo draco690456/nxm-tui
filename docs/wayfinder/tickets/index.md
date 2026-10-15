@@ -11,7 +11,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 | Ticket | Labels | Nota |
 |---|---|---|
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
-| *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale. `search` CABLATO (T5 ✅). |
+| *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale. `search` CABLATO (T5 ✅). **V1 claimato** (wrap unicode); residuo: syntect (V2), streaming incrementale (V3). |
 | *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). Residuo: `Message`/`Role`, split `main.rs::run`. |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
@@ -35,7 +35,8 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Stato |
 |---|---|---|
-| *(nessuno)* | | I1 e I2 risolti nella sessione keystore 2026-10-02. |
+| [V1-unicode-wrap.md](V1-unicode-wrap.md) | `wayfinder:task` | 🚧 Claimed 2026-10-15 — wrap a larghezza di display in `markdown.rs` (adatta `openviking crates/ov_cli` `wrap_display_text`, Apache-2.0) + troncamento fence. Residuo vendor: V2 syntect, V3 streaming. I1/I2/I3 keystore chiusi (sessione 2026-10-02 → 2026-10-15). |
+| *(RULES.md debt residuo)* | | Non claimato questa sessione: `Message`/`Role` (~60 call site), split `main.rs::run` (382 righe). |
 
 ## Resolved (this chart session)
 | Ticket | Labels | Esito |

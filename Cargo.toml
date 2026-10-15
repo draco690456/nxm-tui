@@ -54,6 +54,10 @@ shellexpand = "3"
 toml = "1"
 chrono = "0.4"
 regex = "1.13.1"
+# Cell-width text layout (V1): CJK/emoji occupy two columns, so markdown
+# wrapping/truncation must measure display width, never bytes or char counts.
+# Pinned to the copy already resolved in Cargo.lock (via unicode-truncate).
+unicode-width = "0.2.0"
 
 # Dev-friendly key loading: load a local .env when present (gitignored).
 dotenvy = "0.15.7"

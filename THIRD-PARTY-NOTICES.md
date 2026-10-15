@@ -15,3 +15,22 @@ copyright and licenses are reproduced below.
 
 A copy of the Apache License 2.0 is available at
 <https://www.apache.org/licenses/LICENSE-2.0>.
+
+## openviking (volcengine/OpenViking)
+
+- **Source:** `crates/ov_cli/src/commands/render_utils.rs` (`wrap_display_text`,
+  `append_word_to_line`) — the `crates/ov_cli` component only. The repository
+  root of OpenViking is AGPL-3.0; no code was taken from it.
+- **Vendor snapshot:** commit `f6010a5`, vendored at
+  `vendors/tooling/openviking/`.
+- **Copyright:** OpenViking Contributors
+- **License:** Apache License 2.0 (`crates/ov_cli/Cargo.toml`, `crates/LICENSE`)
+- **Usage:** `src/markdown.rs` (`wrap`, `append_word`) is adapted from the above
+  source: words are appended while they fit the row's cell width and a word
+  wider than the row is split on character boundaries using `unicode_width`.
+  The adaptation drops upstream's `max_lines`/ellipsis truncation (the
+  transcript renders every line) and renames the helpers; the upstream
+  truncation marker `…` is kept for code-fence lines.
+
+A copy of the Apache License 2.0 is available at
+<https://www.apache.org/licenses/LICENSE-2.0>.

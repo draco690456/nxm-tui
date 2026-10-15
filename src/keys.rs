@@ -1,28 +1,30 @@
-//! Per-provider API key resolution via keychain + env fallback.
+//! Per-provider API key resolution via an injectable [`crate::keystore`]
+//! backend + env fallback.
 //!
-//! Resolution order (D7 hard):
-//! 1. Keychain entry `nexum-tui` / `<provider name>` (via `spawn_blocking`)
+//! Resolution order (D7 hard), generalized over the chosen backend
+//! (see [`resolve_key_with`]):
+//! 1. `store.get(provider.name)` — the selected backend (encrypted file, OS
+//!    keychain, env, or a test fake)
 //! 2. Provider's `api_key_env` (e.g. `NVIDIA_API_KEY`)
 //! 3. Global `NEXUM_API_KEY`
 //! 4. Global `OPENAI_API_KEY`
 //! 5. Missing
 //!
-//! Keychain errors `NoDefaultStore`/`PlatformFailure`/`NoStorageAccess` =
-//! keychain unavailable → env fallback. `NoEntry` = no entry → env fallback.
-//! `Error` is `#[non_exhaustive]` → always wildcard branch.
+//! A store error or an unreachable backend is treated as "not found here" and
+//! resolution falls through to the env layers.
 //!
 //! mai-log RIGID: key value NEVER logged/printed (overlay, debug log, test output).
 //! Logs emit only: source, presence, env var name.
 //!
 //! The resolution functions live in [`resolve`] (300-line cap) and are
-//! re-exported here, so `crate::keys::{resolve_key, resolve_key_with,
-//! resolve_key_via}` paths stay stable.
+//! re-exported here, so `crate::keys::{resolve_key_with, resolve_key_via}`
+//! paths stay stable.
 
 use std::env;
 
 mod resolve;
 
-pub use resolve::{resolve_key, resolve_key_with, resolve_key_via};
+pub use resolve::{resolve_key_via, resolve_key_with};
 
 /// Result of key resolution for a provider.
 #[derive(Debug, Clone, PartialEq, Eq)]

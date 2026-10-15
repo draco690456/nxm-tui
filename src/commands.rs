@@ -42,6 +42,9 @@ pub enum ProviderCommand {
     SetKey(String),
     /// `/provider remove-key <name>` — delete API key from keychain.
     RemoveKey(String),
+    /// `/provider migrate-keys` — import keys from the OS keychain into the
+    /// portable encrypted file store (idempotent, one-shot).
+    MigrateKeys,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -153,6 +156,9 @@ pub fn parse_command(input: &str) -> Command {
                 Some(name) => Command::Provider(ProviderCommand::RemoveKey(name.to_string())),
                 None => Command::Normal(input.to_string()),
             },
+            Some("migrate-keys") | Some("migrate") => {
+                Command::Provider(ProviderCommand::MigrateKeys)
+            }
             _ => Command::Normal(input.to_string()),
         },
         "/models" => Command::Models,

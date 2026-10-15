@@ -20,10 +20,12 @@
 
 mod encrypted_file;
 mod env;
+mod migrate;
 mod os_keychain;
 
 pub use encrypted_file::EncryptedFileStore;
 pub use env::EnvStore;
+pub use migrate::{migrate_keys, MigrateReport};
 pub use os_keychain::OsKeychainStore;
 
 use zeroize::Zeroizing;

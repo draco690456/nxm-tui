@@ -11,7 +11,6 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 | Ticket | Labels | Nota |
 |---|---|---|
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
-| [I3-keystore-cleanup-migrate.md](I3-keystore-cleanup-migrate.md) | `wayfinder:task` | **Open · unblocked** (follow-up I2): decidere destino di `resolve_key` legacy (ancora usato da `tests/keys.rs`, NON morto) — rimuovere con test migrati sul seam, o documentare come legacy/test-only; + `/provider migrate-keys` (keychain nativo → file cifrato, idempotente, mai-log). |
 | *(vendor TUI adoption residua)* | | wrap unicode (openviking), markdown+syntect, streaming incrementale. `search` CABLATO (T5 ✅). |
 | *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). Residuo: `Message`/`Role`, split `main.rs::run`. |
 
@@ -43,6 +42,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 |---|---|---|
 | [I1-keystore-seam.md](I1-keystore-seam.md) | `wayfinder:task` ✅ | **Resolved 2026-10-02**: seam `KeyStore` iniettabile + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600) + `OsKeychainStore` + `EnvStore` dietro il trait; `resolve_key_with` ordine D7 generalizzato; `keychain_beats_env` riscritto su `MockKeyStore` (commit f2addf1). Wiring runtime → I2. |
 | [I2-wire-keystore-runtime.md](I2-wire-keystore-runtime.md) | `wayfinder:task` ✅ | **Resolved 2026-10-02**: wiring in produzione — factory `store_for(mode, passphrase)` (errore pulito senza passphrase), passphrase 1x/sessione (`Zeroizing` + prompt mascherato), 4 read-path su `resolve_key_via` (factory + `resolve_key_with`) con gate "prompt, non spawnare", write-path `set-key`/`remove-key` sul trait. Verifica: build ok, 173 test verdi single-thread, clippy = baseline (0 nuovi). |
+| [I3-keystore-cleanup-migrate.md](I3-keystore-cleanup-migrate.md) | `wayfinder:task` ✅ | **Resolved 2026-10-15** (follow-up I2): opzione A — `resolve_key` legacy **rimosso**, test migrati sul seam (`resolve_key_with`+`EnvStore`/`MockKeyStore`, niente mock keychain process-global); `/provider migrate-keys` (`OsKeychainStore`→`EncryptedFileStore`, idempotente, fail-soft, mai-log) in `keystore/migrate.rs` + 7 test. Verifica: 178 test verdi single-thread, clippy = baseline (0 nuovi), file ≤300 righe. |
 | [research/vendor-interrogation.md](../research/vendor-interrogation.md) | `wayfinder:research` ✅ | R1/R2/R3 locked. |
 | [D1-tui-purpose.md](D1-tui-purpose.md) | `wayfinder:grilling` ✅ | lean agentic REPL, stile `pi.dev` (stream + tool + workspace). |
 | [D2-architecture.md](D2-architecture.md) | `wayfinder:grilling` ✅ | A) standalone pure-Rust binary (ratatui/crossterm/tokio/clap/reqwest). |

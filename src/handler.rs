@@ -869,5 +869,47 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
                 }
             }
         }
+        ProviderCommand::MigrateKeys => {
+            // Import every provider key from the OS keychain into the portable
+            // encrypted file. The destination is passphrase-locked, so gate on
+            // the session passphrase first (prompt, never block/spawn blind).
+            let passphrase = match app.passphrase.clone() {
+                Some(p) if !p.is_empty() => p,
+                _ => {
+                    app.request_passphrase();
+                    app.set_status(
+                        "Passphrase richiesta — poi riprova `/provider migrate-keys`".to_string(),
+                    );
+                    return;
+                }
+            };
+            let names: Vec<String> = all_providers(&cfg.providers)
+                .into_iter()
+                .filter(|p| p.requires_api_key)
+                .map(|p| p.name)
+                .collect();
+            let result = block_in_place(move || {
+                let source = crate::keystore::OsKeychainStore::new();
+                let dest = crate::keystore::EncryptedFileStore::new(passphrase.as_str())?;
+                Ok::<_, KeyStoreError>(crate::keystore::migrate_keys(&source, &dest, &names))
+            });
+            match result {
+                Ok(report) => {
+                    // mai-log: only counts, never a value.
+                    tracing::info!(
+                        target: "nexum::keystore::migrate",
+                        migrated = report.migrated,
+                        absent = report.absent,
+                        errors = report.errors,
+                        "migrate-keys complete"
+                    );
+                    app.set_status(report.status_line());
+                }
+                Err(e) => {
+                    tracing::warn!(target: "nexum::keystore::migrate", error = %e, "migrate-keys: destination keystore unavailable");
+                    app.set_status(format!("Migrate-keys: keystore non disponibile: {e}"));
+                }
+            }
+        }
     }
 }

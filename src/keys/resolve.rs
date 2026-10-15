@@ -1,72 +1,21 @@
 //! Key resolution over the keychain/keystore backends + env fallback (D7).
 //!
 //! Split out of [`crate::keys`] to keep both files under the 300-line cap.
-//! The public entry points are re-exported at `crate::keys::{resolve_key,
-//! resolve_key_with, resolve_key_via}` — import them from there.
+//! The public entry points are re-exported at `crate::keys::{resolve_key_with,
+//! resolve_key_via}` — import them from there.
 //!
 //! mai-log RIGID: key value NEVER logged/printed. Logs emit only: source,
 //! presence, env var name.
 
 use std::env;
 
-use keyring::Entry;
 use tracing::{debug, info, warn};
 use zeroize::Zeroizing;
 
 use crate::keystore::KeyStore;
 use crate::provider::Provider;
 
-use super::{current_mode, KeyResolution, KeySourceMode};
-
-/// Resolve the API key for a provider.
-///
-/// Called ONCE at Agent spawn (never in the render loop). Keychain access runs
-/// on `spawn_blocking` from the caller (`main.rs`).
-///
-/// In dev mode (a local `.env` is present or `NXM_KEY_SOURCE=env`) the keychain
-/// is skipped entirely, so macOS never shows a password prompt.
-pub fn resolve_key(provider: &Provider) -> KeyResolution {
-    let mode = current_mode();
-
-    if mode == KeySourceMode::EnvFirst {
-        debug!(target: "nexum::keys", provider = %provider.name, "env-first mode: skipping keychain (no prompt)");
-        // keychain_available is reported true here: it was not *unavailable*,
-        // we deliberately chose not to consult it. No one-time warning needed.
-        return resolve_env_fallback(provider, true);
-    }
-
-    // 1. Keychain (production default)
-    let entry = match Entry::new("nexum-tui", &provider.name) {
-        Ok(e) => e,
-        Err(e) => {
-            warn!(target: "nexum::keys", provider = %provider.name, error = %e, "keychain entry creation failed");
-            return resolve_env_fallback(provider, false);
-        }
-    };
-    match entry.get_password() {
-        Ok(key) => {
-            info!(target: "nexum::keys", provider = %provider.name, source = "keychain", "key resolved");
-            return KeyResolution::Keychain(key);
-        }
-        Err(keyring::Error::NoEntry) => {
-            debug!(target: "nexum::keys", provider = %provider.name, "no keychain entry");
-        }
-        Err(keyring::Error::NoDefaultStore) |
-        Err(keyring::Error::PlatformFailure(_)) |
-        Err(keyring::Error::NoStorageAccess(_)) => {
-            warn!(target: "nexum::keys", provider = %provider.name, "keychain unavailable");
-            return resolve_env_fallback(provider, false);
-        }
-        Err(e) => {
-            // keyring::Error is #[non_exhaustive] — wildcard catch-all.
-            warn!(target: "nexum::keys", provider = %provider.name, error = %e, "keychain error");
-            return resolve_env_fallback(provider, false);
-        }
-    }
-
-    // 2-4. Env fallback (keychain was available but no entry)
-    resolve_env_fallback(provider, true)
-}
+use super::{KeyResolution, KeySourceMode};
 
 fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyResolution {
     // Provider-specific env var
@@ -101,8 +50,7 @@ fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyRes
 
 /// Resolve the API key for a provider through an injectable [`KeyStore`] seam.
 ///
-/// This is the testable, backend-agnostic form of [`resolve_key`]. The
-/// resolution order generalizes D7:
+/// The backend-agnostic resolution path. The resolution order generalizes D7:
 ///
 /// 1. `store.get(provider.name)` — the chosen backend (encrypted file, OS
 ///    keychain, env, or a test fake).

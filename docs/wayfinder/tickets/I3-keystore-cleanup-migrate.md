@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** Follow-up (deriva da I2)
-- **Status:** Open · unblocked
+- **Status:** ✅ Resolved 2026-10-15
 - **Related:** [I1-keystore-seam.md](I1-keystore-seam.md),
   [I2-wire-keystore-runtime.md](I2-wire-keystore-runtime.md)
 
@@ -42,3 +42,31 @@ successori:
   idempotente, mai-log rispettato.
 - Build + clippy puliti (0 lint nuovi vs baseline); suite verde single-thread;
   file ≤300 righe; zero `unwrap`/`expect` in prod.
+
+## As-built (2026-10-15)
+
+**Scelta: opzione A** — `resolve_key` legacy **rimosso** e test migrati sul seam.
+
+- `src/keys/resolve.rs`: eliminato il wrapper `resolve_key` (e l'uso diretto di
+  `keyring::Entry`); restano `resolve_key_with(provider, &dyn KeyStore)` e
+  `resolve_key_via`. `src/keys.rs` aggiorna doc + re-export (`resolve_key` tolto).
+- `tests/keys.rs`: rimossi i test keychain-backed basati sul mock process-global
+  `keyring_core` (origine della flakiness storica); i case env-first riscritti su
+  `resolve_key_with(&p, &EnvStore::new())`. La logica "store beats env" vive
+  deterministica in `tests/keystore.rs` (`store_beats_env_when_present`).
+- `src/keystore/migrate.rs` (107 righe): `migrate_keys(source, dest, &[names])`
+  backend-agnostico (`&dyn KeyStore`), idempotente (set overwrite), fail-soft
+  per-provider, **mai-log D7** (solo nomi + conteggi, mai il valore).
+  `MigrateReport { migrated, absent, errors }` + `status_line()` value-free.
+- `src/commands.rs`: parsing `/provider migrate-keys` (alias `migrate`) →
+  `ProviderCommand::MigrateKeys`.
+- `src/handler.rs`: handler `MigrateKeys` gated sulla passphrase di sessione
+  (prompt, non spawn cieco), filtra i provider `requires_api_key`, esegue in
+  `block_in_place` (`OsKeychainStore` → `EncryptedFileStore`), status pulito.
+- `tests/keystore_migrate.rs` (7 test puri): happy path, absent accounting,
+  idempotenza, fail-soft read sorgente, fail-soft write destinazione, lista
+  vuota no-op, `status_line`.
+
+**Verifica:** `cargo build` ok; **178 test passati / 0 falliti / 1 ignored**
+(doctest MCP preesistente) single-thread; clippy = 3 lint baseline (App/Metrics
+Default, type_complexity), **0 nuovi**; file ≤300 righe.

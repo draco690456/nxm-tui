@@ -11,7 +11,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 | Ticket | Labels | Nota |
 |---|---|---|
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
-| *(vendor TUI adoption residua)* | | wrap unicode (openviking) ✅ **V1**; residuo: markdown+syntect (**V2**), streaming incrementale (**V3**). `search` CABLATO (T5 ✅). |
+| *(vendor TUI adoption residua)* | | wrap unicode (openviking) ✅ **V1**; **V2 claimato** (markdown+syntect highlight); residuo: streaming incrementale (**V3**). `search` CABLATO (T5 ✅). |
 | *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). DEBT1 ✅ (`Message`/`Role` → `message.rs`); residuo: split `main.rs::run` (382 righe), split pieno `app.rs`. `VENDOR-TUI-ANALYSIS.md` ha la nota di licenza openviking **corretta** (root AGPL-3.0; copiabile solo `crates/ov_cli`). |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
@@ -35,6 +35,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Stato |
 |---|---|---|
+| [V2-syntect-highlight.md](V2-syntect-highlight.md) | `wayfinder:task` | 🚧 Claimed 2026-10-15 — syntax highlighting code-fence via `syntect 5.3.0` (`default-fancy`, pure-Rust). Nuovo modulo `src/highlight.rs` (`highlight_code` → span tipizzati, asset one-shot, fallback plain-text), `markdown.rs` consuma per-span preservando box + troncatura cell-width V1. Delegato via `prompts/` a coding agent esterno; review indipendente prima del merge. Verifica visiva TTY = test utente. |
 | *(nessuno)* | | DEBT1 risolto in questa sessione (vedi Resolved). V1 + I1/I2/I3 keystore chiusi (sessioni 2026-10-02 → 2026-10-15). |
 
 ## Resolved (this chart session)

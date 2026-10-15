@@ -16,6 +16,20 @@ copyright and licenses are reproduced below.
 A copy of the Apache License 2.0 is available at
 <https://www.apache.org/licenses/LICENSE-2.0>.
 
+## syntect (tristed/syntect)
+
+- **Source:** `https://github.com/tristed/syntect`
+- **Copyright:** Christopher Brown and contributors
+- **License:** MIT License
+- **Usage:** `src/highlight.rs` uses `syntect` (v5.3.0, `default-features = false`,
+  `features = ["default-fancy"]`) for per-token syntax highlighting of code
+  fences. Pure-Rust via `fancy-regex` — no `onig`, no C compiler. Color
+  mapping (`syntect::highlighting::Color` → `ratatui::style::Color::Rgb`) is
+  implemented locally in `src/highlight.rs`; no `syntect-tui` is used.
+
+A copy of the MIT License is available at
+<https://opensource.org/licenses/MIT>.
+
 ## openviking (volcengine/OpenViking)
 
 - **Source:** `crates/ov_cli/src/commands/render_utils.rs` (`wrap_display_text`,

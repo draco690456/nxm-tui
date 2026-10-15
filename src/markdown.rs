@@ -1,3 +1,4 @@
+use crate::highlight::highlight_code;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
@@ -38,18 +39,32 @@ pub fn render_markdown(content: &str, max_width: usize, prefix: &str) -> Vec<Lin
                     code_border_style(),
                 )));
                 let inner_w = max_width.saturating_sub(prefix.width() + 3);
-                let style = highlight_style(&lang, &text);
-                for line in text.lines() {
-                    // Cell-width truncation: byte slicing would panic when
-                    // `inner_w` lands inside a multibyte codepoint, and counting
-                    // chars over-runs the pane for wide (CJK/emoji) glyphs.
-                    let rendered = if line.width() > inner_w {
-                        let head = truncate_to_width(line, inner_w.saturating_sub(1));
-                        format!("{prefix}│ {head}…")
+                let known_lang = !lang.is_empty()
+                    && crate::highlight::syntax_set().find_syntax_by_token(&lang).is_some();
+                let single_style = highlight_style(&lang, &text);
+                let highlighted = highlight_code(&text, &lang);
+                for line_spans in highlighted {
+                    let spans: Vec<Span<'static>> = if known_lang {
+                        let (mut spans, truncated) =
+                            crate::highlight::truncate_spans(line_spans, inner_w);
+                        if truncated {
+                            spans.push(Span::raw("…"));
+                        }
+                        spans
                     } else {
-                        format!("{prefix}│ {line}")
+                        // Fallback: single color for the whole line (pre-V2 behavior).
+                        let joined = crate::highlight::join_spans(&line_spans);
+                        let rendered = if joined.width() > inner_w {
+                            let head = truncate_to_width(&joined, inner_w.saturating_sub(1));
+                            format!("{head}…")
+                        } else {
+                            joined
+                        };
+                        vec![Span::styled(rendered, single_style)]
                     };
-                    lines.push(Line::from(Span::styled(rendered, style)));
+                    let mut line: Vec<Span<'static>> = vec![Span::raw(format!("{prefix}│ "))];
+                    line.extend(spans);
+                    lines.push(Line::from(line));
                 }
                 lines.push(Line::from(Span::styled(
                     format!("{prefix}└─"),
@@ -266,3 +281,5 @@ fn truncate_to_width(text: &str, max: usize) -> String {
     }
     truncated
 }
+
+

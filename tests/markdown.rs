@@ -98,3 +98,20 @@ fn zero_width_budget_does_not_panic() {
     assert!(lines.is_empty(), "nothing fits the pane: {lines:?}");
     let _ = rendered("```\ncode\n```", 3);
 }
+
+#[test]
+fn code_fence_line_wider_than_pane_is_truncated_to_cell_width() {
+    // A fence body line wider than the pane must be cell-width truncated and
+    // end with the ellipsis marker; the whole rendered line (prefix included)
+    // must stay inside the pane budget.
+    let long = "x".repeat(50);
+    let content = format!("```\n{long}\n```");
+    let lines = rendered(&content, 20);
+    assert_fits(&lines, 20);
+    let body = lines
+        .iter()
+        .find(|line| line.contains('│'))
+        .expect("code fence must render a body line");
+    assert!(body.contains('…'), "truncation marker missing: {body:?}");
+    assert!(body.width() <= 20, "body line {body:?} exceeds pane width 20");
+}

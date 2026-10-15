@@ -15,6 +15,7 @@ pub mod connection;
 pub mod event;
 pub mod handler;
 pub mod history;
+pub mod highlight;
 pub mod markdown;
 pub mod mcp;
 pub mod message;

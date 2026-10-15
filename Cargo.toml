@@ -59,6 +59,11 @@ regex = "1.13.1"
 # Pinned to the copy already resolved in Cargo.lock (via unicode-truncate).
 unicode-width = "0.2.0"
 
+# Syntax highlighting for code fences (V2): pure-Rust via fancy-regex (no
+# onig/C compiler), pinned exactly. Only `default-fancy` — no `onig`,
+# no `default`, no `syntect-tui`.
+syntect = { version = "5.3.0", default-features = false, features = ["default-fancy"] }
+
 # Dev-friendly key loading: load a local .env when present (gitignored).
 dotenvy = "0.15.7"
 

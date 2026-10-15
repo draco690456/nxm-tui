@@ -49,6 +49,10 @@ an interactive chat interface in the terminal.
   shared between the binary and the headless tests in `tests/`
 - Domain types `Message`/`Role` live in `src/message.rs`, re-exported from
   `src/app.rs` so `app::Message`/`app::Role` paths stay stable (DEBT1).
+- Code-fence syntax highlighting via `syntect` (V2): `src/highlight.rs`
+  exposes `highlight_code(code, lang) -> Vec<Vec<(Style, String)>>`, used by
+  `src/markdown.rs` in the `Segment::Code` arm; `SyntaxSet`/`ThemeSet` loaded
+  once (`OnceLock`), plain-text fallback on unknown/empty lang.
 
 ## NOT included
 - Inference logic (connects to external server)

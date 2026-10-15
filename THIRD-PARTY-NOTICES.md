@@ -16,9 +16,9 @@ copyright and licenses are reproduced below.
 A copy of the Apache License 2.0 is available at
 <https://www.apache.org/licenses/LICENSE-2.0>.
 
-## syntect (tristed/syntect)
+## syntect (trishume/syntect)
 
-- **Source:** `https://github.com/tristed/syntect`
+- **Source:** `https://github.com/trishume/syntect`
 - **Copyright:** Christopher Brown and contributors
 - **License:** MIT License
 - **Usage:** `src/highlight.rs` uses `syntect` (v5.3.0, `default-features = false`,

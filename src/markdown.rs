@@ -281,5 +281,3 @@ fn truncate_to_width(text: &str, max: usize) -> String {
     }
     truncated
 }
-
-

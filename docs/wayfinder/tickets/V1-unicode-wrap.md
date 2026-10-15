@@ -2,7 +2,8 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** Task (bugfix + vendor adoption)
-- **Status:** 🚧 Claimed 2026-10-15 (`wayfinder/v1-unicode-wrap`)
+- **Status:** ✅ Resolved 2026-10-15 (`wayfinder/v1-unicode-wrap`) — wrap cell-width in
+  `markdown.rs` (`unicode-width`), attribuzione openviking, 6 test in `tests/markdown.rs`
 - **Map:** vendor adoption — `docs/patterns/VENDORS-TUI.md` prio **#0**
   (COPIA `openviking wrap_display_text`), analisi in `VENDOR-TUI-ANALYSIS.md`
 - **Depends on:** nothing. `search` (T5) già cablato; V2 (syntect) e V3
@@ -58,6 +59,27 @@ corretta in questo ticket.
 - **V2** markdown + syntect (`xai-grok-markdown`): highlight reale per token,
   sostituisce `highlight_style()`.
 - **V3** streaming render incrementale + cache highlight resumable.
+
+## As-built (2026-10-15)
+
+- `src/markdown.rs` (268 righe): `wrap()` riscritta sul modello openviking
+  (`append_word` = `append_word_to_line`) con `UnicodeWidthStr::width` per riga e
+  parola, split char-level per le parole più lunghe della riga;
+  `truncate_to_width()` sostituisce il conteggio di char sui fence; anche
+  `prefix.width()` (non `prefix.len()`). Doc comment + esempio su
+  `render_markdown`.
+- Deviazioni da openviking, come da scope: nessun `max_lines`/ellissi (tutte le
+  righe renderizzate), `…` mantenuto sui fence, tokenizzazione dei paragrafi
+  invariata tranne il collasso degli spazi multipli.
+- `unicode-width = "0.2.0"` pinnato (già nel lock); `THIRD-PARTY-NOTICES.md`
+  attribuisce `crates/ov_cli` (snapshot `f6010a5`, Apache-2.0).
+- `docs/patterns/VENDOR-TUI-ANALYSIS.md`: corretta la nota di licenza (root
+  **AGPL-3.0**, non Apache-2.0) — era la nota che autorizzava la copia.
+- Verifica: `cargo build` ok; suite **180 passed / 0 failed / 1 ignored** noto
+  (doctest `mcp::connect_from_config`) con `--test-threads=1`; clippy = 3 lint
+  baseline identici (App/Metrics `Default`, `type_complexity`), 0 nuovi; nessun
+  `unwrap`/`expect` nuovo; `tests/markdown.rs` rosso 4/6 sul renderer precedente
+  (verificato con `git stash` del solo `src/markdown.rs`).
 
 ## Done when
 

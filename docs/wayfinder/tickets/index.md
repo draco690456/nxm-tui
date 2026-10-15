@@ -12,7 +12,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 |---|---|---|
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
 | *(vendor TUI adoption residua)* | | wrap unicode (openviking) ✅ **V1**; residuo: markdown+syntect (**V2**), streaming incrementale (**V3**). `search` CABLATO (T5 ✅). |
-| *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). **DEBT1 claimato** (estrai `Message`/`Role` → `message.rs`); residuo: split `main.rs::run` (382 righe), split pieno `app.rs`. `VENDOR-TUI-ANALYSIS.md` ha la nota di licenza openviking **corretta** (root AGPL-3.0; copiabile solo `crates/ov_cli`). |
+| *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). DEBT1 ✅ (`Message`/`Role` → `message.rs`); residuo: split `main.rs::run` (382 righe), split pieno `app.rs`. `VENDOR-TUI-ANALYSIS.md` ha la nota di licenza openviking **corretta** (root AGPL-3.0; copiabile solo `crates/ov_cli`). |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)
 
@@ -35,12 +35,12 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 
 | Ticket | Labels | Stato |
 |---|---|---|
-| [DEBT1-message-role-module.md](DEBT1-message-role-module.md) | `wayfinder:task` | 🚧 Claimed 2026-10-15 — estrai `Message`/`Role` da `app.rs` (790 righe) in `src/message.rs` + re-export (pattern T6 `commands.rs`/`metrics.rs`). Scope mirato A1+B1: SOLO estrazione+re-export, NO split pieno di `app.rs`. Delegato via `prompts/` a coding agent esterno; review indipendente prima del merge. |
-| *(nessuno)* | | V1 risolto in questa sessione (vedi Resolved). I1/I2/I3 keystore chiusi (sessioni 2026-10-02 → 2026-10-15). |
+| *(nessuno)* | | DEBT1 risolto in questa sessione (vedi Resolved). V1 + I1/I2/I3 keystore chiusi (sessioni 2026-10-02 → 2026-10-15). |
 
 ## Resolved (this chart session)
 | Ticket | Labels | Esito |
 |---|---|---|
+| [DEBT1-message-role-module.md](DEBT1-message-role-module.md) | `wayfinder:task` ✅ | **Resolved 2026-10-15** (debt RULES.md, post-T6): `Message`/`Role` estratti da `app.rs` in `src/message.rs` (100 righe) + re-export `pub use crate::message::{Message, Role};` (pattern T6), ~60 call site stabili senza modifiche; `push_thinking`/`apply_token` restano in `app.rs` (A1+B1). Eseguito da agent esterno (branch dedicato), review indipendente. Verifica: 185 test verdi, doctest 16/1 invariato, clippy = baseline (0 nuovi), ≤300 righe. PR #2. |
 | [V1-unicode-wrap.md](V1-unicode-wrap.md) | `wayfinder:task` ✅ | **Resolved 2026-10-15**: `markdown.rs` misura a **larghezza di display** (`unicode-width`), adattando `wrap_display_text` di `openviking crates/ov_cli` (Apache-2.0; la root AGPL-3.0 non è stata copiata): append per parola + split char-level delle parole più lunghe, fence troncati per larghezza di cella, `prefix.width()`. `unicode-width = "0.2.0"` pinnato, `THIRD-PARTY-NOTICES.md` + nota di licenza in `VENDOR-TUI-ANALYSIS.md` corretti. 6 test in `tests/markdown.rs` (4/6 rossi sul renderer vecchio). Verifica: 180 passed / 0 failed / 1 ignored noto, clippy = baseline (0 nuovi), `markdown.rs` 268 righe. |
 | [I1-keystore-seam.md](I1-keystore-seam.md) | `wayfinder:task` ✅ | **Resolved 2026-10-02**: seam `KeyStore` iniettabile + `EncryptedFileStore` (AES-256-GCM+Argon2id+zeroize, 0600) + `OsKeychainStore` + `EnvStore` dietro il trait; `resolve_key_with` ordine D7 generalizzato; `keychain_beats_env` riscritto su `MockKeyStore` (commit f2addf1). Wiring runtime → I2. |
 | [I2-wire-keystore-runtime.md](I2-wire-keystore-runtime.md) | `wayfinder:task` ✅ | **Resolved 2026-10-02**: wiring in produzione — factory `store_for(mode, passphrase)` (errore pulito senza passphrase), passphrase 1x/sessione (`Zeroizing` + prompt mascherato), 4 read-path su `resolve_key_via` (factory + `resolve_key_with`) con gate "prompt, non spawnare", write-path `set-key`/`remove-key` sul trait. Verifica: build ok, 173 test verdi single-thread, clippy = baseline (0 nuovi). |

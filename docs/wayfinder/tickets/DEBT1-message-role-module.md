@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** RULES.md debt (follow-up T6)
-- **Status:** 🚧 Claimed 2026-10-15
+- **Status:** ✅ Resolved 2026-10-15
 - **Related:** T6 (app.rs 973→729, split `commands.rs`+`metrics.rs`)
 
 ## Motivazione
@@ -44,3 +44,23 @@ l'estrazione, `app.rs` **re-exporta** i tipi
   `type_complexity`); suite verde single-thread; zero `unwrap`/`expect` prod;
   file nuovo ≤300 righe.
 - CHANGELOG aggiornato se il repo lo richiede.
+
+## As-built (2026-10-15)
+
+Eseguito da coding agent esterno (brief `prompts/01-debt1-message-role-module_{ITA,ENG}.md`),
+review indipendente del revisore prima del merge. PR #2 → `main` (rebase).
+
+- `src/message.rs` (100 righe): `Message` + `Role` + `impl` (`new`/`with_tool`/
+  `tool`) spostati verbatim da `app.rs`, con doc `///` ed esempi in blocchi `text`
+  (non eseguiti → conteggio doctest invariato). Import `ToolPart` localizzato.
+- `src/app.rs`: definizioni rimosse, aggiunto `pub use crate::message::{Message, Role};`
+  (pattern T6). `push_thinking`/`apply_token` lasciati in `app.rs` (dipendono dallo
+  state thinking di `App`, A1+B1).
+- `src/lib.rs`: `pub mod message;` (ordine alfabetico, nit di review).
+- CHANGELOG.md + CONTEXT.md aggiornati.
+
+**Verifica (revisione indipendente):** `cargo build` ok; `cargo test
+--test-threads=1` **185 passed / 0 failed / 1 ignored** (= baseline); doctest 16/1
+invariato; clippy = 3 lint baseline, 0 nuovi; `message.rs` 100 ≤ 300; nessun
+`unwrap`/`expect` prod; 0 dei 19 file consumer modificati (re-export stabile).
+Commit `cfb2178` + `ec45ca1`.

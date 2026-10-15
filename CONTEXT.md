@@ -8,7 +8,10 @@ an interactive chat interface in the terminal.
 
 ## Features
 - Streaming chat responses (SSE)
-- Markdown rendering in terminal
+- Markdown rendering in terminal — cell-width aware (CJK/emoji count two columns,
+  over-long words split, code fences truncated by width; V1, adapted from
+  openviking `crates/ov_cli` wrap_display_text — Apache-2.0, see
+  `THIRD-PARTY-NOTICES.md`)
 - Session history and persistence
 - Server connection management
 - Autocomplete for commands
@@ -39,6 +42,7 @@ an interactive chat interface in the terminal.
 
 ## Dependencies
 - ratatui + crossterm for TUI rendering
+- unicode-width for cell-width text layout (markdown wrap/truncation)
 - reqwest for HTTP/SSE streaming
 - tokio for async runtime
 - Builds as bin + lib (`src/lib.rs`): the module graph is declared once and

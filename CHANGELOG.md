@@ -1,5 +1,28 @@
 # Changelog
 
+# 2026-10-15
+
+## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)
+- `src/markdown.rs` misurava in **byte** (`cur.len() + word.len() + 1 > max`) e in
+  **char** (troncamento fence): con CJK/emoji (2 celle, 3–4 byte) il wrap sbagliava
+  e i fence sfondavano il pane. Ora `wrap()` usa `unicode-width`, adattata da
+  `openviking crates/ov_cli/src/commands/render_utils.rs::wrap_display_text`
+  (Apache-2.0; la root del vendor è AGPL-3.0 — nessun codice preso da lì):
+  append per parola finché entra, **split char-level** per parole più lunghe della
+  riga, `UnicodeWidthStr::width` anche per `prefix`. Deviazioni documentate: niente
+  `max_lines`/ellissi (la history mostra tutte le righe), `…` conservato sui fence.
+- Nuova dep `unicode-width = "0.2.0"` (pinnata; era già nel lock via
+  `unicode-truncate`, nessuna copia nuova). `THIRD-PARTY-NOTICES.md` attribuisce
+  openviking (`crates/ov_cli`, snapshot `f6010a5`); corretta la nota di licenza
+  errata in `docs/patterns/VENDOR-TUI-ANALYSIS.md` (root AGPL-3.0, non Apache-2.0).
+- Doc comment + esempio su `render_markdown` (RULES: doc pubblica con esempio).
+- Test: `tests/markdown.rs` (6, headless su `render_markdown`): nessuna riga
+  renderizzata supera `max_width` per prose CJK, parole non spezzabili, fence
+  multibyte; rosso sul renderer vecchio (4/6 falliscono), verde sul nuovo.
+  Verifica: build ok, suite **180/180** verde + 15 doctest (1 ignored noto),
+  `--test-threads=1`; clippy = 3 lint baseline identici, 0 nuovi; `markdown.rs`
+  268 righe (≤300). V1 → Resolved.
+
 # 2026-10-02
 
 # Changelog

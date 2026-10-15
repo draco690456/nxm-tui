@@ -1,6 +1,19 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
+/// Render markdown into styled terminal lines.
+///
+/// Prose is word-wrapped to `max_width` **display columns** (CJK/emoji count as
+/// two, malformed width as zero), code fences are boxed and truncated to the
+/// same budget, and `prefix` is prepended to every line.
+///
+/// ```
+/// use nxm_tui::markdown::render_markdown;
+///
+/// let lines = render_markdown("hello **world**", 40, "   ");
+/// assert_eq!(lines.len(), 1);
+/// ```
 pub fn render_markdown(content: &str, max_width: usize, prefix: &str) -> Vec<Line<'static>> {
     let mut lines: Vec<Line<'static>> = Vec::new();
     let segments = split_blocks(content);
@@ -8,7 +21,7 @@ pub fn render_markdown(content: &str, max_width: usize, prefix: &str) -> Vec<Lin
     for seg in segments {
         match seg {
             Segment::Plain(text) => {
-                for wrapped in wrap(&text, max_width.saturating_sub(prefix.len())) {
+                for wrapped in wrap(&text, max_width.saturating_sub(prefix.width())) {
                     let mut styled = parse_inline(&wrapped);
                     styled.insert(0, Span::raw(String::from(prefix)));
                     lines.push(Line::from(styled));
@@ -24,18 +37,19 @@ pub fn render_markdown(content: &str, max_width: usize, prefix: &str) -> Vec<Lin
                     header,
                     code_border_style(),
                 )));
-                let inner_w = max_width.saturating_sub(prefix.len() + 3);
+                let inner_w = max_width.saturating_sub(prefix.width() + 3);
                 let style = highlight_style(&lang, &text);
                 for line in text.lines() {
-                    // Char-safe truncation: a byte slice would panic when
-                    // `inner_w` lands inside a multibyte codepoint.
-                    let truncated = if line.chars().count() > inner_w {
-                        let head: String = line.chars().take(inner_w.saturating_sub(1)).collect();
+                    // Cell-width truncation: byte slicing would panic when
+                    // `inner_w` lands inside a multibyte codepoint, and counting
+                    // chars over-runs the pane for wide (CJK/emoji) glyphs.
+                    let rendered = if line.width() > inner_w {
+                        let head = truncate_to_width(line, inner_w.saturating_sub(1));
                         format!("{prefix}│ {head}…")
                     } else {
                         format!("{prefix}│ {line}")
                     };
-                    lines.push(Line::from(Span::styled(truncated, style)));
+                    lines.push(Line::from(Span::styled(rendered, style)));
                 }
                 lines.push(Line::from(Span::styled(
                     format!("{prefix}└─"),
@@ -167,23 +181,88 @@ fn code_border_style() -> Style {
     Style::default().fg(Color::Rgb(80, 100, 80))
 }
 
+/// Word-wrap `text` to at most `max` display columns, returning at most one
+/// line per wrapped row.
+///
+/// Adapted from openviking's `crates/ov_cli/src/commands/render_utils.rs`
+/// (`wrap_display_text` + `append_word_to_line`, Apache-2.0 — see
+/// `THIRD-PARTY-NOTICES.md`). Deviation from upstream: no `max_lines`/ellipsis
+/// truncation, because the transcript must render every line (the viewport
+/// scrolls already); whitespace runs collapse to single spaces.
 fn wrap(text: &str, max: usize) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut cur = String::new();
-    for word in text.split(' ') {
-        if cur.len() + word.len() + 1 > max && !cur.is_empty() {
-            result.push(std::mem::take(&mut cur));
+    if max == 0 {
+        return Vec::new();
+    }
+
+    let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    if normalized.is_empty() {
+        return Vec::new();
+    }
+
+    let mut lines: Vec<String> = Vec::new();
+    let mut current = String::new();
+
+    for word in normalized.split(' ') {
+        if append_word(&mut current, word, max) {
+            continue;
         }
-        if !cur.is_empty() {
-            cur.push(' ');
+
+        if !current.is_empty() {
+            lines.push(std::mem::take(&mut current));
+            if append_word(&mut current, word, max) {
+                continue;
+            }
         }
-        cur.push_str(word);
+
+        // A single word wider than the whole row (URL, hash, path): split it on
+        // character boundaries so the pane never overflows horizontally.
+        let mut segment = String::new();
+        let mut segment_width = 0usize;
+        for ch in word.chars() {
+            let char_width = UnicodeWidthChar::width(ch).unwrap_or(0);
+            if !segment.is_empty() && segment_width + char_width > max {
+                lines.push(std::mem::take(&mut segment));
+                segment_width = 0;
+            }
+            segment.push(ch);
+            segment_width += char_width;
+        }
+        current = segment;
     }
-    if !cur.is_empty() {
-        result.push(cur);
+
+    if !current.is_empty() {
+        lines.push(current);
     }
-    if result.is_empty() {
-        result.push(text.to_string());
+
+    lines
+}
+
+/// Append `word` to `line` (space-separated) while it fits in `max` columns.
+///
+/// Returns whether the word was appended.
+fn append_word(line: &mut String, word: &str, max: usize) -> bool {
+    let separator = usize::from(!line.is_empty());
+    if line.width() + separator + word.width() > max {
+        return false;
     }
-    result
+    if !line.is_empty() {
+        line.push(' ');
+    }
+    line.push_str(word);
+    true
+}
+
+/// Truncate `text` to at most `max` display columns, never splitting a char.
+fn truncate_to_width(text: &str, max: usize) -> String {
+    let mut truncated = String::new();
+    let mut width = 0usize;
+    for ch in text.chars() {
+        let char_width = UnicodeWidthChar::width(ch).unwrap_or(0);
+        if width + char_width > max {
+            break;
+        }
+        truncated.push(ch);
+        width += char_width;
+    }
+    truncated
 }

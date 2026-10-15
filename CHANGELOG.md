@@ -23,6 +23,18 @@
   `--test-threads=1`; clippy = 3 lint baseline identici, 0 nuovi; `markdown.rs`
   268 righe (≤300). V1 → Resolved.
 
+## refactor: estrai Message/Role in src/message.rs (DEBT1)
+- `Message` (struct) e `Role` (enum) con i loro `impl` (`new`, `with_tool`,
+  `tool`) spostati da `src/app.rs` al nuovo modulo `src/message.rs` (≤300 righe),
+  re-exportati da `app.rs` tramite `pub use crate::message::{Message, Role};`
+  così tutti i call site esistenti (`app::Message`, `app::Role`) restano stabili
+  senza modifiche. `lib.rs` dichiara `pub mod message;`.
+- Nessun cambio di comportamento: `push_thinking`/`apply_token` restano in
+  `app.rs` (dipendono dallo stato di thinking di `App`, per decisione A1+B1).
+- Verifica: `cargo build`, `cargo test` (185/0/1, `--test-threads=1`),
+  `cargo clippy --all-targets` (3 lint baseline, 0 nuovi),
+  `grep "struct Message\|enum Role" src/` → solo in `message.rs`.
+
 # 2026-10-02
 
 # Changelog

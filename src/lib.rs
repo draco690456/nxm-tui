@@ -16,6 +16,7 @@ pub mod event;
 pub mod handler;
 pub mod history;
 pub mod markdown;
+pub mod message;
 pub mod mcp;
 pub mod metrics;
 pub mod mode_bar;

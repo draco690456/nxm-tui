@@ -47,6 +47,8 @@ an interactive chat interface in the terminal.
 - tokio for async runtime
 - Builds as bin + lib (`src/lib.rs`): the module graph is declared once and
   shared between the binary and the headless tests in `tests/`
+- Domain types `Message`/`Role` live in `src/message.rs`, re-exported from
+  `src/app.rs` so `app::Message`/`app::Role` paths stay stable (DEBT1).
 
 ## NOT included
 - Inference logic (connects to external server)

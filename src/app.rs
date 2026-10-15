@@ -13,6 +13,10 @@ pub use crate::commands::{
 };
 pub use crate::metrics::Metrics;
 
+// Re-export the extracted message types so existing call sites
+// (`handler.rs`, `tests/*`, `connection.rs`) keep resolving via `app::` unchanged.
+pub use crate::message::{Message, Role};
+
 /// A tool call waiting for the user's Y/N decision in the approval overlay.
 /// Holds the oneshot `reply` back to the agent task: `resolve_approval`
 /// answers it and clears the slot. Dropped without answering only on quit,
@@ -50,43 +54,6 @@ impl AgentMode {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Message {
-    pub role: Role,
-    pub content: String,
-    /// Optional tool parts for tool call output.
-    pub tool_parts: Vec<crate::tool_types::ToolPart>,
-    /// `tool_call_id` for `role: "tool"` messages (OpenAI round-trip).
-    pub tool_call_id: Option<String>,
-}
-
-impl Message {
-    pub fn new(role: Role, content: String) -> Self {
-        Self { role, content, tool_parts: Vec::new(), tool_call_id: None }
-    }
-
-    pub fn with_tool(role: Role, parts: Vec<crate::tool_types::ToolPart>) -> Self {
-        Self { role, content: String::new(), tool_parts: parts, tool_call_id: None }
-    }
-
-    /// A `role: "tool"` result message carrying the assistant `tool_call_id`.
-    pub fn tool(call_id: &str, content: String) -> Self {
-        Self {
-            role: Role::Tool,
-            content,
-            tool_parts: Vec::new(),
-            tool_call_id: Some(call_id.to_string()),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Role {
-    User,
-    Assistant,
-    System,
-    Tool,
-}
 
 /// Append streaming text to the thinking buffer, stripping a trailing partial
 /// tag fragment ("hidden</thinking" arriving before its ">") so the overlay

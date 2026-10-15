@@ -35,6 +35,29 @@
   `cargo clippy --all-targets` (3 lint baseline, 0 nuovi),
   `grep "struct Message\|enum Role" src/` → solo in `message.rs`.
 
+## feat: syntect syntax highlighting for code fences (V2)
+- `src/highlight.rs` (nuovo, ≤300 righe): `highlight_code(code, lang) ->
+  Vec<Vec<(Style, String)>>` per-token highlighting via `syntect` 5.3.0
+  (`default-features = false`, `features = ["default-fancy"]`, pure-Rust
+  `fancy-regex`, no `onig`/C, no `syntect-tui`). `SyntaxSet`/`ThemeSet`
+  caricati una sola volta (`OnceLock`); selezione sintassi per token di lingua
+  con fallback plain-text su lang vuoto/sconosciuto; mapping
+  `syntect::highlighting::Color` → `ratatui::style::Color::Rgb`. Nessun
+  `unwrap`/`expect` in produzione.
+- `src/markdown.rs`: nel ramo `Segment::Code` la riga è costruita dagli span
+  di `highlight_code` (più span colorati per riga), mantenendo box/border e
+  applicando la troncatura cell-width V1 **per-span**; su lang sconosciuto o
+  errore si fall back al vecchio `highlight_style` (colore unico) senza
+  rompere il render. `highlight_style` resta per il fallback.
+- Test: `tests/highlight.rs` (multi-span su Rust, fallback lang sconosciuto,
+  fallback lang vuoto, coerenza OnceLock) + caso di troncatura cell-width in
+  `tests/markdown.rs`.
+- `THIRD-PARTY-NOTICES.md`: attribuzione syntect (MIT).
+- Verifica: `cargo build`, `cargo test -- --test-threads=1` verde (≥185 +
+  nuovi, 0 failed, 1 ignored noto), `cargo clippy --all-targets` = 3 lint
+  baseline, `wc -l` entrambi i file ≤300, `cargo tree -i syntect` =
+  default-fancy senza onig.
+
 # 2026-10-02
 
 # Changelog

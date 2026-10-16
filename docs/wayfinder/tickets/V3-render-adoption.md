@@ -115,7 +115,7 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   splittato per il cap 300. `latex` (1968 righe) **stubbato** ora → ticket
   dedicato dopo (feature math di nicchia, ortogonale al rendering base; coerente
   con "nessuna riduzione" perché posticipata, non tolta).
-  - **T5a** `src/md/checkpoint.rs` ← `checkpoint.rs` (56, zero dep interne).
+  - **T5a** ✅ (main `982fa18`) `src/md/checkpoint.rs` (58) ← `checkpoint.rs` verbatim (Checkpoint + CheckpointKind, 8 varianti). 215 test.
   - **T5b** `src/md/syntax.rs` ← `syntax.rs` (468, syntect code-highlight; no onig).
   - **T5c** `src/md/url_scan.rs` ← `url_scan.rs` (495; dep `buffers` ok +
     `output::HyperlinkTarget` → mini-stub o anticipo di quel tipo).

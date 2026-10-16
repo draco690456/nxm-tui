@@ -1,11 +1,12 @@
-//! Headless markdown analysis sharing Grok Build's exact `pulldown-cmark` config.
+//! Derived from xai-grok-markdown-core/src/lib.rs (xai-org/grok-build, Apache-2.0).
+//! Modified: copied only the parsing core (parser_options, offset_events,
+//! DoubleTildeOnlyStrike); MarkdownStats/analyze deferred to T3b.
 //!
-//! This crate depends only on `pulldown-cmark`, so it can be used without pulling in the terminal-rendering stack (syntect, ratatui, two-face).
-//! [`parser_options`] is the single source of truth for the parser feature set.
-//! `xai-grok-markdown` uses the same options, so analysis matches what Grok Build renders.
-//!
-//! After parsing, Grok applies [`offset_events`]: only `~~…~~` counts as strikethrough.
-//! Single-tilde pairs (`~text~`), which pulldown treats as strike, are demoted to literal `~` text so LLM output like `~**10%**` is not struck.
+//! [`parser_options`] is the single source of truth for the parser feature set,
+//! so analysis and rendering agree on what counts as strikethrough. After
+//! parsing, [`offset_events`] keeps only `~~…~~` as strikethrough: single-tilde
+//! pairs (`~text~`), which pulldown treats as strike, are demoted to literal `~`
+//! text so LLM output like `~**10%**` is not struck.
 
 #![deny(clippy::indexing_slicing)]
 
@@ -85,25 +86,3 @@ where
     }
 }
 
-/// Counts of markdown elements found in a document.
-///
-/// Counting mirrors the `pulldown-cmark` event stream the renderer walks, so a few overlaps are intentional and documented per field below.
-///
-/// Derived from `xai-grok-markdown-core/src/lib.rs` (Apache-2.0).
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct MarkdownStats {
-    /// Number of ATX headings (Setext and ATX combined).
-    pub headings: usize,
-    /// Number of thematic rules (`---`, `***`, etc.).
-    pub rules: usize,
-    /// Number of code blocks (fenced and indented).
-    pub code_blocks: usize,
-    /// Number of math blocks (`$…$` or `$$…$$`).
-    pub math: usize,
-    /// Number of task list items checked.
-    pub task_list_checked: usize,
-    /// Number of task list items unchecked.
-    pub task_list_unchecked: usize,
-    /// Number of tables.
-    pub tables: usize,
-}

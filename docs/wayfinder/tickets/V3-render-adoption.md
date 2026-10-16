@@ -126,7 +126,7 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     solo `HyperlinkTarget` anticipato → resto in T7). `detect_plain_urls`/
     `for_each_plain_link` verbatim; test non-streaming. 231 test. Visibilità `pub`
     per testabilità (policy RULES).
-  - **T5d** `src/md/open_code_highlighter.rs` ← (384; dep `syntax` T5b). ← PROSSIMO
+  - **T5d** ✅ (main `121636e`) `src/md/open_code_highlighter.rs` (243) — OpenCodeHighlighter streaming cache (resume per-linea syntect, memo closed-fence), test su Syntect::new(). 239 test.
   - **T5e** `src/md/parse.rs` — scaffold `MarkdownParser` + `new`/builder +
     helper puri + conversioni stile.
   - **T5f** `src/md/parse_events.rs` — `on_event`/`on_start`/`on_end` (~800,

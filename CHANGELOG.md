@@ -1,5 +1,34 @@
 # Changelog
 
+# 2026-10-16
+
+## feat(md): copy MarkdownStyle + TableBorders (V3/T1)
+Derived from xai-grok-markdown/src/style.rs (Apache-2.0).
+- New `src/md/style.rs` (263 lines): verbatim copy of grok-build's markdown
+  styling types — `TableBorders` (BOX/ASCII/DOUBLE, all short+long accessors)
+  and `MarkdownStyle` (26 scalar `anstyle::Style` fields + 2 heading arrays,
+  27 elements total) with its identical `adapt()` method, plus the
+  `all_hidden` and `merge_styles` helpers. Inline `#[cfg(test)]` test module
+  stripped (RULES.md: no inline tests). Origin header `//! Derived from ...`
+  prepended. `anstyle` already present (T0).
+- New `src/md/style_adapt.rs` (19 lines): `adapt_style` identity stub
+  (placeholder — real truecolor→256/16 downgrade lands with the future
+  `colors.rs` ticket). `style.rs` imports `adapt_style` from here; swapping in
+  the real implementation is a one-line import change.
+- `src/md/mod.rs`: declares `pub mod style;` and `pub mod style_adapt;`.
+- New `tests/md_style.rs` (16 tests): moved the upstream `test_style::STYLE`
+  const here as an external integration test + contract tests — MarkdownStyle
+  field effects (BOLD/ITALIC/STRIKETHROUGH), `TableBorders::BOX/ASCII/DOUBLE`
+  characters, `merge_styles` (strips HIDDEN, preserves fg color), `all_hidden`
+  (true/false/empty/None cases), `adapt_style` identity.
+- Visibility: `all_hidden`, `merge_styles`, and `adapt_style` widened from
+  `pub(crate)` to `pub` (and `style_adapt` from `mod` to `pub mod`) so the
+  RULES.md-mandated external `tests/` integration tests can reach them directly.
+  Non-reductive — no fields or behavior changed.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 209 passed,
+  0 failed, 1 ignored (16 new); `cargo clippy --all-targets` = 3 baseline
+  (type_complexity + Default×2), 0 new; `wc -l` style.rs=263 ≤300, style_adapt.rs=19 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

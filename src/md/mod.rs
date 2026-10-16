@@ -11,6 +11,7 @@
 //!
 //! - `core`     — pulldown-cmark options + offset events (← xai-grok-markdown-core)
 //! - `style`    — per-element styles (← style.rs)
+//! - `style_adapt` — adapt_style identity stub (← style_adapt.rs)
 //! - `theme`    — the single fixed theme (anstyle)
 //! - `parse`    — markdown → intermediate events (← parse.rs)
 //! - `buffers`  — output accumulation (← buffers.rs)
@@ -21,6 +22,9 @@
 //! - `streaming`— incremental render for the token stream (← streaming.rs)
 //!
 //! Attribution: `THIRD-PARTY-NOTICES.md` + per-file `//! Derived from ...` headers.
+
+pub mod style;
+pub mod style_adapt;
 
 use ratatui::text::Line;
 

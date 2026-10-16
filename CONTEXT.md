@@ -53,6 +53,12 @@ an interactive chat interface in the terminal.
   exposes `highlight_code(code, lang) -> Vec<Vec<(Style, String)>>`, used by
   `src/markdown.rs` in the `Segment::Code` arm; `SyntaxSet`/`ThemeSet` loaded
   once (`OnceLock`), plain-text fallback on unknown/empty lang.
+- Rich markdown renderer (V3): `src/md/` module being populated piece-by-piece
+  from grok-build's `xai-grok-markdown` (Apache-2.0). T0 scaffolded
+  (`src/md/mod.rs` with a placeholder `render()`); T1 copies
+  `MarkdownStyle` + `TableBorders` + helpers (`src/md/style.rs`,
+  `src/md/style_adapt.rs`) with the upstream `test_style` const ported to
+  `tests/md_style.rs` (16 tests). `anstyle` bridges styles to ratatui.
 
 ## NOT included
 - Inference logic (connects to external server)

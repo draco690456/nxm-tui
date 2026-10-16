@@ -11,7 +11,7 @@ sono **deferred** all'AgentAi backend (out-of-scope di nxm-tui, vedi MAP scope-s
 | Ticket | Labels | Nota |
 |---|---|---|
 | [R5-os-independent-keystore.md](R5-os-independent-keystore.md) | `wayfinder:research` ✅ | **Resolved**: studio completo (confronto backend, seam, spec). Raccomandazione: seam `KeyStore` + file cifrato come default portabile, OS-keychain/env dietro il trait. |
-| *(vendor TUI adoption residua)* | | wrap unicode (openviking) ✅ **V1**; syntect highlight ✅ **V2**; residuo: streaming incrementale (**V3**), rifinitura resa visiva (lavoro dedicato). `search` CABLATO (T5 ✅). |
+| *(vendor TUI adoption residua)* | | wrap unicode (openviking) ✅ **V1**; syntect highlight ✅ **V2**; **V3 in design** ([V3-render-adoption.md](V3-render-adoption.md)) — adozione render grok-build (markdown ricco pulldown-cmark + tema fisso, epic T0–T16). `search` CABLATO (T5 ✅). |
 | *(RULES.md debt residuo)* | | T6 ✅ (app.rs 973→729). DEBT1 ✅ (`Message`/`Role` → `message.rs`); residuo: split `main.rs::run` (382 righe), split pieno `app.rs`. `VENDOR-TUI-ANALYSIS.md` ha la nota di licenza openviking **corretta** (root AGPL-3.0; copiabile solo `crates/ov_cli`). |
 
 ## Frontier — mappa provider keys + models (`MAP-provider-keys-models.md`)

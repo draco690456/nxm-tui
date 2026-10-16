@@ -28,8 +28,10 @@ pub mod core;
 pub mod buffers;
 pub mod buffers_table;
 pub mod checkpoint;
+pub mod output;
 pub mod syntax;
 pub mod theme;
+pub mod url_scan;
 mod style_adapt;
 
 use ratatui::text::Line;

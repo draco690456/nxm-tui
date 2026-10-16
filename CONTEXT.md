@@ -87,6 +87,11 @@ an interactive chat interface in the terminal.
   `syntax_highlight_raw`. No two-face/build.rs/assets/Swift grammar.
   `SyntaxSet::load_defaults_newlines()` + `ThemeSet::load_defaults()`.
   Tests in `tests/md_syntax.rs` (5). Option A (two-face) deferred.
+- T5c adds `src/md/url_scan.rs`: plain-URL detection over rendered ratatui
+  Lines — `detect_plain_urls`, `detect_plain_urls_with_offset`,
+  `for_each_plain_link` (verbatim from upstream). Anticipates `HyperlinkTarget`
+  in new `src/md/output.rs` (full output module is T7). Tests in
+  `tests/md_url_scan.rs` (10).
 
 ## NOT included
 - Inference logic (connects to external server)

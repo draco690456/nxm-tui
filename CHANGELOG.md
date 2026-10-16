@@ -124,6 +124,25 @@ Derived from xai-grok-markdown/src/syntax.rs (Apache-2.0).
   `wc -l src/md/syntax.rs` = 149 ≤300.
 - Nota: opzione A (two-face + build.rs + assets + Swift) rimandata a ticket dedicato.
 
+## feat(md): copy url_scan + anticipate HyperlinkTarget (V3/T5c)
+Derived from xai-grok-markdown/src/{url_scan,output}.rs (Apache-2.0).
+- New `src/md/url_scan.rs` (96 lines): verbatim copy of grok-build's plain-URL
+  detection — `detect_plain_urls`, `detect_plain_urls_with_offset`,
+  `for_each_plain_link`. Keeps `is_char_boundary` guards, scp-skip,
+  email→`mailto:`, overlap dedup. No `unwrap`/`expect` in production.
+- New `src/md/output.rs` (17 lines): only `HyperlinkTarget` anticipated from
+  upstream `output.rs` (ticket T7 will complete the module). Fields:
+  `line_index`, `column_range`, `url`, `id`; derives `Debug, Clone,
+  PartialEq, Eq`.
+- `src/md/mod.rs`: declares `pub mod output;` and `pub mod url_scan;`.
+- New `tests/md_url_scan.rs` (10 tests): URL without trailing dot, email→mailto,
+  scp not mailto, split-across-spans is one target, empty document, offset,
+  dedup, incremental ids, HyperlinkTarget fields/eq.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 231 passed,
+  0 failed, 1 ignored (10 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `wc -l src/md/url_scan.rs` = 96 ≤300, `output.rs` = 17 ≤300;
+  `cargo tree | grep -iE "two-face|onig"` → vuoto.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

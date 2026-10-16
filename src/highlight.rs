@@ -50,7 +50,12 @@ pub fn highlight_code(code: &str, lang: &str) -> Vec<Vec<(Style, String)>> {
         return plain_text(code);
     };
 
-    let theme = theme_set.themes.values().next();
+    // Pick a dark theme with a light foreground for good contrast on a dark
+    // TUI; fall back to any available theme, then to plain text.
+    let theme = theme_set
+        .themes
+        .get("base16-eighties.dark")
+        .or_else(|| theme_set.themes.values().next());
     let Some(theme) = theme else {
         tracing::debug!(target: "nexum::highlight", "no theme available: plain-text fallback");
         return plain_text(code);
@@ -63,13 +68,20 @@ pub fn highlight_code(code: &str, lang: &str) -> Vec<Vec<(Style, String)>> {
         let mut spans: Vec<(Style, String)> = Vec::new();
         if let Ok(regions) = highlighter.highlight_line(line, syntax_set) {
             for (style, text) in regions {
+                // `LinesWithEndings` keeps the trailing `\n` on each line; strip
+                // it from the span text so ratatui does not render a spurious
+                // extra blank row per code line.
+                let text = text.strip_suffix('\n').unwrap_or(text);
+                if text.is_empty() {
+                    continue;
+                }
                 let color = style.foreground;
                 let style = Style::default().fg(Color::Rgb(color.r, color.g, color.b));
                 spans.push((style, text.to_string()));
             }
         }
         if spans.is_empty() {
-            spans.push((Style::default(), line.to_string()));
+            spans.push((Style::default(), String::new()));
         }
         out.push(spans);
     }
@@ -78,7 +90,12 @@ pub fn highlight_code(code: &str, lang: &str) -> Vec<Vec<(Style, String)>> {
 }
 
 /// Plain-text fallback: one span per line, default style, content preserved.
+///
+/// A single trailing newline is dropped (it would otherwise yield a spurious
+/// empty last row, matching the highlighted path); interior blank lines are
+/// kept.
 fn plain_text(code: &str) -> Vec<Vec<(Style, String)>> {
+    let code = code.strip_suffix('\n').unwrap_or(code);
     code.split('\n')
         .map(|line| vec![(Style::default(), line.to_string())])
         .collect()

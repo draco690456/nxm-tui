@@ -1,4 +1,4 @@
-//! Derived from xai-grok-markdown/src/syntax.rs (xai-org/grok-build, Apache-2.0). Modified (option B): syntaxes from SyntaxSet::load_defaults_newlines() instead of the two-face syntaxes.bin build dump; no assets/Swift grammar; expect() replaced with error handling. Option A (two-face) is a deferred ticket.
+//! Derived from xai-grok-markdown/src/syntax.rs (xai-org/grok-build, Apache-2.0). Modified (option B): syntaxes from SyntaxSet::load_defaults_newlines() instead of the two-face syntaxes.bin build dump; no assets/Swift grammar; expect() replaced with error handling; syntax_highlight_raw widened pub(crate)→pub for `tests/` reach (RULES visibility-for-testability). Option A (two-face) is a deferred ticket.
 //!
 //! Syntax highlighting support using syntect built-in defaults (option B).
 //!

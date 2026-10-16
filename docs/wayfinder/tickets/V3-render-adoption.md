@@ -122,9 +122,11 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     gestione errore. **DEBITO VOLUTO** → in futuro OPZIONE A completa (two-face +
     build.rs `syntaxes.bin` + `tokyo-night.tmTheme` + `Swift.sublime-syntax` +
     suite test Swift, 250+ lingue) con ticket dedicato.
-  - **T5c** `src/md/url_scan.rs` ← `url_scan.rs` (495; dep `buffers` ok +
-    `output::HyperlinkTarget` → mini-stub o anticipo di quel tipo).
-  - **T5d** `src/md/open_code_highlighter.rs` ← (384; dep `syntax` T5b).
+  - **T5c** ✅ (main `eeaf024`) `src/md/url_scan.rs` (96) + `src/md/output.rs` (17,
+    solo `HyperlinkTarget` anticipato → resto in T7). `detect_plain_urls`/
+    `for_each_plain_link` verbatim; test non-streaming. 231 test. Visibilità `pub`
+    per testabilità (policy RULES).
+  - **T5d** `src/md/open_code_highlighter.rs` ← (384; dep `syntax` T5b). ← PROSSIMO
   - **T5e** `src/md/parse.rs` — scaffold `MarkdownParser` + `new`/builder +
     helper puri + conversioni stile.
   - **T5f** `src/md/parse_events.rs` — `on_event`/`on_start`/`on_end` (~800,

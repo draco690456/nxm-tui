@@ -24,7 +24,7 @@
 //! Attribution: `THIRD-PARTY-NOTICES.md` + per-file `//! Derived from ...` headers.
 
 pub mod style;
-pub mod style_adapt;
+mod style_adapt;
 
 use ratatui::text::Line;
 

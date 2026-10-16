@@ -209,7 +209,8 @@ impl MarkdownStyle {
 
 /// Check if ALL active styles have HIDDEN effect.
 /// Used in pretty mode to determine if text should be skipped.
-pub fn all_hidden(styles: impl IntoIterator<Item = Option<Style>>) -> bool {
+#[allow(dead_code)]
+pub(crate) fn all_hidden(styles: impl IntoIterator<Item = Option<Style>>) -> bool {
     let mut has_any = false;
     let mut all_are_hidden = true;
 
@@ -228,7 +229,8 @@ pub fn all_hidden(styles: impl IntoIterator<Item = Option<Style>>) -> bool {
 
 /// Merge multiple styles into one for rendering.
 /// Strips HIDDEN from the final output, since it marks text to skip rather than an effect to draw.
-pub fn merge_styles(styles: impl IntoIterator<Item = Option<Style>>) -> Style {
+#[allow(dead_code)]
+pub(crate) fn merge_styles(styles: impl IntoIterator<Item = Option<Style>>) -> Style {
     let mut out = Style::new();
     let mut prev = Style::new();
     for style in styles {

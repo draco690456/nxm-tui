@@ -12,8 +12,9 @@ use anstyle::Style;
 /// Adapt a style for the terminal's color capabilities.
 ///
 /// **Placeholder (T1):** returns `s` unchanged (identity). When the real
-/// `colors.rs` downgrade lands, this body is replaced and the visibility stays
-/// `pub` so the integration test `tests/md_style.rs` keeps passing.
-pub fn adapt_style(s: Style) -> Style {
+/// `colors.rs` downgrade lands, this body is replaced; `pub(crate)` visibility
+/// matches the upstream so the import in `style.rs` can swap to
+/// `crate::colors::adapt_style` unchanged.
+pub(crate) fn adapt_style(s: Style) -> Style {
     s
 }

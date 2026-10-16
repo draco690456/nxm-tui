@@ -6,27 +6,27 @@
 Derived from xai-grok-markdown/src/style.rs (Apache-2.0).
 - New `src/md/style.rs` (263 lines): verbatim copy of grok-build's markdown
   styling types — `TableBorders` (BOX/ASCII/DOUBLE, all short+long accessors)
-  and `MarkdownStyle` (26 scalar `anstyle::Style` fields + 2 heading arrays,
-  27 elements total) with its identical `adapt()` method, plus the
-  `all_hidden` and `merge_styles` helpers. Inline `#[cfg(test)]` test module
-  stripped (RULES.md: no inline tests). Origin header `//! Derived from ...`
-  prepended. `anstyle` already present (T0).
+  and `MarkdownStyle` (24 scalar `anstyle::Style` fields + 2 `[Style; 6]`
+  heading arrays = 26 struct fields, 36 Style values) with its identical
+  `adapt()` method, plus the `all_hidden` and `merge_styles` helpers. Inline
+  `#[cfg(test)]` test module stripped (RULES.md: no inline tests). Origin
+  header `//! Derived from ...` prepended. `anstyle` already present (T0).
+  Visibility `pub(crate)` matches upstream verbatim (T1-review Resolution 1).
 - New `src/md/style_adapt.rs` (19 lines): `adapt_style` identity stub
   (placeholder — real truecolor→256/16 downgrade lands with the future
   `colors.rs` ticket). `style.rs` imports `adapt_style` from here; swapping in
-  the real implementation is a one-line import change.
-- `src/md/mod.rs`: declares `pub mod style;` and `pub mod style_adapt;`.
-- New `tests/md_style.rs` (16 tests): moved the upstream `test_style::STYLE`
-  const here as an external integration test + contract tests — MarkdownStyle
-  field effects (BOLD/ITALIC/STRIKETHROUGH), `TableBorders::BOX/ASCII/DOUBLE`
-  characters, `merge_styles` (strips HIDDEN, preserves fg color), `all_hidden`
-  (true/false/empty/None cases), `adapt_style` identity.
-- Visibility: `all_hidden`, `merge_styles`, and `adapt_style` widened from
-  `pub(crate)` to `pub` (and `style_adapt` from `mod` to `pub mod`) so the
-  RULES.md-mandated external `tests/` integration tests can reach them directly.
-  Non-reductive — no fields or behavior changed.
-- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 209 passed,
-  0 failed, 1 ignored (16 new); `cargo clippy --all-targets` = 3 baseline
+  the real implementation is a one-line import change. `pub(crate)` per
+  upstream.
+- `src/md/mod.rs`: declares `pub mod style;` and `mod style_adapt;`.
+- New `tests/md_style.rs` (8 tests, all via public API): moved the upstream
+  `test_style::STYLE` const here as an external integration test + contract
+  tests — MarkdownStyle field effects (BOLD/ITALIC/STRIKETHROUGH),
+  `TableBorders::BOX/ASCII/DOUBLE` characters (+ default/new), and
+  `adapt_style` identity exercised indirectly through `MarkdownStyle::adapt()`
+  (which delegates to `adapt_style`; `all_hidden`/`merge_styles` are
+  `pub(crate)` and tested in a future ticket when the renderer wires them).
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 201 passed,
+  0 failed, 1 ignored (8 new); `cargo clippy --all-targets` = 3 baseline
   (type_complexity + Default×2), 0 new; `wc -l` style.rs=263 ≤300, style_adapt.rs=19 ≤300.
 
 # 2026-10-15

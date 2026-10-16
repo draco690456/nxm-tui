@@ -58,7 +58,7 @@ an interactive chat interface in the terminal.
   (`src/md/mod.rs` with a placeholder `render()`); T1 copies
   `MarkdownStyle` + `TableBorders` + helpers (`src/md/style.rs`,
   `src/md/style_adapt.rs`) with the upstream `test_style` const ported to
-  `tests/md_style.rs` (16 tests). `anstyle` bridges styles to ratatui.
+  `tests/md_style.rs` (8 tests via public API). `anstyle` bridges styles to ratatui.
 
 ## NOT included
 - Inference logic (connects to external server)

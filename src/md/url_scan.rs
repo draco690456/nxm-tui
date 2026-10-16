@@ -1,4 +1,4 @@
-//! Derived from xai-grok-markdown/src/url_scan.rs (xai-org/grok-build, Apache-2.0). Modified: tests reduced to those not depending on StreamingMarkdownRenderer (T16).
+//! Derived from xai-grok-markdown/src/url_scan.rs (xai-org/grok-build, Apache-2.0). Modified: tests reduced to those not depending on StreamingMarkdownRenderer (T16); fns widened pub(crate)→pub for `tests/` reach (RULES visibility-for-testability).
 
 //! Plain-URL detection over rendered display ratatui Lines.
 

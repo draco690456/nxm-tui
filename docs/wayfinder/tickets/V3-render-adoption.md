@@ -110,8 +110,21 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   (`MarkdownBuffers`, `StyledCell`, `CellSpan`, `RenderEvent`, `Table*`,
   `MermaidReplace`, `unicode_display_width`, polyfill char-boundary). 213 test.
   Review: APPROVED senza fix.
-- **T5** `parse.rs` + `parse_inline.rs` + `parse_block.rs` ← CORE di `parse.rs`
-  (2100 righe splittate). Stub no-op: table/math/mermaid/html/checkpoint.
+- **T5** `parse.rs` ← CORE di `parse.rs` (2248 righe). **Segmentato** (deciso
+  2026-10-16): copia prima le dipendenze piccole/autoportanti, poi il parse
+  splittato per il cap 300. `latex` (1968 righe) **stubbato** ora → ticket
+  dedicato dopo (feature math di nicchia, ortogonale al rendering base; coerente
+  con "nessuna riduzione" perché posticipata, non tolta).
+  - **T5a** `src/md/checkpoint.rs` ← `checkpoint.rs` (56, zero dep interne).
+  - **T5b** `src/md/syntax.rs` ← `syntax.rs` (468, syntect code-highlight; no onig).
+  - **T5c** `src/md/url_scan.rs` ← `url_scan.rs` (495; dep `buffers` ok +
+    `output::HyperlinkTarget` → mini-stub o anticipo di quel tipo).
+  - **T5d** `src/md/open_code_highlighter.rs` ← (384; dep `syntax` T5b).
+  - **T5e** `src/md/parse.rs` — scaffold `MarkdownParser` + `new`/builder +
+    helper puri + conversioni stile.
+  - **T5f** `src/md/parse_events.rs` — `on_event`/`on_start`/`on_end` (~800,
+    split se serve). `latex` stubbato.
+  - **T5g** `src/md/parse_table.rs` — `format_table` & co (~540).
 - **T6** `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di
   `render.rs`. Escluso render_ansi + test.
 - **T7** `output.rs` ← CORE di `output.rs`.

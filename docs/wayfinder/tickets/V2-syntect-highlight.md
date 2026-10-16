@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** Vendor TUI adoption (segue V1)
-- **Status:** 🚧 Claimed 2026-10-15
+- **Status:** ✅ Resolved 2026-10-16
 - **Related:** V1 (cell-width markdown wrap), T6 (pattern estrazione modulo)
 
 ## Motivazione
@@ -48,3 +48,35 @@ highlighting per-token** via `syntect`, continuando la linea vendor sbloccata da
 - CHANGELOG + CONTEXT aggiornati.
 - **Nota:** la verifica visiva su TTY reale è a carico dell'utente (test utente);
   i test automatici asseriscono il contratto strutturale, non la resa visiva.
+
+## As-built (2026-10-16)
+
+Eseguito da coding agent esterno (brief `prompts/02-v2-syntect-highlight_{ITA,ENG}.md`),
+review indipendente del revisore + **simulazione visiva**. PR #3 → `main` (rebase).
+
+- `src/highlight.rs` (155 righe): `highlight_code(code, lang) -> Vec<Vec<(Style,
+  String)>>` per-token via syntect; `SyntaxSet`/`ThemeSet` via `OnceLock`;
+  tema `base16-eighties.dark` (fg chiaro); mapping `syntect Color → ratatui Rgb`;
+  fallback plain-text (lang vuoto/ignoto/errore) senza panic. `join_spans`/
+  `truncate_spans` ospitati qui (cap `markdown.rs`).
+- `src/markdown.rs` (283 righe): ramo `Segment::Code` consuma `highlight_code`
+  per-span, box/border + troncatura cell-width V1 preservati; fallback a
+  `highlight_style` (colore unico) su lang ignoto.
+- `Cargo.toml`: `syntect 5.3.0` `default-fancy` (pure-Rust, no onig, no
+  syntect-tui); `THIRD-PARTY-NOTICES.md` (MIT, URL `trishume/syntect` corretto).
+
+**Difetti trovati dal test visivo (fix di review):** span con trailing `\n`
+(`LinesWithEndings`) → riga vuota spuria per riga di codice → strip `\n`; tema
+non deterministico/grigio-scuro → `base16-eighties.dark` esplicito; riga vuota
+residua nel fallback su trailing newline → `plain_text` corretto. Regressioni
+coperte da `spans_never_contain_newline`, `highlighted_row_count_matches_fallback`,
+`fallback_drops_trailing_newline_keeps_interior_blanks`.
+
+**Verifica (revisione indipendente):** `cargo build` ok; `cargo test
+--test-threads=1` **193 passed / 0 failed / 1 ignored**; clippy = baseline, 0
+nuovi; `cargo tree -i syntect` = 5.3.0 senza onig; file ≤300; no `unwrap`/`expect`
+prod. Commit `3d7be26` + `c10ad60` + `6dd53cd`.
+
+**Residuo (deferito a lavoro dedicato sul rendering):** rifinitura resa visiva
+(scelta tema definitiva, eventuale sfondo del box, leggibilità) — accettata così
+per ora su decisione utente.

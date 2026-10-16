@@ -100,9 +100,12 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   `Theme::current()` non letto (multi-tema differito). 204 test.
 
 ### Fase 1 — Primo valore (rendering base migliore)
-- **T3** `core.rs` ← `xai-grok-markdown-core` (parser_options, offset_events,
-  strikethrough). Omesso MarkdownStats/analyze (no strum).
-- **T4** `buffers.rs` + `buffers_table.rs` ← `buffers.rs`.
+- **T3a** ✅ (main `3df44dd`) `src/md/core.rs` (88) — `parser_options` +
+  `offset_events` + `DoubleTildeOnlyStrike` ← `markdown-core`, copia verbatim.
+  Review: rimossa `MarkdownStats` fuori scope + header provenienza corretto. 208 test.
+- **T3b** ⬜ (posticipabile) `src/md/analysis.rs` — `MarkdownStats`/`analyze`
+  (+`strum`). Brief pronto `prompts/08-...`. Non blocca T4–T8.
+- **T4** `buffers.rs` + `buffers_table.rs` ← `buffers.rs`. ← PROSSIMO
 - **T5** `parse.rs` + `parse_inline.rs` + `parse_block.rs` ← CORE di `parse.rs`
   (2100 righe splittate). Stub no-op: table/math/mermaid/html/checkpoint.
 - **T6** `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di

@@ -105,7 +105,11 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   Review: rimossa `MarkdownStats` fuori scope + header provenienza corretto. 208 test.
 - **T3b** ⬜ (posticipabile) `src/md/analysis.rs` — `MarkdownStats`/`analyze`
   (+`strum`). Brief pronto `prompts/08-...`. Non blocca T4–T8.
-- **T4** `buffers.rs` + `buffers_table.rs` ← `buffers.rs`. ← PROSSIMO
+- **T4** ✅ (main `cac6e5b`) `src/md/buffers.rs` (235) + `buffers_table.rs` (125)
+  ← `buffers.rs` (348, split per cap 300). Tutti i tipi di output copiati verbatim
+  (`MarkdownBuffers`, `StyledCell`, `CellSpan`, `RenderEvent`, `Table*`,
+  `MermaidReplace`, `unicode_display_width`, polyfill char-boundary). 213 test.
+  Review: APPROVED senza fix.
 - **T5** `parse.rs` + `parse_inline.rs` + `parse_block.rs` ← CORE di `parse.rs`
   (2100 righe splittate). Stub no-op: table/math/mermaid/html/checkpoint.
 - **T6** `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di

@@ -116,7 +116,7 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   dedicato dopo (feature math di nicchia, ortogonale al rendering base; coerente
   con "nessuna riduzione" perché posticipata, non tolta).
   - **T5a** ✅ (main `982fa18`) `src/md/checkpoint.rs` (58) ← `checkpoint.rs` verbatim (Checkpoint + CheckpointKind, 8 varianti). 215 test.
-  - **T5b** `src/md/syntax.rs` ← `syntax.rs` (468). **OPZIONE B** (decisa
+  - **T5b** ✅ (main `ee7a9b7`) `src/md/syntax.rs` (150). **OPZIONE B** (decisa
     2026-10-16): adatta a `SyntaxSet::load_defaults_newlines()` (come V2
     `highlight.rs`), **senza** two-face/`build.rs`/assets/Swift; `expect` prod →
     gestione errore. **DEBITO VOLUTO** → in futuro OPZIONE A completa (two-face +

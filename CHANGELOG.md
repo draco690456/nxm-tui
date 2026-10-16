@@ -143,6 +143,30 @@ Derived from xai-grok-markdown/src/{url_scan,output}.rs (Apache-2.0).
   new; `wc -l src/md/url_scan.rs` = 96 ≤300, `output.rs` = 17 ≤300;
   `cargo tree | grep -iE "two-face|onig"` → vuoto.
 
+## feat(md): copy OpenCodeHighlighter streaming cache (V3/T5d)
+Derived from xai-grok-markdown/src/open_code_highlighter.rs (Apache-2.0).
+- New `src/md/open_code_highlighter.rs` (243 lines): verbatim copy of grok-build's
+  incremental syntax-highlighting cache for streamed code fences —
+  `OpenCodeHighlighter` (`new`, `highlight_block`, `highlight_closed`, `highlight`,
+  `committed_prefix_matches`), `HlLine` type alias, `CLOSED_MEMO_CAP_BYTES` const.
+  Keeps `is_char_boundary` guards, `match ... Err => return None` (no panic in prod).
+  `Syntect` sourced via `Syntect::new()` (option B defaults, T5b) — no two-face,
+  no `build.rs`, no assets, no Swift grammar.
+- `src/md/mod.rs`: declares `pub mod open_code_highlighter;`.
+- Visibility-for-testability: `new`, `highlight_block`, `highlight_closed`,
+  `highlight`, `committed_prefix_matches`, `closed_memo_bytes`, `CLOSED_MEMO_CAP_BYTES`,
+  `HlLine` widened to `pub` for `tests/` (documented in header).
+- New `tests/md_open_code.rs` (8 tests): `append_only_growth_matches_fresh_full_highlight`,
+  `fence_change_invalidates`, `start_offset_change_invalidates`,
+  `unknown_fence_returns_none`, `closed_memo_matches_batch_and_is_idempotent`,
+  `closed_memo_distinguishes_fence_info_and_body`,
+  `closed_memo_does_not_disturb_open_block_state`,
+  `closed_memo_cap_overflow_keeps_output_correct`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 239 passed,
+  0 failed, 1 ignored (8 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `cargo tree | grep -iE "two-face|onig"` → vuoto;
+  `wc -l src/md/open_code_highlighter.rs` = 243 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

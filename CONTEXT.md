@@ -92,6 +92,12 @@ an interactive chat interface in the terminal.
   `for_each_plain_link` (verbatim from upstream). Anticipates `HyperlinkTarget`
   in new `src/md/output.rs` (full output module is T7). Tests in
   `tests/md_url_scan.rs` (10).
+- T5d adds `src/md/open_code_highlighter.rs`: incremental syntax-highlighting
+  cache for streamed code fences (verbatim from upstream). `OpenCodeHighlighter`
+  (`new`, `highlight_block`, `highlight_closed`, `highlight`,
+  `committed_prefix_matches`), `HlLine`, `CLOSED_MEMO_CAP_BYTES`. No two-face,
+  no build.rs, no assets, no Swift grammar; `Syntect::new()` (option B defaults).
+  Tests in `tests/md_open_code.rs` (8). Last T5 prerequisite before T5e-g parse.
 
 ## NOT included
 - Inference logic (connects to external server)

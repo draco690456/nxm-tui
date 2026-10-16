@@ -57,3 +57,51 @@ fn assets_loaded_once_consistent_results() {
     let second = highlight_code("fn x() {}", "rust");
     assert_eq!(first, second);
 }
+
+/// Regression (V2 visual fix): spans must NOT carry a trailing newline.
+/// `LinesWithEndings` keeps the `\n`, which made ratatui render a spurious
+/// blank row per code line. No span text may contain a newline.
+#[test]
+fn spans_never_contain_newline() {
+    let code = "fn main() {\n    let x = 1;\n    println!(\"{x}\");\n}";
+    let lines = highlight_code(code, "rust");
+    for (li, line) in lines.iter().enumerate() {
+        for (_, text) in line {
+            assert!(
+                !text.contains('\n'),
+                "span on line {li} contains a newline: {text:?}"
+            );
+        }
+    }
+}
+
+/// Regression: a highlighted multi-line snippet yields the same number of
+/// rows as its plain-text fallback (no extra blank rows).
+#[test]
+fn highlighted_row_count_matches_fallback() {
+    let code = "fn a() {}\nfn b() {}\nfn c() {}";
+    let highlighted = highlight_code(code, "rust");
+    let fallback = highlight_code(code, "zzz-unknown");
+    assert_eq!(
+        highlighted.len(),
+        fallback.len(),
+        "highlighted rows {} != fallback rows {}",
+        highlighted.len(),
+        fallback.len()
+    );
+    assert_eq!(highlighted.len(), 3, "three source lines → three rows");
+}
+
+/// Regression: a single trailing newline must NOT add a spurious empty last
+/// row in the plain-text fallback, but interior blank lines are preserved.
+#[test]
+fn fallback_drops_trailing_newline_keeps_interior_blanks() {
+    // Trailing newline → no extra empty row.
+    let trailing = highlight_code("alpha\n", "zzz-unknown");
+    assert_eq!(trailing.len(), 1, "trailing newline must not add a row: {trailing:?}");
+
+    // Interior blank line is significant and kept.
+    let interior = highlight_code("a\n\nb", "zzz-unknown");
+    assert_eq!(interior.len(), 3, "interior blank line must be kept: {interior:?}");
+    assert_eq!(interior[1][0].1, "", "middle row is the blank line");
+}

@@ -1,6 +1,6 @@
 # Vendor TUI Analysis — codice riutilizzabile per nxm-tui
 
-> Ricerca su `/Users/devdaniele/Projects/nexum/vendors` per migliorare **nxm-tui**
+> Ricerca su `<workspace>/nexum/vendors` per migliorare **nxm-tui**
 > (TUI Rust pura: `ratatui 0.29` + `crossterm 0.28` + `tokio` + `reqwest`).
 > Obiettivo: mappare codice vendor riutilizzabile sui gap noti di nxm-tui, con
 > verdetto **Copia** (adattare il sorgente) o **Replica** (reimplementare l'idea).

@@ -1,6 +1,6 @@
 # Vendor list — utili per nxm-tui
 
-> Sottoinsieme dei vendor (`/Users/devdaniele/Projects/nexum/vendors`) rilevanti
+> Sottoinsieme dei vendor (`<workspace>/nexum/vendors`) rilevanti
 > per migliorare **nxm-tui** (TUI Rust pura: ratatui 0.29 + crossterm 0.28 +
 > tokio + reqwest). Filtrato dalla lista generale `vendors/list_vendors.md`.
 > Aggiornato: 2026-09-08. Analisi di dettaglio: [`VENDOR-TUI-ANALYSIS.md`](./VENDOR-TUI-ANALYSIS.md).

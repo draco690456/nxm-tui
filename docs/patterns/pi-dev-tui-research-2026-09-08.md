@@ -52,7 +52,7 @@ Destinazione d'uso: nuova TUI a terminale come pi.dev, ma pure-Rust (ratatui + c
   `session-replay.ts` + `utils/message-replay.ts` (resume riusa i live render hooks),
   `editor-keyboard.ts`, `auth-flow.ts`, `tasks-browser.ts`;
   `commands/` (declare/parse), `components/chrome|dialogs|editor|media|messages|panes`,
-  `reverse-rpc/` (approval/question callback → panel), `theme/` single source of truth.
+  `reverse-rpc/` (approval/question callback → panel), `theme/` single source reference.
   Regole: mai accumulare logica in `KimiTUI`, split per tipo di feature, DESIGN.md normativo per dialog.
 - `vendors/kimi-code/apps/kimi-code/src/tui/components/dialogs/approval-preview.ts:1` —
   pattern nested-takeover per approval diff, riusabile per tool-approval in Rust.
@@ -127,7 +127,7 @@ Destinazione d'uso: nuova TUI a terminale come pi.dev, ma pure-Rust (ratatui + c
    `TuiMainScreen/TuiAltScreen` dietro stessa interfaccia, VirtualTerminal per test.
 3. **Copia da kimi-code**: split `KimiTUI` → controllers (`streaming-ui`, `session-event-handler`,
    `session-replay` che riusa live hooks), `components/messages/tool-renderers/registry.ts` per tool-result,
-   `mountEditorReplacement` per dialog, theme single source of truth, DESIGN.md normativo.
+   `mountEditorReplacement` per dialog, theme single source reference, DESIGN.md normativo.
 4. **Copia da codex-rs**: `HistoryCell` + `active_cell` streaming, transcript overlay Ctrl+T con cache key,
    task-running derivato, approval/permission flows, `markdown_render::render_markdown_text_with_width`.
 5. **Copia da openshell**: struttura SKILL.md + event loop tokio/mpsc + status bar contestuale + tick refresh.

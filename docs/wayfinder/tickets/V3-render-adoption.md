@@ -88,10 +88,13 @@ Tutto il nuovo renderer in `src/md/`. `src/markdown.rs` resta uno **shim** fino
 allo swap; `history.rs` non cambia fino alla Fase 4.
 
 ### Fase 0 — Fondamenta
-- **T0** scaffold `src/md/mod.rs` + `THIRD-PARTY-NOTICES` + `LICENSE-APACHE`; dep
-  `anstyle`, `pulldown-cmark`, `anstyle-syntect` (pin esatti).
-- **T1** `style.rs` ← grok `style.rs` (split `style.rs` + `style_adapt.rs`).
-- **T2** `theme.rs`: UN tema fisso concreto (tokyo-night) in anstyle.
+- **T0** ✅ (main `5b28c02`) scaffold `src/md/mod.rs` + `THIRD-PARTY-NOTICES` +
+  `LICENSE-APACHE`; dep V3 pin esatti (10 crate pure-Rust).
+- **T1** ✅ (main `312ab46`, PR-less FF) `MarkdownStyle` + `TableBorders` +
+  `all_hidden`/`merge_styles` ← grok `style.rs`, split `style.rs` (265) +
+  `style_adapt.rs` (20, `adapt_style` placeholder-identità); visibilità upstream
+  (`pub(crate)`), test via API pubblica; esenzione copia-fedele applicata.
+- **T2** `theme.rs`: UN tema fisso concreto (tokyo-night) in anstyle. ← PROSSIMO
 
 ### Fase 1 — Primo valore (rendering base migliore)
 - **T3** `core.rs` ← `xai-grok-markdown-core` (parser_options, offset_events,

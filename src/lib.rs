@@ -17,6 +17,7 @@ pub mod handler;
 pub mod history;
 pub mod highlight;
 pub mod markdown;
+pub mod md;
 pub mod mcp;
 pub mod message;
 pub mod metrics;

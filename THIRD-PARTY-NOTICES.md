@@ -5,16 +5,29 @@ copyright and licenses are reproduced below.
 
 ## grok-build (xai-org/grok-build)
 
-- **Source:** `crates/codegen/xai-grok-pager-render/src/search` (`mod.rs`, `matcher.rs`)
 - **Copyright:** Copyright 2023-2026 SpaceXAI
 - **License:** Apache License 2.0
-- **Usage:** The text search module (`src/search.rs` — `QueryKind`, `TextMatcher`,
-  `next_index_after`, `prev_index_before`) was adapted from the above source.
-  The adaptation replaces the compiled-regex field with `Option<regex::Regex>`
-  to remove all production `unwrap()`/`expect()` fallbacks.
+- **Vendor snapshot:** commit `2bdd1d6` (aligned with upstream), vendored at
+  `vendors/agents/grok-build/`.
+- **Usage (search):** `crates/codegen/xai-grok-pager-render/src/search`
+  (`mod.rs`, `matcher.rs`) → the text search module (`src/search.rs` —
+  `QueryKind`, `TextMatcher`, `next_index_after`, `prev_index_before`) was
+  adapted from the above source. The adaptation replaces the compiled-regex
+  field with `Option<regex::Regex>` to remove all production
+  `unwrap()`/`expect()` fallbacks.
+- **Usage (markdown renderer, V3):** `crates/codegen/xai-grok-markdown` and
+  `crates/codegen/xai-grok-markdown-core` → the rich markdown renderer under
+  `src/md/` is a copy-identical-in-behaviour port (pulldown-cmark pipeline,
+  element rendering, styling, streaming). Kept 100% pure-Rust and independent
+  of the upstream `xai-*` workspace: `syntect` stays on `default-fancy` (no
+  onig/C); where upstream relied on non-Rust or workspace-internal code, the
+  equivalent is rewritten in Rust. Large files are split across modules to
+  satisfy the repo's 300-line cap; no functionality is reduced. Per-file
+  `//! Derived from xai-grok-markdown (Apache-2.0). Modified: ...` headers mark
+  each ported file.
 
-A copy of the Apache License 2.0 is available at
-<https://www.apache.org/licenses/LICENSE-2.0>.
+A copy of the Apache License 2.0 is reproduced in `LICENSE-APACHE` and available
+at <https://www.apache.org/licenses/LICENSE-2.0>.
 
 ## syntect (trishume/syntect)
 

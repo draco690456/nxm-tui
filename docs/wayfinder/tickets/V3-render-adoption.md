@@ -116,7 +116,12 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   dedicato dopo (feature math di nicchia, ortogonale al rendering base; coerente
   con "nessuna riduzione" perché posticipata, non tolta).
   - **T5a** ✅ (main `982fa18`) `src/md/checkpoint.rs` (58) ← `checkpoint.rs` verbatim (Checkpoint + CheckpointKind, 8 varianti). 215 test.
-  - **T5b** `src/md/syntax.rs` ← `syntax.rs` (468, syntect code-highlight; no onig).
+  - **T5b** `src/md/syntax.rs` ← `syntax.rs` (468). **OPZIONE B** (decisa
+    2026-10-16): adatta a `SyntaxSet::load_defaults_newlines()` (come V2
+    `highlight.rs`), **senza** two-face/`build.rs`/assets/Swift; `expect` prod →
+    gestione errore. **DEBITO VOLUTO** → in futuro OPZIONE A completa (two-face +
+    build.rs `syntaxes.bin` + `tokyo-night.tmTheme` + `Swift.sublime-syntax` +
+    suite test Swift, 250+ lingue) con ticket dedicato.
   - **T5c** `src/md/url_scan.rs` ← `url_scan.rs` (495; dep `buffers` ok +
     `output::HyperlinkTarget` → mini-stub o anticipo di quel tipo).
   - **T5d** `src/md/open_code_highlighter.rs` ← (384; dep `syntax` T5b).

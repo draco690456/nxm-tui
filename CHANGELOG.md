@@ -4,7 +4,7 @@
 
 ## feat(md): copy MarkdownStyle + TableBorders (V3/T1)
 Derived from xai-grok-markdown/src/style.rs (Apache-2.0).
-- New `src/md/style.rs` (263 lines): verbatim copy of grok-build's markdown
+- New `src/md/style.rs` (265 lines): verbatim copy of grok-build's markdown
   styling types — `TableBorders` (BOX/ASCII/DOUBLE, all short+long accessors)
   and `MarkdownStyle` (24 scalar `anstyle::Style` fields + 2 `[Style; 6]`
   heading arrays = 26 struct fields, 36 Style values) with its identical
@@ -12,7 +12,7 @@ Derived from xai-grok-markdown/src/style.rs (Apache-2.0).
   `#[cfg(test)]` test module stripped (RULES.md: no inline tests). Origin
   header `//! Derived from ...` prepended. `anstyle` already present (T0).
   Visibility `pub(crate)` matches upstream verbatim (T1-review Resolution 1).
-- New `src/md/style_adapt.rs` (19 lines): `adapt_style` identity stub
+- New `src/md/style_adapt.rs` (20 lines): `adapt_style` identity stub
   (placeholder — real truecolor→256/16 downgrade lands with the future
   `colors.rs` ticket). `style.rs` imports `adapt_style` from here; swapping in
   the real implementation is a one-line import change. `pub(crate)` per
@@ -27,7 +27,7 @@ Derived from xai-grok-markdown/src/style.rs (Apache-2.0).
   `pub(crate)` and tested in a future ticket when the renderer wires them).
 - Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 201 passed,
   0 failed, 1 ignored (8 new); `cargo clippy --all-targets` = 3 baseline
-  (type_complexity + Default×2), 0 new; `wc -l` style.rs=263 ≤300, style_adapt.rs=19 ≤300.
+  (type_complexity + Default×2), 0 new; `wc -l` style.rs=265 ≤300, style_adapt.rs=20 ≤300.
 
 ## feat(md): fixed tokyonight MarkdownStyle theme (V3/T2)
 Derived from xai-grok-markdown .../theme/md_style.rs + theme/tokyonight.rs (Apache-2.0).

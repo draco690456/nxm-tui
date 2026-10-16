@@ -1,4 +1,4 @@
-//! Derived from xai-grok-markdown/src/checkpoint.rs (xai-grok-build, Apache-2.0). Modified: none (verbatim copy of the two checkpoint types).
+//! Derived from xai-grok-markdown/src/checkpoint.rs (xai-org/grok-build, Apache-2.0). Modified: none (verbatim copy of the two checkpoint types).
 //!
 //! Checkpoint types for incremental markdown rendering.
 //!

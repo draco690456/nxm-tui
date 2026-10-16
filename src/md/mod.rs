@@ -30,6 +30,7 @@ pub mod buffers_table;
 pub mod checkpoint;
 pub mod open_code_highlighter;
 pub mod output;
+pub mod parse;
 pub mod syntax;
 pub mod theme;
 pub mod url_scan;

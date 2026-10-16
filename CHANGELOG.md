@@ -167,6 +167,33 @@ Derived from xai-grok-markdown/src/open_code_highlighter.rs (Apache-2.0).
   new; `cargo tree | grep -iE "two-face|onig"` → vuoto;
   `wc -l src/md/open_code_highlighter.rs` = 243 ≤300.
 
+## feat(md): scaffold MarkdownParser (V3/T5e)
+Derived from xai-grok-markdown/src/parse.rs (Apache-2.0).
+- New `src/md/parse.rs` (298 lines): scaffold of grok-build's markdown parser —
+  `MarkdownParser` struct (text, ms, buffers, syntect, open_code, tag_stack,
+  table_state, depth, bq_depth, last_checkpoint, max_table_width,
+  link_id_counter, collapse_soft_breaks, pending_code_block), `new()`,
+  builders `collapse_soft_breaks()` / `max_table_width()`, `parse()` entry
+  point (iterates `offset_events` → stub `on_event` → `ParsedMarkdown`),
+  `ParsedMarkdown` struct + `new()`. Pure helpers: `StyleInto` trait + impl,
+  `anstyle_to_ratatui_color`, `find_substring`, `decode_html_entity`,
+  `has_blank_line_after`, `is_br_tag`, `PendingCodeBlock`.
+- `on_event`/`on_start`/`on_end` are empty stubs (T5f); `format_table` omitted
+  (T5g). `latex` deferred (dedicated ticket). `offset_events` imported from
+  `crate::md::core` (T3a). No `unwrap`/`expect` in production; stubs use empty
+  bodies, not `todo!()`.
+- `src/md/mod.rs`: declares `pub mod parse;`.
+- Visibility-for-testability: `ParsedMarkdown` fields widened to `pub` for
+  `tests/` (documented in header).
+- New `tests/md_parse.rs` (9 tests): `parser_new_and_builders`,
+  `parse_simple_input_no_panic`, `parse_empty_input_no_panic`,
+  `parse_no_syntect_no_panic`, `collapse_soft_breaks_false`,
+  `max_table_width_some`, `max_table_width_none`, `parsed_markdown_fields`,
+  `checkpoint_kind_variants`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 248 passed,
+  0 failed, 1 ignored (9 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `wc -l src/md/parse.rs` = 298 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

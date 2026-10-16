@@ -97,7 +97,15 @@ an interactive chat interface in the terminal.
   (`new`, `highlight_block`, `highlight_closed`, `highlight`,
   `committed_prefix_matches`), `HlLine`, `CLOSED_MEMO_CAP_BYTES`. No two-face,
   no build.rs, no assets, no Swift grammar; `Syntect::new()` (option B defaults).
-  Tests in `tests/md_open_code.rs` (8). Last T5 prerequisite before T5e-g parse.
+  Tests in `tests/md_open_code.rs` (8).
+- T5e adds `src/md/parse.rs`: scaffold of `MarkdownParser` — `new()`,
+  builders `collapse_soft_breaks()` / `max_table_width()`, `parse()` entry
+  point (iterates `offset_events` → stub `on_event` → `ParsedMarkdown`),
+  `ParsedMarkdown` struct + `new()`. Pure helpers: `StyleInto` trait + impl,
+  `anstyle_to_ratatui_color`, `find_substring`, `decode_html_entity`,
+  `has_blank_line_after`, `is_br_tag`, `PendingCodeBlock`. `on_event`/`on_start`
+  /`on_end` are empty stubs (T5f); `format_table` omitted (T5g); `latex`
+  deferred. Tests in `tests/md_parse.rs` (9).
 
 ## NOT included
 - Inference logic (connects to external server)

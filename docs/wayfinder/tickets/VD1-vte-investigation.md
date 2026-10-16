@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:research`
 - **Type:** Verifica dipendenza (prerequisito del VT engine, differito)
-- **Status:** ✅ Resolved 2026-10-16 (doc: `../research/VD1-vte.md`)
+- **Status:** ⚠️ Report consolidato 2026-10-16, **verdetto CONTESTATO dall'owner — da riverificare** (doc: `../research/VD1-vte.md`). Il documento registra l'analisi svolta; la decisione NON è accettata. I ticket a valle del VT engine restano bloccati finché il dissenso non è sciolto.
 - **Related:** V3-render-adoption (nota VT), epic VT engine
 
 ## Perché

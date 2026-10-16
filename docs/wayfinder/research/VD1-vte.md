@@ -1,3 +1,16 @@
+## ⚠️ Dissenso dell'owner (2026-10-16) — verdetto DA RIVERIFICARE
+
+L'owner **non è convinto** del verdetto di questa indagine ("strano che `vte`
+abbia dato questi risultati; secondo me è sbagliato quanto prodotto"). Il
+documento è consolidato come **record dell'analisi svolta**, NON come decisione
+accettata. Il verdetto (specie "VT engine non serve oggi" e la scelta `vte`) va
+**riverificato** prima di qualsiasi azione a valle. Possibili aree di revisione:
+output dei tool futuri (subprocess/shell), scelta del parser, utilità reale della
+dir `terminal/`. Finché il dissenso non è sciolto, i ticket a valle del VT engine
+restano bloccati. Vedi follow-up aperto in `VD1-vte-investigation.md`.
+
+---
+
 # Research — dipendenza `vte` e VT engine di grok (VD1, 2026-10-16)
 
 Indagine su fonti primarie: sorgente vendor in sola lettura

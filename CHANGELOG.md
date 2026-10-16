@@ -68,6 +68,25 @@ Derived from xai-grok-markdown-core/src/lib.rs (Apache-2.0).
   0 failed, 1 ignored (4 new); `cargo clippy --all-targets` = 3 baseline, 0
   new; `wc -l src/md/core.rs` = 108 ≤300.
 
+## feat(md): copy MarkdownBuffers + output types (V3/T4)
+Derived from xai-grok-markdown/src/buffers.rs (Apache-2.0).
+- New `src/md/buffers.rs` (235 lines): core output types — `Highlight`,
+  `Replace`, `LinkTarget`, `CodeBlockMeta`, `Transform`, `CellSpan`,
+  `StyledCell`, `CellJoin`, `RenderEventKind`, `RenderEvent`,
+  `MarkdownBuffers`, `unicode_display_width`, `floor_char_boundary`,
+  `ceil_char_boundary`. Keeps `#![deny(clippy::indexing_slicing)]`.
+- New `src/md/buffers_table.rs` (125 lines): table types — `TableState`,
+  `TableCellCopy`, `TableCopyMeta`, `TableHyperlink`, `TableReplace`,
+  `MermaidReplace`. Split per cap 300 righe (file sorgente upstream: 348).
+- `src/md/mod.rs`: declares `pub mod buffers;` and `pub mod buffers_table;`;
+  `buffers.rs` re-exports `MermaidReplace`/`TableReplace` publicly.
+- New `tests/md_buffers.rs` (5 tests): `markdown_buffers_new_and_clear`,
+  `styled_cell_new_plain_text_clear`, `unicode_display_width_ascii_and_cjk`,
+  `table_state_new_and_push_text`, `cell_join_variants`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 213 passed,
+  0 failed, 1 ignored (5 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `wc -l src/md/buffers.rs` = 235 ≤300, `buffers_table.rs` = 125 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

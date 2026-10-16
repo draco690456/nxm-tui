@@ -25,6 +25,8 @@
 
 pub mod style;
 pub mod core;
+pub mod buffers;
+pub mod buffers_table;
 pub mod theme;
 mod style_adapt;
 

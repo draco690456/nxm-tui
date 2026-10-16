@@ -68,6 +68,12 @@ an interactive chat interface in the terminal.
   demoted to literal `~`), `DoubleTildeOnlyStrike` filter with
   `is_double_tilde_strike` / `strike_delim_text` helpers, full `Iterator::next()`
   impl. Keeps `#![deny(clippy::indexing_slicing)]`. Tests in `tests/md_core.rs` (4).
+- T4 adds `src/md/buffers.rs` (core) + `src/md/buffers_table.rs` (table):
+  `MarkdownBuffers`, `StyledCell`, `CellSpan`, `RenderEvent`/`RenderEventKind`,
+  `Highlight`, `Replace`, `LinkTarget`, `CodeBlockMeta`, `Transform`,
+  `CellJoin`, `TableState`, `TableCellCopy`, `TableCopyMeta`, `TableHyperlink`,
+  `TableReplace`, `MermaidReplace`, `unicode_display_width`. Split per cap 300
+  righe. Tests in `tests/md_buffers.rs` (5).
 
 ## NOT included
 - Inference logic (connects to external server)

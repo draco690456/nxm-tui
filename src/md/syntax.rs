@@ -30,13 +30,17 @@ pub struct Syntect {
 impl Syntect {
     /// Create a new Syntect instance using syntect built-in defaults.
     ///
-    /// Loads `SyntaxSet::load_defaults_newlines()` and picks the first theme
-    /// from `ThemeSet::load_defaults()`. No `two-face`, no `build.rs`, no
-    /// assets. Returns `None` only if the default theme set is empty (should
-    /// not happen with syntect built-ins).
+    /// Loads `SyntaxSet::load_defaults_newlines()` and picks `base16-eighties.dark`
+    /// (same dark theme as `src/highlight.rs` V2), falling back to any available
+    /// theme. No `two-face`, no `build.rs`, no assets. Returns `None` only if the
+    /// default theme set is empty (should not happen with syntect built-ins).
     pub fn new() -> Option<Self> {
         let syntax_set = syntax_set().clone();
-        let theme = theme_set().themes.values().next()?.clone();
+        let themes = &theme_set().themes;
+        let theme = themes
+            .get("base16-eighties.dark")
+            .or_else(|| themes.values().next())?
+            .clone();
         Some(Self { theme, syntax_set })
     }
 

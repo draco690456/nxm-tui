@@ -15,6 +15,14 @@ Coding rules for this project. Every contributor (human or AI) must follow these
 - Use per-functionality targets: `tracing::info!(target: "nexum::<module>::<feature>", ...)`.
 - Entry/exit logging for complex operations: `ENTER` / `EXIT` with timing.
 - Import logging utilities from `nxm-shared` (never roll your own).
+- **Verbatim-copy exemption:** files carrying a `//! Derived from <upstream> (<license>)`
+  header — code ported practically verbatim from a vendor (e.g. grok-build, V3) to
+  stay aligned with upstream — are **exempt** from the per-function logging rule.
+  Adding `tracing` would deviate from upstream on every file and defeat the
+  realignment strategy; pure rendering/parsing/style functions have little
+  diagnostic value from logging anyway. The exemption applies ONLY to `Derived
+  from` files; our own code (and any non-trivial logic we add to a ported file)
+  follows the rule in full.
 
 ## Error Handling
 
@@ -48,6 +56,9 @@ Coding rules for this project. Every contributor (human or AI) must follow these
 - Update `CONTEXT.md` at the end of every coding session.
 - Update `CHANGELOG.md` with every meaningful change (not typos/formatting).
 - Public APIs must have `///` doc comments with at least one example.
+- **Verbatim-copy exemption:** `//! Derived from <upstream>` files (see Logging)
+  keep upstream's doc comments as-is and are exempt from the `///`-with-example
+  rule, to preserve a faithful copy. New public items WE add still need docs.
 
 ## Commits
 

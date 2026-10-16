@@ -52,6 +52,12 @@ Deviazioni tecniche obbligate (documentate, NON riduzioni di funzionalità):
   in Rust** l'equivalente con fallback.
 - File > 300 righe → **split in più moduli** (RULES.md); il codice resta identico,
   cambia solo la distribuzione su file.
+- **Esenzione copia-fedele (RULES.md §Logging/§Documentation):** i file
+  `//! Derived from ...` sono esenti da `tracing` per-funzione e dai `///` con
+  esempio, per preservare la fedeltà all'upstream (decisione 2026-10-16). Il
+  codice NOSTRO e la logica non banale che aggiungiamo a un file portato seguono
+  le RULES piene. Visibilità: mantenere quella dell'upstream (`pub(crate)` resta
+  `pub(crate)`); i test esercitano gli interni **solo via API pubblica**.
 
 ## Nota — VT engine e dipendenze (differito, verifica per-dipendenza)
 

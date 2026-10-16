@@ -35,6 +35,47 @@ Catena xai-* minima: **solo `xai-grok-markdown-core`** → `src/md/core.rs`.
 Tutto il resto = moduli interni copiati e **splittati** per il cap 300 righe,
 sotto `src/md/`.
 
+## Principio guida (deciso 2026-10-16)
+
+**Copia praticamente identica del codice e delle funzionalità — NESSUNA
+riduzione — ma 100% Rust e indipendenti dal workspace xai-*.** Dove grok usa
+librerie o codice non-Rust (es. `syntect` con `default-onig` = binding C a
+Oniguruma), lo **riscriviamo in Rust puro per noi** (qui: `syntect` con
+`default-fancy`/fancy-regex, come già in V2). Dove grok si appoggia a crate
+`xai-*` del suo workspace, valutiamo caso per caso: il markdown renderer dipende
+solo da `xai-grok-markdown-core` (pura, copiabile); il resto NON va trascinato
+ciecamente.
+
+Deviazioni tecniche obbligate (documentate, NON riduzioni di funzionalità):
+- `syntect` → `default-fancy` (pure-Rust), non `default-onig`. Se
+  `open_code_highlighter` usa API onig-specifiche (resume per-linea), **riscrivere
+  in Rust** l'equivalente con fallback.
+- File > 300 righe → **split in più moduli** (RULES.md); il codice resta identico,
+  cambia solo la distribuzione su file.
+
+## Nota — VT engine e dipendenze (differito, verifica per-dipendenza)
+
+**Il VT engine NON serve per il markdown renderer** (il markdown è autoportante:
+dipende solo da `xai-grok-markdown-core` + crate pubbliche). Il VT
+(`render/terminal_output.rs` + `terminal/`) serve a renderizzare l'**output dei
+comandi/subprocess** che emettono ANSI (SGR, cursor, `\r`) — ortogonale al
+markdown. Quindi è **differito a dopo** il markdown (T0–T16).
+
+`vte` (crate di Alacritty, `Apache-2.0 OR MIT`, v0.15.0) è **pure-Rust** → usabile.
+MA il modulo VT di grok trascina **12 crate interne** `xai-*` (`xai-tty-utils`,
+`xai-ratatui-textarea`, `xai-ratatui-inline`, `xai-grok-config`,
+`xai-grok-shared`, `xai-grok-workspace`, `xai-grok-telemetry`, `xai-grok-tools`,
+`xai-grok-paths`, `xai-grok-gboom`, `xai-dirs`, ...). La copia letterale non è
+praticabile.
+
+**Processo deciso per VT + dipendenze:** per **ogni dipendenza** (vte e ogni
+`xai-*` coinvolta) si crea un **task di verifica dedicato** che: (1) studia cosa
+fa quella dipendenza, (2) decide se ci è utile, (3) determina cosa riscrivere in
+Rust indipendente vs cosa scartare. Poi si **adatta il nostro VT** a ciò che
+effettivamente portiamo (riscrittura Rust indipendente del comportamento, basata
+su `vte` pubblico + ratatui, senza le `xai-*`). Questi task saranno aggiunti al
+piano DOPO la chiusura del markdown.
+
 ## Piano a fasi (ticket T0–T16)
 
 Tutto il nuovo renderer in `src/md/`. `src/markdown.rs` resta uno **shim** fino

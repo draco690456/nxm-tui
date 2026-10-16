@@ -50,6 +50,13 @@ Coding rules for this project. Every contributor (human or AI) must follow these
 - Integration tests for cross-module or cross-crate interactions.
 - Test file naming: `tests/<module_name>.rs` or `tests/integration/<feature>.rs`.
 - Use `#[ignore]` for tests requiring hardware (GPU, ANE) with a comment explaining why.
+- **Visibility-for-testability:** tests live in `tests/` (an external crate) and
+  inline `#[cfg(test)]` is forbidden, so a `tests/` file cannot reach `pub(crate)`
+  items. When a function must be exercised directly by an integration test and no
+  public API yet wraps it, widening it to `pub` is allowed. For `//! Derived from`
+  files this is a documented divergence from upstream visibility — note it in the
+  header's `Modified:` clause. Prefer testing through a public wrapper when one
+  exists (then keep `pub(crate)`).
 
 ## Documentation
 

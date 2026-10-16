@@ -127,10 +127,13 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     `for_each_plain_link` verbatim; test non-streaming. 231 test. Visibilità `pub`
     per testabilità (policy RULES).
   - **T5d** ✅ (main `121636e`) `src/md/open_code_highlighter.rs` (243) — OpenCodeHighlighter streaming cache (resume per-linea syntect, memo closed-fence), test su Syntect::new(). 239 test.
-  - **T5e** `src/md/parse.rs` — scaffold `MarkdownParser` + `new`/builder +
-    helper puri + conversioni stile.
+  - **T5e** ✅ (main `841bacb`) `src/md/parse.rs` (298) — scaffold `MarkdownParser`
+    + `new`/builder + `parse()` + `ParsedMarkdown` + helper puri; `on_event`/
+    `on_start`/`on_end` stub vuoti (no `todo!()`), `format_table` omesso. 248 test.
+    **NB: parse.rs a 298/300** → T5f DEVE implementare il dispatch in
+    `parse_events.rs` (file separato) e rimuovere gli stub da `parse.rs`, altrimenti sfora.
   - **T5f** `src/md/parse_events.rs` — `on_event`/`on_start`/`on_end` (~800,
-    split se serve). `latex` stubbato.
+    split se serve). `latex` stubbato. Rimuovere gli stub da `parse.rs`. ← PROSSIMO
   - **T5g** `src/md/parse_table.rs` — `format_table` & co (~540).
 - **T6** `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di
   `render.rs`. Escluso render_ansi + test.

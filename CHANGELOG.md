@@ -29,6 +29,28 @@ Derived from xai-grok-markdown/src/style.rs (Apache-2.0).
   0 failed, 1 ignored (8 new); `cargo clippy --all-targets` = 3 baseline
   (type_complexity + Default×2), 0 new; `wc -l` style.rs=263 ≤300, style_adapt.rs=19 ≤300.
 
+## feat(md): fixed tokyonight MarkdownStyle theme (V3/T2)
+Derived from xai-grok-markdown .../theme/md_style.rs + theme/tokyonight.rs (Apache-2.0).
+- New `src/md/theme.rs` (159 lines): `fixed_style() -> MarkdownStyle` returning
+  a single fixed tokyonight theme, built from inlined RGB constants (no
+  `Theme::current()`, no `struct Theme` — multi-theme deferred). Verbatim bridge
+  functions copied from grok's `md_style.rs` (`to_anstyle` with `Reset→None`
+  for NO_COLOR, `fg`, `bg`, `modifier_to_anstyle`, `heading_inner_styles`,
+  `heading_outer_styles`). Color values from grok's `theme/tokyonight.rs`
+  (md_heading_h1..h6 = TEAL/BLUE/ORANGE/RED/GREEN/MAGENTA all +BOLD,
+  md_code=GREEN1, md_task_checked=CYAN, md_task_unchecked=BLUE,
+  md_muted=COMMENT, md_code_bg=BG_HIGHLIGHT, md_text=FG, link_fg=BLUE).
+- `src/md/mod.rs`: declares `pub mod theme;`.
+- New `tests/md_theme.rs` (3 tests): `reset_maps_to_no_color` (NO_COLOR),
+  `named_colors_map_concretely` (DarkGray→BrightBlack, Gray→White, Red→Red),
+  `fixed_style_has_tokyonight_fields` (text fg truecolor, strong_inner BOLD,
+  emphasis_inner ITALIC, link_text UNDERLINE, heading_inner[0] fg+BOLD).
+- No `#[cfg(test)]` inline; no tracing/doc-esempio sulle funzioni-ponte
+  copiate (esenzione copia-fedele, RULES.md).
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 204 passed,
+  0 failed, 1 ignored (3 new); `cargo clippy --all-targets` = 3 baseline,
+  0 new; `wc -l src/md/theme.rs` = 159 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

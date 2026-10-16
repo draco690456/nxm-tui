@@ -59,6 +59,10 @@ an interactive chat interface in the terminal.
   `MarkdownStyle` + `TableBorders` + helpers (`src/md/style.rs`,
   `src/md/style_adapt.rs`) with the upstream `test_style` const ported to
   `tests/md_style.rs` (8 tests via public API). `anstyle` bridges styles to ratatui.
+- T2 adds `src/md/theme.rs`: `fixed_style() -> MarkdownStyle`, a single fixed
+  tokyonight theme built from inlined RGB constants (verbatim bridge functions
+  from grok's `md_style.rs`, `Reset→None` for NO_COLOR), no `Theme::current()`
+  / `struct Theme` (multi-theme deferred). Tests in `tests/md_theme.rs` (3).
 
 ## NOT included
 - Inference logic (connects to external server)

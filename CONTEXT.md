@@ -74,6 +74,11 @@ an interactive chat interface in the terminal.
   `CellJoin`, `TableState`, `TableCellCopy`, `TableCopyMeta`, `TableHyperlink`,
   `TableReplace`, `MermaidReplace`, `unicode_display_width`. Split per cap 300
   righe. Tests in `tests/md_buffers.rs` (5).
+- T5a adds `src/md/checkpoint.rs`: `struct Checkpoint` (source_bytes,
+  output_lines, kind) + `enum CheckpointKind` (8 variants: Heading, Paragraph,
+  CodeBlock, BlockQuote, List, ThematicBreak, Table, HtmlBlock). Verbatim copy,
+  no dependencies, no logic. Prerequisite for T5 parse. Tests in
+  `tests/md_checkpoint.rs` (2).
 
 ## NOT included
 - Inference logic (connects to external server)

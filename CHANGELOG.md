@@ -87,6 +87,20 @@ Derived from xai-grok-markdown/src/buffers.rs (Apache-2.0).
   0 failed, 1 ignored (5 new); `cargo clippy --all-targets` = 3 baseline, 0
   new; `wc -l src/md/buffers.rs` = 235 ≤300, `buffers_table.rs` = 125 ≤300.
 
+## feat(md): copy Checkpoint + CheckpointKind (V3/T5a)
+Derived from xai-grok-markdown/src/checkpoint.rs (Apache-2.0).
+- New `src/md/checkpoint.rs` (58 lines): verbatim copy of grok-build's checkpoint types —
+  `struct Checkpoint` (3 fields: `source_bytes`, `output_lines`, `kind`) and
+  `enum CheckpointKind` (8 variants: Heading, Paragraph, CodeBlock, BlockQuote,
+  List, ThematicBreak, Table, HtmlBlock). All `Debug, Clone, Copy, PartialEq, Eq`.
+  No dependencies; no logic (prerequisite for T5 parse). No inline tests (RULES.md).
+- `src/md/mod.rs`: declares `pub mod checkpoint;`.
+- New `tests/md_checkpoint.rs` (2 tests): `checkpoint_kind_has_all_variants`
+  (8 variants + PartialEq), `checkpoint_fields_and_copy` (3 fields + Copy semantics).
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 215 passed,
+  0 failed, 1 ignored (2 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `wc -l src/md/checkpoint.rs` = 58 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

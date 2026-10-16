@@ -1,58 +1,49 @@
-# VD1 — Indagine dipendenza: `vte` (VT engine)
+# VD1 — Indagine dipendenze del VT engine (mappatura, non "serve adesso?")
 
 - **Label:** `wayfinder:research`
-- **Type:** Verifica dipendenza (prerequisito del VT engine, differito)
-- **Status:** ⚠️ Report consolidato 2026-10-16, **verdetto CONTESTATO dall'owner — da riverificare** (doc: `../research/VD1-vte.md`). Il documento registra l'analisi svolta; la decisione NON è accettata. I ticket a valle del VT engine restano bloccati finché il dissenso non è sciolto.
+- **Type:** Verifica dipendenze (prerequisito del VT engine, differito)
+- **Status:** 🔴 DA RIFARE 2026-10-16 — il primo giro ha risposto alla domanda
+  sbagliata ("il VT engine serve oggi?") invece del mandato ("quali sono le
+  dipendenze del VT engine e quali ci servono?"). Report del primo giro
+  consolidato come record in `../research/VD1-vte.md` (verdetto contestato
+  dall'owner), MA l'indagine va **rifatta** sul mandato corretto qui sotto.
 - **Related:** V3-render-adoption (nota VT), epic VT engine
 
-## Perché
+## Mandato CORRETTO (cosa l'indagine deve davvero produrre)
 
-Il VT engine di grok-build (`render/terminal_output.rs` + `terminal/`) serve a
-renderizzare l'output di comandi/subprocess che emettono ANSI (SGR, cursor,
-`\r`). È **differito** a dopo il markdown (T0–T16), ma la sua adozione richiede —
-per decisione utente — un **task di verifica per ogni dipendenza** prima di
-copiare: capire cosa fa, se ci è utile, cosa riscrivere in Rust indipendente vs
-scartare. Questo è il **primo** di quei task: `vte`.
+Il task è **mappare le dipendenze** del VT engine di grok e decidere, **per
+ciascuna**, se ci serve. NON è valutare se/quando la feature VT serve a nxm-tui.
 
-## Fatti noti (da verificare/approfondire)
+Il VT engine (`render/terminal_output.rs` + `terminal/`) trascina ~12 crate
+interne `xai-*` (viste nel Cargo.toml del pager-render:
+`xai-tty-utils`, `xai-ratatui-textarea`, `xai-ratatui-inline`, `xai-grok-config`,
+`xai-grok-shared`, `xai-grok-workspace`, `xai-grok-telemetry`, `xai-grok-tools`,
+`xai-grok-paths`, `xai-grok-gboom`, `xai-dirs`, …) + crate pubbliche (`vte`).
+Per l'adozione "100% Rust indipendente" serve sapere, DIPENDENZA PER DIPENDENZA,
+cosa fa e se ci è utile.
 
-- `vte = "0.15.0"` (crate di Alacritty, `Apache-2.0 OR MIT`, **pure-Rust**, nessun
-  binding C).
-- In grok è usato in `xai-grok-pager-render/src/render/terminal_output.rs` (573
-  righe) via `vte::{Params, Parser, Perform}` — pattern `impl Perform`.
-- nxm-tui **non** usa `vte` e **non** ha oggi rendering di output-comandi.
+## Done when (nuovo giro)
 
-## Domande dell'indagine (Done when risposte)
+Una **tabella-mappa** con una riga per OGNI dipendenza del VT engine, colonne:
+`dipendenza | cosa fa (1 riga) | usata da quale file del VT | ci serve? (SI/NO/FORSE) | verdetto (adottare pubblico / riscrivere in Rust / scartare) | note licenza`.
+Coprire: tutte le `xai-*` elencate + `vte` + eventuali altre crate pubbliche non
+già in nxm-tui che il VT engine richiede. Più una **sintesi**: quale sottoinsieme
+minimo di dipendenze va effettivamente portato/riscritto per avere il VT engine
+indipendente, e quali si scartano.
 
-1. **Cosa fa `vte`**: modello (parser VT state-machine + trait `Perform`
-   callback), cosa copre (SGR, cursor, CSI/OSC, `\r`, scroll), cosa NON copre.
-2. **Come lo usa grok** in `terminal_output.rs`: quali callback `Perform`
-   implementa, come traduce in celle/`Line`/`Span` ratatui, come gestisce lo
-   stato (griglia? linee?), dipendenze (`quantize`, altre xai-*).
-3. **Ci è utile per nxm-tui?** nxm-tui esegue tool via `nxm-tools`: l'output è
-   testo semplice o può contenere ANSI grezzo (progress bar, colori)? Serve un VT
-   engine o basta strip-ANSI? Verdetto motivato.
-4. **Cosa riscrivere in Rust indipendente vs scartare**: `vte` è adottabile
-   diretto (pubblico, pure-Rust → sì); il `terminal_output.rs` di grok va
-   riscritto (dipende da `quantize`/tema e dal loro contesto). Proponi la forma
-   minima di un VT→ratatui per nxm-tui.
-5. **Alternative pure-Rust** a `vte` (es. `vte` vs `anstyle-parse` vs
-   `termwiz::escape`): confronto breve, con licenza.
+## Cosa NON rifare / errore del primo giro
 
-## Done when
+- Il primo brief (`prompts/04-vd1...`) conteneva una domanda sviante ("Ci è utile
+  un VT engine o basta strip-ANSI? serve adesso?") — ERRORE DI BRIEF (mio). Ha
+  portato l'indagine a decidere la *tempistica della feature* invece di
+  *mappare le dipendenze*. Il nuovo brief deve chiedere SOLO la mappa dipendenze.
+- Materiale riusabile dal primo giro (già verificato, citazioni corrette):
+  `terminal_output.rs` ha **un solo** import interno (`quantize`); la dir
+  `terminal/` è detection e importa `xai_ratatui_inline`/`crate::host`. Questo è
+  un buon punto di partenza per la mappa, ma va ESTESO a tutte le dipendenze del
+  VT engine, non fermato a `vte`.
 
-- Documento di findings in `docs/wayfinder/research/VD1-vte.md` che risponde a
-  tutte le 5 domande, con verdetto: **adottare `vte` diretto / riscrivere
-  terminal_output / scartare** + forma minima proposta.
-- Nessuna modifica a codice di produzione (è solo indagine).
+## Materiale primo giro (record, non accettato)
 
-## Esito (2026-10-16)
-
-**Verdetto: adottare `vte` 0.15.0 diretto** (pure-Rust, `Apache-2.0 OR MIT`,
-footprint `arrayvec`+`memchr`, API identica al vendor) **+ riscrivere
-`terminal_output`** (~300 righe, senza `quantize`/pager, forma minima nel doc
-§4) quando il VT engine verrà attivato; **dir `terminal/` scartata** (detection,
-non rendering, trascina `xai-*`). Oggi il VT engine **non serve**: l'output dei
-3 tool (`read_file`/`list_resources`/`web_search`) è testo semplice, zero ANSI
-nel path (nessun subprocess); servirà solo con tool che catturano subprocess
-(bash/shell). Differito per V3 come da piano.
+Vedi `../research/VD1-vte.md` (verdetto contestato). Da trattare come dati grezzi
+di partenza, non come conclusione.

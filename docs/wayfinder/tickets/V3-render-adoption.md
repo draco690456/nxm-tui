@@ -94,7 +94,10 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   `all_hidden`/`merge_styles` ← grok `style.rs`, split `style.rs` (265) +
   `style_adapt.rs` (20, `adapt_style` placeholder-identità); visibilità upstream
   (`pub(crate)`), test via API pubblica; esenzione copia-fedele applicata.
-- **T2** `theme.rs`: UN tema fisso concreto (tokyo-night) in anstyle. ← PROSSIMO
+- **T2** ✅ (main `e2df8df`) `src/md/theme.rs` (159) — `fixed_style() ->
+  MarkdownStyle` tokyonight (12 costanti RGB inline, verificate vs sorgente),
+  funzioni-ponte ratatui→anstyle copiate verbatim (`to_anstyle` con `Reset→None`),
+  `Theme::current()` non letto (multi-tema differito). 204 test.
 
 ### Fase 1 — Primo valore (rendering base migliore)
 - **T3** `core.rs` ← `xai-grok-markdown-core` (parser_options, offset_events,

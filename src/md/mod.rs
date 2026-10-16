@@ -24,6 +24,7 @@
 //! Attribution: `THIRD-PARTY-NOTICES.md` + per-file `//! Derived from ...` headers.
 
 pub mod style;
+pub mod core;
 pub mod theme;
 mod style_adapt;
 

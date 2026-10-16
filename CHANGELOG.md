@@ -51,6 +51,23 @@ Derived from xai-grok-markdown .../theme/md_style.rs + theme/tokyonight.rs (Apac
   0 failed, 1 ignored (3 new); `cargo clippy --all-targets` = 3 baseline,
   0 new; `wc -l src/md/theme.rs` = 159 ≤300.
 
+## feat(md): copy parsing core — parser_options + offset_events (V3/T3a)
+Derived from xai-grok-markdown-core/src/lib.rs (Apache-2.0).
+- New `src/md/core.rs` (108 lines): verbatim copy of grok-build's parsing core —
+  `parser_options()` (GFM | STRIKETHROUGH | MATH | TASKLISTS | TABLES),
+  `offset_events()` (events with source byte ranges, single-tilde demoted to
+  literal `~`), `DoubleTildeOnlyStrike` filter with `is_double_tilde_strike` and
+  `strike_delim_text` helpers, and the full `Iterator::next()` impl. Keeps
+  `#![deny(clippy::indexing_slicing)]`. No `MarkdownStats`/`analyze` (deferred
+  to T3b). No inline tests (RULES.md).
+- `src/md/mod.rs`: declares `pub mod core;`.
+- New `tests/md_core.rs` (4 tests): `parser_options_contains_all_flags` (5
+  flags), `offset_events_double_tilde_produces_strikethrough`,
+  `offset_events_single_tilde_not_strikethrough`, `offset_events_byte_ranges_consistent`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 205 passed,
+  0 failed, 1 ignored (4 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `wc -l src/md/core.rs` = 108 ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

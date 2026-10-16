@@ -63,6 +63,11 @@ an interactive chat interface in the terminal.
   tokyonight theme built from inlined RGB constants (verbatim bridge functions
   from grok's `md_style.rs`, `Reset→None` for NO_COLOR), no `Theme::current()`
   / `struct Theme` (multi-theme deferred). Tests in `tests/md_theme.rs` (3).
+- T3a adds `src/md/core.rs`: `parser_options()` (GFM | STRIKETHROUGH | MATH |
+  TASKLISTS | TABLES), `offset_events()` (events with byte ranges, single-tilde
+  demoted to literal `~`), `DoubleTildeOnlyStrike` filter with
+  `is_double_tilde_strike` / `strike_delim_text` helpers, full `Iterator::next()`
+  impl. Keeps `#![deny(clippy::indexing_slicing)]`. Tests in `tests/md_core.rs` (4).
 
 ## NOT included
 - Inference logic (connects to external server)

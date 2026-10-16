@@ -79,6 +79,14 @@ an interactive chat interface in the terminal.
   CodeBlock, BlockQuote, List, ThematicBreak, Table, HtmlBlock). Verbatim copy,
   no dependencies, no logic. Prerequisite for T5 parse. Tests in
   `tests/md_checkpoint.rs` (2).
+- T5b adds `src/md/syntax.rs`: syntax highlighting infrastructure on syntect
+  defaults (option B). `Syntect` struct (theme + syntax_set), `find_syntax_by_token`,
+  `find_syntax_by_file_path`, `highlight_lines_for_token`,
+  `highlight_lines_by_file_path`, `highlight_lines_for_fence_info`,
+  `find_syntax_for_fence_info`, `parse_line_citation_fence_info`,
+  `syntax_highlight_raw`. No two-face/build.rs/assets/Swift grammar.
+  `SyntaxSet::load_defaults_newlines()` + `ThemeSet::load_defaults()`.
+  Tests in `tests/md_syntax.rs` (5). Option A (two-face) deferred.
 
 ## NOT included
 - Inference logic (connects to external server)

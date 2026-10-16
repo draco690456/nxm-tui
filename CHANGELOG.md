@@ -101,6 +101,29 @@ Derived from xai-grok-markdown/src/checkpoint.rs (Apache-2.0).
   0 failed, 1 ignored (2 new); `cargo clippy --all-targets` = 3 baseline, 0
   new; `wc -l src/md/checkpoint.rs` = 58 ≤300.
 
+## feat(md): syntax highlighting module on syntect defaults (V3/T5b, option B)
+Derived from xai-grok-markdown/src/syntax.rs (Apache-2.0).
+- New `src/md/syntax.rs` (149 lines): verbatim structure/API from grok-build's
+  `syntax.rs`, adapted to option B — `SyntaxSet::load_defaults_newlines()`
+  instead of the two-face `syntaxes.bin` build dump; `ThemeSet::load_defaults()`
+  for the theme; no `.tmTheme` assets, no `build.rs`, no Swift grammar.
+  `Syntect::new()` returns `Option<Self>` (no `expect`/`unwrap` in production).
+  `parse_line_citation_fence_info` and `syntax_highlight_raw` copied verbatim.
+  `find_syntax_by_token`, `find_syntax_by_file_path`,
+  `highlight_lines_for_token`, `highlight_lines_by_file_path`,
+  `highlight_lines_for_fence_info`, `find_syntax_for_fence_info` copied with
+  Swift/patching logic removed.
+- `src/md/mod.rs`: declares `pub mod syntax;`.
+- New `tests/md_syntax.rs` (5 tests): `line_citation_fence_parses_start_end_path`,
+  `line_citation_rejects_non_numeric_line`,
+  `line_citation_rejects_plain_lang_token`, `syntect_default_builds_and_finds_rust`,
+  `syntax_highlight_raw_produces_spans`, `syntax_highlight_raw_none_and_unknown_lang`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 221 passed,
+  0 failed, 1 ignored (6 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `cargo tree | grep -iE "two-face|onig"` → vuoto;
+  `wc -l src/md/syntax.rs` = 149 ≤300.
+- Nota: opzione A (two-face + build.rs + assets + Swift) rimandata a ticket dedicato.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

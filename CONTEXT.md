@@ -171,8 +171,20 @@ an interactive chat interface in the terminal.
   (`with_prefix`). The V1 renderer moved verbatim to `src/markdown_legacy.rs`
   and its layout helpers to `src/markdown_layout.rs` (RULES 300-line cap);
   `history.rs` (and `highlight.rs`) untouched. Tests in `tests/md_swap.rs`
-  (6). NOTE: both `markdown.rs` and `markdown_legacy.rs` carry
+   (6). NOTE: both `markdown.rs` and `markdown_legacy.rs` carry
   `tracing::debug!` (target `nexum::markdown::swap`) as they are our code.
+- T9a adds `src/md/line_utils.rs` (196 lines ≤ cap): verbatim copy of
+  pager-render (NOT xai-grok-markdown) `render/line_utils.rs` prod 1-209 —
+  `line_to_static`, `push_owned_lines`, `truncate_str`, `truncate_line`,
+  grapheme-aware `fit_line_to_width` (clip/pad, no ellipsis — kills ghost
+  glyphs beside tables), `cascade_truncate`, private `take_width`. Zero
+  xai-* refs: `floor_char_boundary` reused from `crate::md::buffers`
+  (dedup); `truncate_str`/`take_width` backed by
+  `crate::markdown_layout::truncate_to_width` (ellipsis-free, matching the
+  delegation contract), upstream `pub use` of un-ported xai-* helpers
+  dropped — all documented in the header `Modified:` clause. Registered as
+  `pub mod line_utils;`. Prerequisite of T9b (wrap). Tests in
+  `tests/md_line_utils.rs` (28, adapted from the upstream inline tests).
 
 ## NOT included
 - Inference logic (connects to external server)

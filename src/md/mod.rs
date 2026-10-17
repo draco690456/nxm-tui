@@ -65,10 +65,11 @@ use crate::md::theme::fixed_style;
 /// pipeline (`MarkdownParser::parse` → `render_ratatui`), with the single
 /// fixed theme and best-effort syntect highlighting.
 ///
-/// `max_width` currently bounds GFM table columns (`max_table_width`): table
-/// columns are shrunk proportionally so the table fits. Full prose wrapping
-/// is NOT applied yet — it lands in T9/T10 (Fase 2), so paragraphs may render
-/// wider than `max_width` until then.
+/// `max_width` bounds the output: GFM table columns are shrunk
+/// proportionally (`max_table_width`) and every rendered line is word-wrapped
+/// to `max_width` (T10, closes Fase 2). Table lines are never wrapped (the
+/// wrap engine skips them, so column alignment survives); prose and code
+/// content wrap with their styles preserved.
 ///
 /// ```text
 /// use nxm_tui::md::render;
@@ -86,5 +87,8 @@ pub fn render(content: &str, max_width: usize) -> Vec<Line<'static>> {
         .max_table_width(Some(max_width))
         .parse();
     let (output, _checkpoint) = parsed.render_ratatui(true); // pretty = true
-    output.lines
+    // Wrap every line to the pane width (T10). Table lines are skipped by the
+    // wrap engine (`is_table_line`), so pre-formatted tables stay whole; prose
+    // and code content wrap instead of overflowing (was 182 cols at width 40).
+    crate::md::wrap_line::word_wrap_lines(output.lines, max_width)
 }

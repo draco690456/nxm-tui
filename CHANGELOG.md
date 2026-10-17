@@ -2,6 +2,27 @@
 
 # 2026-10-17
 
+## feat(md): wrap render output to pane width (V3/T10)
+
+Closes Fase 2 (wrapping). Our own one-line integration (RULES piene), no
+verbatim copy: after `render_ratatui`, `md::render` now applies
+`crate::md::wrap_line::word_wrap_lines(output.lines, max_width)` so prose
+stays inside the pane (was 1 row of 182 cols at width 40). No
+`unwrap`/`expect`; doc comment updated.
+- Non-regression by construction + tests: table lines are skipped by the
+  wrap engine (`is_table_line`, T9b) — borders `┌─┬┐`/`│ │`/`└─┘` stay
+  whole rows (fit_line_to_width pads them to `max_width`, trailing spaces
+  invisible); code-fence marker rows (` ``` `) stay whole; long code
+  content lines wrap like prose.
+- Tests: `tests/md_wrap_integration.rs` (5) — the Fase-2 key test (long
+  prose ~180 cols at width 40 → every row ≤ 40), short prose untouched,
+  table rows never split (5 border rows intact), code fences whole, styles
+  preserved across wrapped rows (heading fg colour carried to every
+  continuation row).
+- Verify: 324 passed / 0 failed / 1 ignored (single-threaded; ≥319 + new),
+  clippy `--all-targets` 3 baseline warnings only, 0 unused,
+  `src/md/mod.rs` = 94 lines ≤ cap.
+
 ## feat(md): copy word-wrap (V3/T9b)
 
 Derived from xai-grok-pager-render/src/render/wrapping.rs (Apache-2.0).

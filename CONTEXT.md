@@ -198,6 +198,17 @@ an interactive chat interface in the terminal.
   yet (T10). Tests in `tests/md_wrap.rs` (5, behavioural: width ≤ width,
   short line unchanged, multi-line wrap, style preservation, table lines
   never wrapped).
+- T10 wires the wrap into the render: `md::render` applies
+  `crate::md::wrap_line::word_wrap_lines(output.lines, max_width)` right
+  after `render_ratatui` — prose now fits the pane (was 1 row of 182 cols
+  at width 40; closes Fase 2). Our own integration (RULES piene), no
+  `unwrap`/`expect`. Table lines are skipped by the wrap engine
+  (`is_table_line`) so pre-formatted tables stay whole (rows are padded to
+  `max_width` by `fit_line_to_width`, invisible trailing spaces); code-fence
+  marker rows stay whole, long code content wraps like prose. Tests in
+  `tests/md_wrap_integration.rs` (5): the Fase-2 key test (every row ≤ 40
+  for ~180-col prose), short prose untouched, table rows never split, code
+  fences whole, styles preserved across wrapped rows.
 
 ## NOT included
 - Inference logic (connects to external server)

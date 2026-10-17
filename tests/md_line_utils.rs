@@ -24,18 +24,19 @@ fn line_text(line: &Line<'static>) -> String {
 
 // ── truncate_str ─────────────────────────────────────────────
 
-/// Delegation contract: CJK truncation by display cells, no ellipsis —
-/// `truncate_str("日本語テスト", 4)` keeps 2 whole glyphs (4 columns).
+/// Upstream contract: when it does not fit, `truncate_str` cuts to `max_width-1`
+/// cells and appends `…` (so the result is `max_width` cells). `日本語テスト`
+/// (12 cells) at width 4 → `日` (2) + `…` (1) = `日…`.
 #[test]
-fn truncate_str_cjk_by_display_cells() {
-    assert_eq!(truncate_str("日本語テスト", 4), "日本");
+fn truncate_str_cjk_appends_ellipsis() {
+    assert_eq!(truncate_str("日本語テスト", 4), "日…");
 }
 
-/// Over-wide ASCII is cut to exactly `max_width` columns.
+/// Fits unchanged; over-wide cuts to `max_width-1` + `…`.
 #[test]
 fn truncate_str_ascii_budget() {
     assert_eq!(truncate_str("hello", 10), "hello");
-    assert_eq!(truncate_str("hello", 3), "hel");
+    assert_eq!(truncate_str("hello", 3), "he…");
 }
 
 // ── truncate_line ────────────────────────────────────────────
@@ -252,7 +253,7 @@ fn cascade_truncate_desc_truncated() {
         "  meta",
     );
     assert_eq!(t, "type  ");
-    assert_eq!(d, "lon");
+    assert_eq!(d, "lo\u{2026}");
     assert_eq!(a, " \u{2014} running");
     assert_eq!(m, "  meta");
 }
@@ -265,7 +266,7 @@ fn cascade_truncate_desc_gone_meta_truncated() {
     assert_eq!(t, "type  ");
     assert_eq!(d, "");
     assert_eq!(a, " \u{2014} running");
-    assert_eq!(m, "  me");
+    assert_eq!(m, "  m\u{2026}");
 }
 
 #[test]
@@ -275,14 +276,14 @@ fn cascade_truncate_meta_and_activity_gone() {
     let (t, d, a, m) = cascade_truncate(8, "type  ", "desc", " \u{2014} running", "  meta");
     assert_eq!(t, "type  ");
     assert_eq!(d, "");
-    assert_eq!(a, " \u{2014}");
+    assert_eq!(a, " \u{2026}");
     assert_eq!(m, "");
 }
 
 #[test]
 fn cascade_truncate_type_truncated() {
     let (t, d, a, m) = cascade_truncate(3, "type  ", "desc", " \u{2014} running", "  meta");
-    assert_eq!(t, "typ");
+    assert_eq!(t, "ty\u{2026}");
     assert_eq!(d, "");
     assert_eq!(a, "");
     assert_eq!(m, "");
@@ -302,7 +303,7 @@ fn cascade_truncate_unicode() {
     // `✗` and `—` are each 1 display column wide; desc_max = 1 keeps one glyph.
     let (t, d, a, m) = cascade_truncate(10, "\u{2717}  ", "description", " \u{2014} run", "");
     assert_eq!(t, "\u{2717}  ");
-    assert_eq!(d, "d");
+    assert_eq!(d, "\u{2026}");
     assert_eq!(a, " \u{2014} run");
     assert_eq!(m, "");
 }
@@ -320,7 +321,7 @@ fn cascade_truncate_overhead_equals_avail() {
 #[test]
 fn cascade_truncate_avail_one() {
     let (t, d, a, m) = cascade_truncate(1, "type", "desc", "act", "meta");
-    assert_eq!(t, "t");
+    assert_eq!(t, "\u{2026}");
     assert_eq!((d.as_str(), a.as_str(), m.as_str()), ("", "", ""));
 }
 

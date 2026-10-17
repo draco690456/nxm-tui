@@ -1,4 +1,4 @@
-//! Derived from xai-grok-pager-render/src/render/line_utils.rs (xai-org/grok-build, Apache-2.0). Modified: floor_char_boundary reused from crate::md::buffers (dedup); truncate_str/take_width backed by crate::markdown_layout::truncate_to_width (upstream's ellipsis-appending crate::util::truncate_to_width + byte_offset_at_width are xai-* workspace helpers and are NOT ported here — the delegation's acceptance contract is ellipsis-free truncation, e.g. truncate_str("日本語テスト", 4) == "日本"); upstream `pub use` re-exports of un-ported xai-* modules (tool_paths trio, byte_offset_at_width, is_unsafe_display_char) dropped; inline tests adapted in tests/md_line_utils.rs. This is pager-render code, NOT xai-grok-markdown. T9a prerequisite of T9b (wrap).
+//! Derived from xai-grok-pager-render/src/render/line_utils.rs (xai-org/grok-build, Apache-2.0). Modified: floor_char_boundary reused from crate::md::buffers (dedup); truncate_str reproduces upstream crate::util::truncate_to_width faithfully (cuts to max-1 cells + appends the ellipsis marker); take_width uses crate::markdown_layout::truncate_to_width (ellipsis-free prefix take, matching upstream byte_offset_at_width slice); the xai-* workspace helpers are not ported; upstream `pub use` re-exports of un-ported xai-* modules (tool_paths trio, byte_offset_at_width, is_unsafe_display_char) dropped; inline tests adapted in tests/md_line_utils.rs. This is pager-render code, NOT xai-grok-markdown. T9a prerequisite of T9b (wrap).
 
 use ratatui::text::{Line, Span};
 use unicode_segmentation::UnicodeSegmentation;
@@ -27,13 +27,21 @@ pub fn push_owned_lines(src: &[Line<'_>], out: &mut Vec<Line<'static>>) {
     }
 }
 
-/// Like the upstream `truncate_to_width` but returns an owned `String`.
-///
-/// Backed by our `crate::markdown_layout::truncate_to_width` (display-cell
-/// truncation, no ellipsis — the upstream helper appends `…` and lives in the
-/// xai-* workspace; see the header `Modified:` note).
+/// Truncate `s` to `max_width` display columns, appending `…` when it does not
+/// fit (so the result is exactly `max_width` cells: `max_width-1` of text + the
+/// marker). Unchanged if it already fits. Mirrors upstream
+/// `crate::util::truncate_to_width` (ported here, ellipsis-preserving) instead of
+/// pulling the xai-* workspace helper.
 pub fn truncate_str(s: &str, max_width: usize) -> String {
-    crate::markdown_layout::truncate_to_width(s, max_width)
+    if s.width() <= max_width {
+        return s.to_owned();
+    }
+    if max_width == 0 {
+        return String::new();
+    }
+    let mut out = take_width(s, max_width - 1);
+    out.push('\u{2026}');
+    out
 }
 
 /// Truncate on the span where the budget runs out and append `…` in that span's style. Unchanged if it already fits.

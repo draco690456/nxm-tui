@@ -115,6 +115,13 @@ an interactive chat interface in the terminal.
   return `None`). Parser now produces real output for headings, bold, inline
   code, strikethrough; math degrades gracefully via stub. Tests in
   `tests/md_parse_events.rs` (4).
+- T5g adds `src/md/parse_table.rs` (+ `parse_table_fmt.rs`,
+  `parse_table_word.rs`): real `format_table` (verbatim from upstream,
+  laid out per the 300-line cap) — replaces the T5f stub; `on_end` now pushes
+  real `TableReplace`s into `buffers.table_replaces`, so tables render as
+  box-drawing output with hyperlinks, cell-copies and source line offsets.
+  Rust-2021 rewrites documented in the file headers. Tests in
+  `tests/md_parse_table.rs` (7).
 
 ## NOT included
 - Inference logic (connects to external server)

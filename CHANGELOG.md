@@ -1,5 +1,48 @@
 # Changelog
 
+# 2026-10-17
+
+## feat(md): table rendering — format_table (V3/T5g)
+Derived from xai-grok-markdown/src/parse.rs (Apache-2.0).
+- New `src/md/parse_table.rs` (300 lines ≤ cap): `MarkdownParser::format_table`
+  verbatim from upstream — column widths from `plain_text()` display widths,
+  `max_table_width` proportional reflow (word minimums → grapheme floors →
+  proportional distribution), alignments, top/header-sep/row/row-sep/bottom
+  borders via `TableBorders::BOX` and `format_border_line`, hyperlink
+  accumulation (`TableHyperlink` line_offset adjusted per row), `TableCellCopy`s
+  and source line offsets. Returns the `FormattedTable` destructured in
+  `parse_end.rs::on_end` → `TableReplace` push into `buffers.table_replaces`.
+- New `src/md/parse_table_fmt.rs` (269 lines): `wrap_cell_text_joins`
+  (textwrap FirstFit + custom word separator, grapheme hard-split fallback for
+  unbreakable words), `format_styled_content_lines` (multi-visual-line rows,
+  span slicing across wrap boundaries, bold header/body styles, code/ strike/
+  link styling, `allow(clippy::too_many_arguments)` per upstream),
+  `format_border_line`.
+- New `src/md/parse_table_word.rs` (231 lines): free fns `cell_word_separator`
+  (punct-break heuristic with URL protection via `url::Url::parse`) and
+  `cell_wrap_joins` (Tight/Gap reconstruction of omitted text between wrapped
+  lines).
+- `src/md/parse_end.rs`: `format_table` stub REMOVED (real implementation in
+  `parse_table.rs`); `FormattedTable` stays there (documented in its doc
+  comment) — reachable via `use crate::md::parse_end::FormattedTable`; dead_code
+  allow dropped (all fields now used).
+- `src/md/mod.rs`: + `pub mod parse_table; parse_table_fmt; parse_table_word;`.
+- Divergences (documented in each `Modified:` header): Rust 2021 — upstream
+  let-chains rewritten as nested `if`s; `sort_by` → `sort_by_key(Reverse)`
+  (clippy parity, same ordering); visibility-for-testability —
+  `wrap_cell_text_joins`/`format_border_line`/`cell_wrap_joins` `pub` (tested
+  directly in tests/); latex/mermaid remain stubs of their dedicated tickets.
+- New `tests/md_parse_table.rs` (7 tests): GFM table → exactly one
+  `TableReplace` (n_cols=2, borders + cell text in plain lines),
+  `format_border_line` box/ASCII chars (TableBorders), wrap-joins quartet
+  adapted from upstream (`zebraone_space_before_slash`, `foo_bar_punct_wrap`,
+  `hard_split_url`, `likes_long_walks`), `max_table_width()` cap (all lines ≤
+  30 display columns, unicode-width measured).
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 259 passed,
+  0 failed, 1 ignored (7 new); `cargo clippy --all-targets` = 0 unused import,
+  3 baseline, 0 new; `wc -l` parse_table.rs=300, parse_table_fmt.rs=269,
+  parse_table_word.rs=231, parse_end.rs=199.
+
 # 2026-10-16
 
 ## feat(md): copy MarkdownStyle + TableBorders (V3/T1)

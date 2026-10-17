@@ -1,4 +1,4 @@
-//! Derived from xai-grok-markdown/src/parse.rs (xai-org/grok-build, Apache-2.0). Modified: split for the 300-line cap; latex/format_table stubbed (dedicated/T5g tickets); mermaid/math branches stubbed.
+//! Derived from xai-grok-markdown/src/parse.rs (xai-org/grok-build, Apache-2.0). Modified: split for the 300-line cap; latex/format_table live in their own modules (latex stub/T-latex, table formatting `parse_table.rs`/T5g); mermaid/math branches stubbed.
 
 use std::ops::Range;
 
@@ -14,8 +14,8 @@ use crate::md::checkpoint::CheckpointKind;
 use crate::md::parse::{has_blank_line_after, MarkdownParser};
 
 /// Output of [`MarkdownParser::format_table`]: the rendered lines of a single table.
-/// Stub for T5g — full table formatting is deferred.
-#[allow(dead_code)]
+/// Rendered by `parse_table.rs::format_table` (T5g); kept here where the T5f
+/// split defined it so `on_end` can destructure it next to the buffer push.
 #[derive(Default)]
 pub(crate) struct FormattedTable {
     /// Plain-text lines (for ANSI rendering).
@@ -31,11 +31,6 @@ pub(crate) struct FormattedTable {
 }
 
 impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
-    /// Format a table — stub for T5g.
-    fn format_table(&self, _state: &crate::md::buffers_table::TableState) -> FormattedTable {
-        FormattedTable::default()
-    }
-
     /// Handle tag end events.
     pub(crate) fn on_end(&mut self, tag_end: TagEnd, range: Range<usize>) {
         self.tag_stack.pop();

@@ -194,6 +194,36 @@ Derived from xai-grok-markdown/src/parse.rs (Apache-2.0).
   0 failed, 1 ignored (9 new); `cargo clippy --all-targets` = 3 baseline, 0
   new; `wc -l src/md/parse.rs` = 298 ≤300.
 
+## feat(md): parser event dispatch — on_event/on_start/on_end (V3/T5f)
+Derived from xai-grok-markdown/src/parse.rs (Apache-2.0).
+- New `src/md/parse_events.rs` (~200 lines): `on_event` dispatch (events:
+  Start/End/Text/Code/InlineMath/SoftBreak/HardBreak/Html/InlineHtml/
+  DisplayMath/FootnoteReference/Rule/TaskListMarker), `push_highlight`.
+- New `src/md/parse_blocks.rs` (~250 lines): `on_start`/`on_end` with heading,
+  blockquote, code block, HTML block, list, item, table, emphasis, strong,
+  strikethrough, link/image handling; `format_table` stub (T5g);
+  `try_push_mermaid` stub (T5g).
+- New `src/md/parse_inline.rs` (~150 lines): `style_inline_code_span`,
+  `scan_inline_html_entities`, `push_table_text_linking_urls`,
+  `try_push_mermaid` stub, `push_display_math_block` stub (T-latex).
+- New `src/md/latex.rs` (stub): `latex_to_unicode_inline`/`latex_to_unicode_display`
+  return `None` (T-latex deferred).
+- `src/md/mod.rs`: declares `pub mod parse;`, `pub mod parse_blocks;`,
+  `pub mod parse_events;`, `pub mod parse_inline;`, `pub mod latex;`.
+- `src/md/parse.rs`: stubs `on_event`/`on_start`/`on_end` removed; kept struct,
+  new/builder/parse/ParsedMarkdown/pure helpers.
+- Visibility-for-testability: `push_highlight`, `on_start`, `on_end`,
+  `highlight_block`, `highlight_closed`, `highlight`,
+  `committed_prefix_matches`, `closed_memo_bytes`, `CLOSED_MEMO_CAP_BYTES`,
+  `HlLine` widened to `pub` for `tests/` (documented in headers).
+- New `tests/md_parse_events.rs` (4 tests): `parse_produces_highlights_for_heading_and_bold`,
+  `inline_code_produces_span_with_style`, `strikethrough_is_handled`,
+  `math_inline_does_not_panic`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 252 passed,
+  0 failed, 1 ignored (4 new); `cargo clippy --all-targets` = 3 baseline, 0
+  new; `cargo tree | grep -iE "two-face|onig"` → vuoto;
+  `wc -l src/md/parse*.rs` → tutti ≤300.
+
 # 2026-10-15
 
 ## fix: wrap markdown a larghezza di display (V1 — adozione openviking `crates/ov_cli`)

@@ -106,6 +106,15 @@ an interactive chat interface in the terminal.
   `has_blank_line_after`, `is_br_tag`, `PendingCodeBlock`. `on_event`/`on_start`
   /`on_end` are empty stubs (T5f); `format_table` omitted (T5g); `latex`
   deferred. Tests in `tests/md_parse.rs` (9).
+- T5f adds `src/md/parse_events.rs` (`on_event`/`push_highlight`),
+  `src/md/parse_blocks.rs` (`on_start`/`on_end`/`format_table` stub),
+  `src/md/parse_inline.rs` (inline helpers: `style_inline_code_span`,
+  `scan_inline_html_entities`, `push_table_text_linking_urls`,
+  `try_push_mermaid` stub, `push_display_math_block` stub),
+  `src/md/latex.rs` (stub: `latex_to_unicode_inline`/`latex_to_unicode_display`
+  return `None`). Parser now produces real output for headings, bold, inline
+  code, strikethrough; math degrades gracefully via stub. Tests in
+  `tests/md_parse_events.rs` (4).
 
 ## NOT included
 - Inference logic (connects to external server)

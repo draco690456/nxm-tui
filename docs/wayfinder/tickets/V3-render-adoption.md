@@ -141,9 +141,20 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     `parse_table_word.rs` (231, `cell_wrap_joins`). Stub `format_table` rimosso da
     `parse_end.rs`. 259 test. Deviazioni: let-chains→if annidati (Rust 2021),
     sort_by_key(Reverse). **→ PARSE COMPLETO (T5a-g tutti fatti).**
-- **T6** ← PROSSIMO `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di
-  `render.rs`. Escluso render_ansi + test.
-- **T7** `output.rs` ← CORE di `output.rs`.
+- **T6** render — `render_ratatui` (path ratatui, NON render_ansi). **Segmentato**
+  (deciso 2026-10-17, opzione A fedele): copia prima i prerequisiti di
+  `render_ratatui`, poi il render. Dipendenze non-copiate che render tira dentro:
+  `source_map` (16 usi), `output::MarkdownRenderOutput`/`MarkdownRenderView` (era
+  T7, anticipato), `hyperlinks` (OSC8+chunk link), `adapt_style` (già stub T1).
+  - **T6a** `src/md/source_map.rs` ← `source_map.rs` (107, autoportante, zero dep).
+  - **T6b** `src/md/output.rs` — COMPLETA (era T7): `MarkdownRenderOutput`,
+    `MarkdownRenderView`, `CodeBlockSpan`, ecc. (`HyperlinkTarget` già da T5c).
+  - **T6c** `src/md/hyperlinks.rs` ← `hyperlinks.rs` (763, split per cap 300):
+    OSC8 + `chunk_link_offsets`/`emit_segment_hyperlinks`/`ChunkLinkRange`.
+  - **T6d** `src/md/render.rs` ← CORE di `render.rs` (`render_ratatui` +
+    `build_render_events` + `apply_transforms` + helper; split per cap 300).
+    Escluso `render_ansi` (path ANSI, non ci serve) + test inline (adattati in tests/).
+    **→ dopo T6d: parse+render completi, verso lo swap.**
 - **T8** code-fence: NON il backend grok; estendere il `highlight.rs` esistente
   con path syntect→anstyle. **→ dopo T8: swap possibile, interfaccia invariata.**
 

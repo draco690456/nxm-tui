@@ -185,6 +185,19 @@ an interactive chat interface in the terminal.
   dropped — all documented in the header `Modified:` clause. Registered as
   `pub mod line_utils;`. Prerequisite of T9b (wrap). Tests in
   `tests/md_line_utils.rs` (28, adapted from the upstream inline tests).
+- T9b adds the word-wrap, verbatim copy of pager-render
+  `render/wrapping.rs` prod 1-690 (upstream inline tests NOT ported: they
+  need `crate::theme`/`safe_buf`), split for the 300-line cap into
+  `src/md/wrap.rs` (byte-range helpers + `RtOptions` + relocated
+  `is_table_line`/`blockquote_prefix_len`, `pub(crate)`),
+  `src/md/wrap_line.rs` (`word_wrap_line`, `word_wrap_line_with_joiners`,
+  `word_wrap_lines(_with_joiners)`, span slicing) and `src/md/wrap_input.rs`
+  (`LineInput`/`IntoLineInput` made `pub` for visibility-for-testability,
+  `wrap_header_hanging`/`wrap_header_flush`). line_utils resolved via
+  `crate::md::line_utils`. Copy-only: NOT wired into the render pipeline
+  yet (T10). Tests in `tests/md_wrap.rs` (5, behavioural: width ≤ width,
+  short line unchanged, multi-line wrap, style preservation, table lines
+  never wrapped).
 
 ## NOT included
 - Inference logic (connects to external server)

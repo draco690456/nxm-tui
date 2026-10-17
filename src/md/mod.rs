@@ -49,6 +49,9 @@ pub mod source_map;
 pub mod syntax;
 pub mod theme;
 pub mod url_scan;
+pub mod wrap;
+pub mod wrap_input;
+pub mod wrap_line;
 mod style_adapt;
 
 use ratatui::text::Line;

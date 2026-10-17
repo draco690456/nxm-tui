@@ -2,6 +2,29 @@
 
 # 2026-10-17
 
+## feat(md): copy word-wrap (V3/T9b)
+
+Derived from xai-grok-pager-render/src/render/wrapping.rs (Apache-2.0).
+Pager-render source, production lines 1-690 (upstream inline tests NOT
+ported: they need `crate::theme`/`safe_buf`); zero xai-* refs. Copy-only:
+wrap is NOT wired into the render pipeline yet (T10).
+- Split for the 300-line cap: `src/md/wrap.rs` (byte-range helpers +
+  `RtOptions` + relocated `is_table_line`/`blockquote_prefix_len`, made
+  `pub(crate)` for the split), `src/md/wrap_line.rs` (word-wrap engine:
+  `word_wrap_line`, `word_wrap_line_with_joiners`, `word_wrap_lines(_with_joiners)`,
+  span slicing) and `src/md/wrap_input.rs` (`LineInput`/`IntoLineInput`,
+  made `pub` for visibility-for-testability, + `wrap_header_hanging`/
+  `wrap_header_flush`). All ≤300 lines; split documented in each header.
+- Entry points resolve line_utils via `crate::md::line_utils` (T9a:
+  `fit_line_to_width`, `push_owned_lines`, `line_to_static`). No
+  `unwrap`/`expect` added; upstream non-panicking patterns kept.
+- Tests: `tests/md_wrap.rs` (5) — behavioural only: long line wraps into
+  rows of width ≤ width, short line unchanged, `word_wrap_lines` wraps
+  every input line, styles preserved across wrap, table lines never
+  wrapped. No invented upstream-exact strings (lezione T9a).
+- Verify: 319 passed / 0 failed / 1 ignored (single-threaded; ≥314 + new),
+  clippy `--all-targets` 3 baseline warnings only, 0 unused.
+
 ## feat(md): copy line_utils (V3/T9a)
 
 Derived from xai-grok-pager-render/src/render/line_utils.rs (Apache-2.0).

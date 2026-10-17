@@ -130,11 +130,13 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   - **T5e** ✅ (main `841bacb`) `src/md/parse.rs` (298) — scaffold `MarkdownParser`
     + `new`/builder + `parse()` + `ParsedMarkdown` + helper puri; `on_event`/
     `on_start`/`on_end` stub vuoti (no `todo!()`), `format_table` omesso. 248 test.
-    **NB: parse.rs a 298/300** → T5f DEVE implementare il dispatch in
-    `parse_events.rs` (file separato) e rimuovere gli stub da `parse.rs`, altrimenti sfora.
-  - **T5f** `src/md/parse_events.rs` — `on_event`/`on_start`/`on_end` (~800,
-    split se serve). `latex` stubbato. Rimuovere gli stub da `parse.rs`. ← PROSSIMO
-  - **T5g** `src/md/parse_table.rs` — `format_table` & co (~540).
+  - **T5f** ✅ (main `881bf0f`) dispatch eventi, split in 4 file (tutti ≤300):
+    `parse_events.rs` (290, `on_event`+`push_highlight`), `parse_start.rs` (265,
+    `on_start`), `parse_end.rs` (204, `on_end`+stub `format_table`/mermaid/math),
+    `parse_inline.rs` (295, metodi inline). `latex.rs` (17, stub `None`). Ora
+    `parse()` PRODUCE highlights. 252 test. Review: ~26 warning clippy nuovi
+    (unused imports + 2 lint) trovati e corretti — il report li aveva dichiarati 0.
+  - **T5g** `src/md/parse_table.rs` — `format_table` & co (~540). ← PROSSIMO
 - **T6** `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di
   `render.rs`. Escluso render_ansi + test.
 - **T7** `output.rs` ← CORE di `output.rs`.

@@ -134,6 +134,15 @@ an interactive chat interface in the terminal.
   the `line_source_map`). `HyperlinkTarget` unchanged (no duplication).
   Render types ready for the T6d render pipeline. Tests in `tests/md_output.rs`
   (7).
+- T6c adds `src/md/hyperlinks.rs` (verbatim production copy of upstream
+  `hyperlinks.rs`, 153 lines ≤ cap): link projection onto display cells
+  across the three coordinate systems (source bytes → transformed bytes →
+  display cells) — `ChunkLinkRange`, `source_to_chunk_offset`,
+  `chunk_link_offsets`, `emit_segment_hyperlinks` (per-segment
+  `HyperlinkTarget`s sharing one `id` for wrapped links, CJK display-width
+  aware). Upstream inline tests (renderer-dependent) NOT copied (T16);
+  adapted renderer-free tests in `tests/md_hyperlinks.rs` (5). Last render
+  prerequisite before T6d.
 
 ## NOT included
 - Inference logic (connects to external server)

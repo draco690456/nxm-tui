@@ -28,6 +28,7 @@ pub mod core;
 pub mod buffers;
 pub mod buffers_table;
 pub mod checkpoint;
+pub mod hyperlinks;
 pub mod latex;
 pub mod open_code_highlighter;
 pub mod output;

@@ -2,6 +2,32 @@
 
 # 2026-10-17
 
+## feat(md): copy hyperlinks projection (V3/T6c)
+Derived from xai-grok-markdown/src/hyperlinks.rs (Apache-2.0).
+- New `src/md/hyperlinks.rs` (153 lines ≤ cap): VERBATIM copy of the upstream
+  production section (lines 1-154; from line 155 it is `#[cfg(test)]`):
+  module doc (the 3 coordinate systems: source bytes, transformed bytes,
+  display cells), `ChunkLinkRange`, `source_to_chunk_offset`,
+  `chunk_link_offsets`, `emit_segment_hyperlinks`. Mechanical verbatim
+  verification (diff vs upstream with only the documented substitutions
+  applied) = clean.
+- Documented divergences (header `Modified:` clause): paths
+  `crate::buffers`/`crate::output` → `crate::md::buffers`/`crate::md::output`;
+  the 3 fns and `ChunkLinkRange` (+ fields) widened `pub(crate)` → `pub`
+  (visibility-for-testability, tests/ is an external crate); inline tests
+  not copied (all renderer-dependent → T16), adapted subset in tests/.
+- `tests/md_hyperlinks.rs` (5 tests, hand-built `LinkTarget`/chunk — no
+  renderer): projection inside chunk (out-of-chunk link excluded),
+  `source_to_chunk_offset` identity without transforms, ASCII column_range,
+  CJK prefix counts 2 cells per glyph (`col_start` after `你好 ` = 5),
+  wrapped link across 2 segments → 2 `HyperlinkTarget`s sharing the same
+  `id`.
+- `src/md/mod.rs`: `pub mod hyperlinks;`.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 276 passed,
+  0 failed, 1 ignored noto (5 new); `cargo clippy --all-targets` = 3 lint
+  baseline, 0 nuovi, `grep -c "^warning: unused"` = 0; `wc -l`
+  src/md/hyperlinks.rs = 153 ≤300.
+
 ## feat(md): complete output.rs — render output types (V3/T6b)
 Derived from xai-grok-markdown/src/output.rs (Apache-2.0).
 - `src/md/output.rs` completed (180 lines ≤ cap): added the render output

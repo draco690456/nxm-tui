@@ -155,8 +155,16 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     `build_render_events`. Escluso path ANSI (0 chiamate). Helper riusati da
     parse.rs. **280 test. → PARSE + RENDER COMPLETI.** render_ratatui produce
     MarkdownRenderOutput con Line ratatui (heading/bold/code/tabella/link verificati).
-- **T8** code-fence: NON il backend grok; estendere il `highlight.rs` esistente
-  con path syntect→anstyle. **→ dopo T8: swap possibile, interfaccia invariata.** ← PROSSIMO
+- **T8 (SWAP)** ← PROSSIMO. **Revisione del piano (2026-10-17):** il code-fence
+  highlighting NON è più un ticket a sé — `render_ratatui` (T6d) lo gestisce già
+  via `RenderEventKind::Replace` + `syntax_highlight_raw`/`open_code_highlighter`
+  (T5b/d). Quindi T8 = **cablare la pipeline + swap**: `md::render(content,
+  max_width)` (ora placeholder `Vec::new()` da T0) assembla
+  `MarkdownParser::new(content, fixed_style(), &mut buffers, Some(&Syntect::new()))`
+  → `.parse()` → `.render_ratatui(true)` → `output.lines`. Poi `src/markdown.rs`
+  `render_markdown` diventa uno **shim** che chiama `md::render` + riapplica il
+  `prefix` a ogni `Line`, dietro flag `USE_NEW_MD`. `history.rs` invariato.
+  **→ dopo T8: PRIMO OUTPUT MARKDOWN RICCO A SCHERMO.**
 
 ### Fase 2 — Wrapping
 - **T9** `wrap.rs` + `wrap_spans.rs` ← `wrapping.rs` CORE (flatten, slice_line_spans,

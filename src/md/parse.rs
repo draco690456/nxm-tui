@@ -1,4 +1,4 @@
-//! Derived from xai-grok-markdown/src/parse.rs (xai-org/grok-build, Apache-2.0). Modified: scaffold only (struct/new/builder/parse/ParsedMarkdown + pure helpers); on_event/on_start/on_end/format_table are stubs for T5f/T5g; latex deferred; offset_events from crate::md::core. Visibility-for-testability: ParsedMarkdown fields are `pub` for tests/.
+//! Derived from xai-grok-markdown/src/parse.rs (xai-org/grok-build, Apache-2.0). Modified: scaffold only (struct/new/builder/parse/ParsedMarkdown + pure helpers); on_event/on_start/on_end/format_table are stubs for T5f/T5g; latex deferred; offset_events from crate::md::core. Visibility-for-testability: ParsedMarkdown fields are `pub` for tests/. T6d: anstyle_to_ratatui_color widened private→pub(crate) (reused by render_blocks.rs).
 
 use std::ops::Range;
 
@@ -59,7 +59,9 @@ impl StyleInto<ratatui::style::Style> for Style {
 }
 
 #[allow(dead_code)]
-fn anstyle_to_ratatui_color(color: anstyle::Color) -> ratatui::style::Color {
+// Widened private → pub(crate) for the T6d render split: render_blocks.rs reuses
+// this bridge instead of duplicating it (upstream keeps it private in render.rs).
+pub(crate) fn anstyle_to_ratatui_color(color: anstyle::Color) -> ratatui::style::Color {
     use ratatui::style::Color;
     match color {
         anstyle::Color::Ansi(ansi) => match ansi {

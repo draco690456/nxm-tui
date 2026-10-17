@@ -143,6 +143,18 @@ an interactive chat interface in the terminal.
   aware). Upstream inline tests (renderer-dependent) NOT copied (T16);
   adapted renderer-free tests in `tests/md_hyperlinks.rs` (5). Last render
   prerequisite before T6d.
+- T6d adds the render core (verbatim production copy of upstream
+  `render.rs`, ratatui path, split per the 300-line cap across
+  `render.rs` (279) + `render_events.rs` (223) + `render_segments.rs`
+  (247) + `render_blocks.rs` (240), all `impl ParsedMarkdown` with a
+  `RenderLoopState` for the loop locals): `render_ratatui` returns
+  `(MarkdownRenderOutput, Option<Checkpoint>)`; the ANSI path is NOT
+  copied (0 calls). Reuses `StyleInto`/`anstyle_to_ratatui_color` from
+  parse.rs (latter widened pub(crate)), the T1 `adapt_style` stub, and the
+  T6c link projection in both text paths. Renderer-free tests in
+  `tests/md_render.rs` (4: heading/bold/code, code fence, GFM table,
+  link hyperlinks). Parse + render now complete → the swap is next
+  (T8/T10).
 
 ## NOT included
 - Inference logic (connects to external server)

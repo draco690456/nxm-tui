@@ -2,6 +2,47 @@
 
 # 2026-10-17
 
+## feat(md): render_ratatui — markdown to ratatui Lines (V3/T6d)
+Derived from xai-grok-markdown/src/render.rs (Apache-2.0).
+- New render files (all `impl ParsedMarkdown`, split per the 300-line cap,
+  upstream bodies verbatim modulo mechanical `state.` renames):
+  - `src/md/render.rs` (279 lines ≤ cap): `render_ratatui` skeleton
+    (preamble, event dispatch, `Highlight` arm) + `emit_trailing_text`
+    (upstream trailing-text path) + final line flush + output assembly.
+  - `src/md/render_events.rs` (223): `RenderLoopState` (the ~15 loop locals,
+    documented grouping), `apply_transforms`, `build_render_events(_into)`,
+    `finalize_checkpoint` (upstream checkpoint tail).
+  - `src/md/render_segments.rs` (247): `emit_text_ranges` (the main
+    text-chunk path: hidden fences, transformed spans, link projection,
+    checkpoint split) + upstream stateless closures `in_untagged_code` /
+    `count_newlines_in_range` promoted to `pub(crate)` fns.
+  - `src/md/render_blocks.rs` (240): `flush_code_block` (Replace arm),
+    `flush_table` (Table arm), `flush_mermaid` (Mermaid arm).
+- Scope: ratatui path ONLY — `render_ansi` (272-529), `render_replace_ansi`
+  (95), `Stylize`/`StyledStr` (116-140) NOT copied (0 calls from
+  `render_ratatui`, verified). No `unwrap`/`expect` in production code
+  (upstream's let-else/`get`/`debug_assert` patterns preserved).
+- Reuses (no duplication): `StyleInto` from parse.rs (already `pub(crate)`);
+  `anstyle_to_ratatui_color` widened private→pub(crate) in parse.rs (header
+  noted, 291 lines ≤ cap); `all_hidden`/`merge_styles` from style.rs;
+  `adapt_style` via the T1 `style_adapt` stub; T6c hyperlinks projection
+  (`chunk_link_offsets`/`emit_segment_hyperlinks`) wired into both text paths.
+- Documented divergences: `crate::md` paths; let-chains→nested ifs (Rust
+  2021, T5f precedent); private→pub(crate) for the cross-file impl split;
+  arm-local `continue`→`return`; loop locals grouped into `RenderLoopState`
+  (user-chosen split option after the decision model returned an incoherent
+  verdict); `#[allow(clippy::too_many_arguments)]` on `flush_table` (the
+  arm is one inseverable body).
+- `tests/md_render.rs` (4 tests, renderer-free — parser + `.parse()` +
+  `render_ratatui(true)` directly): heading/bold/inline-code text survives
+  with pretty markers consumed; code fence renders body + `CodeBlockSpan`;
+  GFM table rows; `[text](url)` produces one `HyperlinkTarget`. Mermaid
+  tests not ported (mermaid parsing out of scope for this ticket).
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 280 passed,
+  0 failed, 1 ignored noto (4 new); `cargo clippy --all-targets` = 3 lint
+  baseline, 0 nuovi, `grep -c "^warning: unused"` = 0; `wc -l` per file:
+  render 279, blocks 240, events 223, segments 247, parse 291 (all ≤300).
+
 ## feat(md): copy hyperlinks projection (V3/T6c)
 Derived from xai-grok-markdown/src/hyperlinks.rs (Apache-2.0).
 - New `src/md/hyperlinks.rs` (153 lines ≤ cap): VERBATIM copy of the upstream

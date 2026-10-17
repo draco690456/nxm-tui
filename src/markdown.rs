@@ -1,13 +1,54 @@
-use crate::highlight::highlight_code;
-use ratatui::style::{Color, Modifier, Style};
+//! Markdown transcript renderer — the `USE_NEW_MD` swap (V3/T8).
+//!
+//! `render_markdown` is the entry point `history.rs` uses (frozen signature:
+//! `render_markdown(content, max_width, prefix) -> Vec<Line<'static>>`). It
+//! dispatches on the `USE_NEW_MD` rollout flag:
+//!
+//! - flag **OFF** (default): legacy V1 renderer (`markdown_legacy`) — wraps
+//!   prose to `max_width` display columns and boxes code fences.
+//! - flag **ON** (`NXM_USE_NEW_MD=1|true|yes|on`): V3 pipeline
+//!   `crate::md::render` (rich headings/lists/bold/inline+code/tables/links);
+//!   the legacy `prefix` is then re-applied to every line.
+//!
+//! The legacy path stays intact as the fallback; full text wrapping for the
+//! V3 path lands with T9/T10.
+
 use ratatui::text::{Line, Span};
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+
+/// Whether the V3 markdown swap is enabled: env `NXM_USE_NEW_MD`
+/// (`1`/`true`/`yes`/`on`, case-insensitive). Default **OFF** — the legacy V1
+/// renderer stays live until a reviewer/user opts in for visual testing on a
+/// real TTY.
+fn use_new_md() -> bool {
+    match std::env::var("NXM_USE_NEW_MD") {
+        Ok(value) => matches!(
+            value.to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        ),
+        Err(_) => false,
+    }
+}
+
+/// Prepend `prefix` as the first raw [`Span`] of `line`.
+///
+/// The V3 renderer emits unprefixed lines; `history.rs` renders the transcript
+/// with a `"   "` gutter and relies on the prefix being present on every row.
+/// Alignment/style of the incoming line are preserved.
+fn with_prefix(mut line: Line<'static>, prefix: &str) -> Line<'static> {
+    let mut spans = Vec::with_capacity(line.spans.len() + 1);
+    spans.push(Span::raw(String::from(prefix)));
+    spans.append(&mut line.spans);
+    line.spans = spans;
+    line
+}
 
 /// Render markdown into styled terminal lines.
 ///
 /// Prose is word-wrapped to `max_width` **display columns** (CJK/emoji count as
 /// two, malformed width as zero), code fences are boxed and truncated to the
-/// same budget, and `prefix` is prepended to every line.
+/// same budget, and `prefix` is prepended to every line (legacy path). With
+/// `NXM_USE_NEW_MD` enabled the content is rendered by the V3 pipeline
+/// (`crate::md::render`) instead and only the prefix is re-applied.
 ///
 /// ```
 /// use nxm_tui::markdown::render_markdown;
@@ -16,268 +57,13 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 /// assert_eq!(lines.len(), 1);
 /// ```
 pub fn render_markdown(content: &str, max_width: usize, prefix: &str) -> Vec<Line<'static>> {
-    let mut lines: Vec<Line<'static>> = Vec::new();
-    let segments = split_blocks(content);
-
-    for seg in segments {
-        match seg {
-            Segment::Plain(text) => {
-                for wrapped in wrap(&text, max_width.saturating_sub(prefix.width())) {
-                    let mut styled = parse_inline(&wrapped);
-                    styled.insert(0, Span::raw(String::from(prefix)));
-                    lines.push(Line::from(styled));
-                }
-            }
-            Segment::Code(text, lang) => {
-                let header = if lang.is_empty() {
-                    format!("{prefix}┌─ code ")
-                } else {
-                    format!("{prefix}┌─ {lang} ")
-                };
-                lines.push(Line::from(Span::styled(
-                    header,
-                    code_border_style(),
-                )));
-                let inner_w = max_width.saturating_sub(prefix.width() + 3);
-                let known_lang = !lang.is_empty()
-                    && crate::highlight::syntax_set().find_syntax_by_token(&lang).is_some();
-                let single_style = highlight_style(&lang, &text);
-                let highlighted = highlight_code(&text, &lang);
-                for line_spans in highlighted {
-                    let spans: Vec<Span<'static>> = if known_lang {
-                        let (mut spans, truncated) =
-                            crate::highlight::truncate_spans(line_spans, inner_w);
-                        if truncated {
-                            spans.push(Span::raw("…"));
-                        }
-                        spans
-                    } else {
-                        // Fallback: single color for the whole line (pre-V2 behavior).
-                        let joined = crate::highlight::join_spans(&line_spans);
-                        let rendered = if joined.width() > inner_w {
-                            let head = truncate_to_width(&joined, inner_w.saturating_sub(1));
-                            format!("{head}…")
-                        } else {
-                            joined
-                        };
-                        vec![Span::styled(rendered, single_style)]
-                    };
-                    let mut line: Vec<Span<'static>> = vec![Span::raw(format!("{prefix}│ "))];
-                    line.extend(spans);
-                    lines.push(Line::from(line));
-                }
-                lines.push(Line::from(Span::styled(
-                    format!("{prefix}└─"),
-                    code_border_style(),
-                )));
-            }
-        }
+    if use_new_md() {
+        tracing::debug!(target: "nexum::markdown::swap", max_width, "USE_NEW_MD on: V3 pipeline");
+        return crate::md::render(content, max_width)
+            .into_iter()
+            .map(|line| with_prefix(line, prefix))
+            .collect();
     }
-
-    lines
-}
-
-enum Segment {
-    Plain(String),
-    Code(String, String),
-}
-
-fn split_blocks(content: &str) -> Vec<Segment> {
-    let mut segments = Vec::new();
-    let mut remaining = content;
-
-    while let Some(start) = remaining.find("```") {
-        let before = &remaining[..start];
-        if !before.is_empty() {
-            segments.push(Segment::Plain(before.to_string()));
-        }
-        let after_fence = &remaining[start + 3..];
-        let end = after_fence.find("```").unwrap_or(after_fence.len());
-        let code_block = &after_fence[..end];
-        let (lang, code) = if let Some(nl) = code_block.find('\n') {
-            (code_block[..nl].trim().to_string(), code_block[nl + 1..].to_string())
-        } else {
-            (String::new(), code_block.to_string())
-        };
-        segments.push(Segment::Code(code, lang));
-        let next_start = (end + 3).min(after_fence.len());
-        remaining = &after_fence[next_start..];
-    }
-
-    if !remaining.is_empty() {
-        segments.push(Segment::Plain(remaining.to_string()));
-    }
-
-    segments
-}
-
-fn parse_inline(text: &str) -> Vec<Span<'static>> {
-    let mut spans: Vec<Span<'static>> = Vec::new();
-    let mut chars = text.char_indices().peekable();
-
-    while let Some(&(i, c)) = chars.peek() {
-        if text[i..].starts_with("**") {
-            if let Some(end) = text[i + 2..].find("**") {
-                let inner = &text[i + 2..i + 2 + end];
-                spans.push(Span::styled(inner.to_string(), bold_style()));
-                let advance = i + 2 + end + 2;
-                while let Some(&(pos, _)) = chars.peek() {
-                    if pos >= advance { break; }
-                    chars.next();
-                }
-                continue;
-            }
-        }
-
-        if c == '`' {
-            if let Some(end) = text[i + 1..].find('`') {
-                let inner = &text[i + 1..i + 1 + end];
-                spans.push(Span::styled(inner.to_string(), code_style()));
-                let advance = i + 1 + end + 1;
-                while let Some(&(pos, _)) = chars.peek() {
-                    if pos >= advance { break; }
-                    chars.next();
-                }
-                continue;
-            }
-        }
-
-        if c == '*' {
-            if let Some(end) = text[i + 1..].find('*') {
-                let inner = &text[i + 1..i + 1 + end];
-                spans.push(Span::styled(inner.to_string(), italic_style()));
-                let advance = i + 1 + end + 1;
-                while let Some(&(pos, _)) = chars.peek() {
-                    if pos >= advance { break; }
-                    chars.next();
-                }
-                continue;
-            }
-        }
-
-        spans.push(Span::raw(c.to_string()));
-        chars.next();
-    }
-
-    if spans.is_empty() {
-        spans.push(Span::raw(text.to_string()));
-    }
-
-    spans
-}
-
-fn bold_style() -> Style {
-    Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
-}
-
-fn italic_style() -> Style {
-    Style::default().fg(Color::Rgb(180, 180, 220)).add_modifier(Modifier::ITALIC)
-}
-
-fn code_style() -> Style {
-    Style::default().fg(Color::Rgb(180, 220, 140))
-}
-
-/// Get syntax highlighting style for a language.
-fn highlight_style(lang: &str, _content: &str) -> Style {
-    match lang.to_lowercase().as_str() {
-        "rust" => Style::default().fg(Color::Rgb(220, 120, 120)),
-        "python" => Style::default().fg(Color::Rgb(220, 180, 120)),
-        "javascript" | "js" | "typescript" | "ts" => Style::default().fg(Color::Rgb(120, 200, 220)),
-        "go" => Style::default().fg(Color::Rgb(120, 180, 220)),
-        "c" | "cpp" => Style::default().fg(Color::Rgb(140, 180, 220)),
-        "bash" | "sh" | "shell" => Style::default().fg(Color::Rgb(120, 220, 120)),
-        "json" => Style::default().fg(Color::Rgb(220, 220, 120)),
-        _ => code_style(),
-    }
-}
-
-fn code_border_style() -> Style {
-    Style::default().fg(Color::Rgb(80, 100, 80))
-}
-
-/// Word-wrap `text` to at most `max` display columns, returning at most one
-/// line per wrapped row.
-///
-/// Adapted from openviking's `crates/ov_cli/src/commands/render_utils.rs`
-/// (`wrap_display_text` + `append_word_to_line`, Apache-2.0 — see
-/// `THIRD-PARTY-NOTICES.md`). Deviation from upstream: no `max_lines`/ellipsis
-/// truncation, because the transcript must render every line (the viewport
-/// scrolls already); whitespace runs collapse to single spaces.
-fn wrap(text: &str, max: usize) -> Vec<String> {
-    if max == 0 {
-        return Vec::new();
-    }
-
-    let normalized = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    if normalized.is_empty() {
-        return Vec::new();
-    }
-
-    let mut lines: Vec<String> = Vec::new();
-    let mut current = String::new();
-
-    for word in normalized.split(' ') {
-        if append_word(&mut current, word, max) {
-            continue;
-        }
-
-        if !current.is_empty() {
-            lines.push(std::mem::take(&mut current));
-            if append_word(&mut current, word, max) {
-                continue;
-            }
-        }
-
-        // A single word wider than the whole row (URL, hash, path): split it on
-        // character boundaries so the pane never overflows horizontally.
-        let mut segment = String::new();
-        let mut segment_width = 0usize;
-        for ch in word.chars() {
-            let char_width = UnicodeWidthChar::width(ch).unwrap_or(0);
-            if !segment.is_empty() && segment_width + char_width > max {
-                lines.push(std::mem::take(&mut segment));
-                segment_width = 0;
-            }
-            segment.push(ch);
-            segment_width += char_width;
-        }
-        current = segment;
-    }
-
-    if !current.is_empty() {
-        lines.push(current);
-    }
-
-    lines
-}
-
-/// Append `word` to `line` (space-separated) while it fits in `max` columns.
-///
-/// Returns whether the word was appended.
-fn append_word(line: &mut String, word: &str, max: usize) -> bool {
-    let separator = usize::from(!line.is_empty());
-    if line.width() + separator + word.width() > max {
-        return false;
-    }
-    if !line.is_empty() {
-        line.push(' ');
-    }
-    line.push_str(word);
-    true
-}
-
-/// Truncate `text` to at most `max` display columns, never splitting a char.
-fn truncate_to_width(text: &str, max: usize) -> String {
-    let mut truncated = String::new();
-    let mut width = 0usize;
-    for ch in text.chars() {
-        let char_width = UnicodeWidthChar::width(ch).unwrap_or(0);
-        if width + char_width > max {
-            break;
-        }
-        truncated.push(ch);
-        width += char_width;
-    }
-    truncated
+    tracing::debug!(target: "nexum::markdown::swap", max_width, "USE_NEW_MD off: legacy renderer");
+    crate::markdown_legacy::render_markdown_legacy(content, max_width, prefix)
 }

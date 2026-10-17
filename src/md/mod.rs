@@ -52,18 +52,35 @@ mod style_adapt;
 
 use ratatui::text::Line;
 
-/// Render markdown `content` into styled terminal lines at `max_width` display
-/// columns, using the single fixed theme.
+use crate::md::buffers::MarkdownBuffers;
+use crate::md::parse::MarkdownParser;
+use crate::md::syntax::Syntect;
+use crate::md::theme::fixed_style;
+
+/// Render markdown `content` into styled terminal lines using the real V3
+/// pipeline (`MarkdownParser::parse` → `render_ratatui`), with the single
+/// fixed theme and best-effort syntect highlighting.
 ///
-/// Placeholder (T0 scaffold): the real pipeline is filled in by T3–T8. Until
-/// then this returns an empty render so the module compiles and can be wired
-/// behind the `USE_NEW_MD` rollout flag without affecting `render_markdown`.
+/// `max_width` currently bounds GFM table columns (`max_table_width`): table
+/// columns are shrunk proportionally so the table fits. Full prose wrapping
+/// is NOT applied yet — it lands in T9/T10 (Fase 2), so paragraphs may render
+/// wider than `max_width` until then.
 ///
 /// ```text
 /// use nxm_tui::md::render;
-/// let _lines = render("hello", 40);
+/// let lines = render("# Titolo\n\ntesto **bold**", 80);
+/// assert!(!lines.is_empty());
 /// ```
-pub fn render(_content: &str, _max_width: usize) -> Vec<Line<'static>> {
-    // Pipeline assembled incrementally across T3–T8 (parse → render → output).
-    Vec::new()
+pub fn render(content: &str, max_width: usize) -> Vec<Line<'static>> {
+    // Fresh per-call buffers: the legacy sync call sites reuse nothing here.
+    let mut buffers = MarkdownBuffers::new();
+    // Syntect::new() is Option: code highlighting is best-effort, so a failed
+    // syntax/theme load still renders (plain code) instead of unwrapping.
+    let syntect = Syntect::new();
+    let ms = fixed_style();
+    let mut parsed = MarkdownParser::new(content, ms, &mut buffers, syntect.as_ref())
+        .max_table_width(Some(max_width))
+        .parse();
+    let (output, _checkpoint) = parsed.render_ratatui(true); // pretty = true
+    output.lines
 }

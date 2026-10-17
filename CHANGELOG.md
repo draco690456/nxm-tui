@@ -2,6 +2,35 @@
 
 # 2026-10-17
 
+## feat(md): wire render pipeline + render_markdown shim behind USE_NEW_MD (V3/T8)
+First on-screen rich markdown output (flag-gated). Integration is OUR code
+(RULES piene); no new md module. `history.rs` untouched (signature frozen).
+- `src/md/mod.rs::render` replaces the T0 placeholder: real pipeline
+  `MarkdownParser::new(content, fixed_style(), &mut buffers, syntect.as_ref())`
+  → `.max_table_width(Some(max_width))` → `.parse()` →
+  `.render_ratatui(true)` → `output.lines`. Fresh `MarkdownBuffers` per call;
+  `Syntect::new()` is `Option` and is passed as-is (best-effort highlighting,
+  no `unwrap`/`expect`). `max_width` applies to GFM table columns only —
+  full prose wrapping lands with T9/T10 (documented divergence).
+- `src/markdown.rs::render_markdown` becomes a shim behind the
+  `NXM_USE_NEW_MD` env flag (`1|true|yes|on`, case-insensitive; default
+  **OFF** for safety — the legacy path stays live; reviewers can flip the env
+  var for visual testing). Flag ON: V3 pipeline + prefix re-applied to every
+  `Line` (`with_prefix`); flag OFF: unchanged legacy fallback.
+- V1 renderer moved verbatim to `src/markdown_legacy.rs` (entry
+  `render_markdown_legacy`, pub(crate)); pure layout helpers `wrap`/
+  `append_word`/`truncate_to_width` moved to `src/markdown_layout.rs` — both
+  splits required by the RULES 300-line cap; behaviour unchanged.
+- `tracing::debug!` (target `nexum::markdown::swap`) on both dispatch paths.
+- `highlight.rs`, `history.rs`, `src/md/*` (beyond `mod.rs::render`)
+  untouched.
+- Tests: `tests/md_swap.rs` (6): md::render content baseline, edge-input
+  no-panic (empty / whitespace / fence / table), table shrink at max_width,
+  shim flag-ON prefix on every line, flag-OFF defaults to legacy, flag
+  value "0" stays legacy.
+- Verify: 286 passed / 0 failed / 1 ignored (single-threaded), clippy
+  `--all-targets` 3 baseline warnings only (0 unused), files ≤300 lines.
+
 ## feat(md): render_ratatui — markdown to ratatui Lines (V3/T6d)
 Derived from xai-grok-markdown/src/render.rs (Apache-2.0).
 - New render files (all `impl ParsedMarkdown`, split per the 300-line cap,

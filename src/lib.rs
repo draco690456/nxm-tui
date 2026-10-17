@@ -18,6 +18,8 @@ pub mod history;
 pub mod highlight;
 pub mod markdown;
 pub mod md;
+mod markdown_legacy;
+mod markdown_layout;
 pub mod mcp;
 pub mod message;
 pub mod metrics;

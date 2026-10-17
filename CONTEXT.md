@@ -11,7 +11,10 @@ an interactive chat interface in the terminal.
 - Markdown rendering in terminal — cell-width aware (CJK/emoji count two columns,
   over-long words split, code fences truncated by width; V1, adapted from
   openviking `crates/ov_cli` wrap_display_text — Apache-2.0, see
-  `THIRD-PARTY-NOTICES.md`)
+  `THIRD-PARTY-NOTICES.md`). Since T8, `render_markdown` can (env
+  `NXM_USE_NEW_MD=1`, default OFF) render via the V3 rich pipeline
+  (`src/md/`, grok-build `xai-grok-markdown` port: headings, lists, bold,
+  inline/fenced code, GFM tables, links); legacy stays as fallback.
 - Session history and persistence
 - Server connection management
 - Autocomplete for commands
@@ -155,6 +158,21 @@ an interactive chat interface in the terminal.
   `tests/md_render.rs` (4: heading/bold/code, code fence, GFM table,
   link hyperlinks). Parse + render now complete → the swap is next
   (T8/T10).
+- T8 (SWAP) wires the batch render entry and keeps `history.rs` frozen:
+  `src/md/mod.rs::render` now assembles the real pipeline
+  (`MarkdownParser::new(content, fixed_style(), &mut buffers, syntect.as_ref())`
+  → `.max_table_width(Some(max_width))` → `.parse()` → `.render_ratatui(true)`
+  → `output.lines`; fresh `MarkdownBuffers` per call, `Syntect::new()`
+  propagated as `Option` — no `unwrap`/`expect`). `max_width` currently
+  bounds GFM table columns only; full prose wrapping is T9/T10 (documented
+  in the doc comment). `src/markdown.rs::render_markdown` becomes a
+  dispatcher on the `NXM_USE_NEW_MD` env flag (default **OFF** → legacy
+  fallback): ON runs the V3 pipeline and re-applies `prefix` to every line
+  (`with_prefix`). The V1 renderer moved verbatim to `src/markdown_legacy.rs`
+  and its layout helpers to `src/markdown_layout.rs` (RULES 300-line cap);
+  `history.rs` (and `highlight.rs`) untouched. Tests in `tests/md_swap.rs`
+  (6). NOTE: both `markdown.rs` and `markdown_legacy.rs` carry
+  `tracing::debug!` (target `nexum::markdown::swap`) as they are our code.
 
 ## NOT included
 - Inference logic (connects to external server)

@@ -149,12 +149,14 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   - **T6a** ✅ (main `6fa7c0a`) `src/md/source_map.rs` (105) ← verbatim (mapping rendered→source). 264 test. ← FATTO
   - **T6b** ✅ (main `cfa5647`) `src/md/output.rs` (180) completato: CodeBlockSpan, MarkdownRenderOutput, MarkdownRenderView, build_code_block_spans. 271 test. ← FATTO
   - **T6c** ✅ (main `ee8944a`) `src/md/hyperlinks.rs` (153, prod ~150 → no split) — proiezione link→celle: ChunkLinkRange, source_to_chunk_offset, chunk_link_offsets, emit_segment_hyperlinks. 276 test. ← FATTO. (prerequisiti render COMPLETI)
-  - **T6d** `src/md/render.rs` ← CORE di `render.rs` (`render_ratatui` +
-    `build_render_events` + `apply_transforms` + helper; split per cap 300).
-    Escluso `render_ansi` (path ANSI, non ci serve) + test inline (adattati in tests/).
-    **→ dopo T6d: parse+render completi, verso lo swap.**
+  - **T6d** ✅ (main `fbb1ee1`) render ratatui, split in 4 file (≤300):
+    `render.rs` (279), `render_events.rs` (223), `render_segments.rs` (247),
+    `render_blocks.rs` (240). `render_ratatui` + `apply_transforms` +
+    `build_render_events`. Escluso path ANSI (0 chiamate). Helper riusati da
+    parse.rs. **280 test. → PARSE + RENDER COMPLETI.** render_ratatui produce
+    MarkdownRenderOutput con Line ratatui (heading/bold/code/tabella/link verificati).
 - **T8** code-fence: NON il backend grok; estendere il `highlight.rs` esistente
-  con path syntect→anstyle. **→ dopo T8: swap possibile, interfaccia invariata.**
+  con path syntect→anstyle. **→ dopo T8: swap possibile, interfaccia invariata.** ← PROSSIMO
 
 ### Fase 2 — Wrapping
 - **T9** `wrap.rs` + `wrap_spans.rs` ← `wrapping.rs` CORE (flatten, slice_line_spans,

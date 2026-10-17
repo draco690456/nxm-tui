@@ -2,6 +2,38 @@
 
 # 2026-10-17
 
+## feat(md): copy line_utils (V3/T9a)
+
+Derived from xai-grok-pager-render/src/render/line_utils.rs (Apache-2.0).
+Pager-render source (NOT xai-grok-markdown), production lines 1-209; first
+Fase-2 wrapping prerequisite. Zero xai-* workspace refs.
+- New `src/md/line_utils.rs` (196 lines ≤ cap): `line_to_static`,
+  `push_owned_lines`, `truncate_str`, `truncate_line`, `fit_line_to_width`
+  (grapheme-aware clip/pad, no ellipsis), `cascade_truncate` +
+  private `take_width`. Bodies verbatim modulo documented substitutions.
+- `floor_char_boundary`: NOT redefined — reused via `crate::md::buffers`
+  (T4 `pub(crate)` polyfill, same behaviour).
+- `truncate_str`/`take_width` backed by `crate::markdown_layout::truncate_to_width`
+  (char-boundary, ellipsis-free): upstream's `crate::util::truncate_to_width`
+  (+ `byte_offset_at_width`) appends `…` and is xai-* workspace code, both
+  intent-consistent with the delegation's acceptance test
+  (`truncate_str("日本語テスト", 4)` == "日本", 4 cells); documented in the
+  header `Modified:` clause. `truncate_line`'s own `…`-appending logic is
+  untouched (it appends the ellipsis itself).
+- Upstream `pub use` re-exports of un-ported xai-* modules (tool_paths trio,
+  `byte_offset_at_width`, `is_unsafe_display_char`) dropped (noted in header);
+  `pub mod line_utils;` registered in `src/md/mod.rs`.
+- No `unwrap`/`expect` in production; everything `pub` as upstream.
+- Tests: `tests/md_line_utils.rs` (28) — adapted from the upstream inline
+  tests (renderer-free port) + delegation contracts: CJK display-cell
+  truncation, fit-to-width clip/pad (incl. emoji grapheme straddle), style
+  preservation across `truncate_line`/`fit_line_to_width`,
+  `push_owned_lines`/'`line_to_static` ownership, `cascade_truncate` matrix
+  (recomputed for the ellipsis-free backing; dropped only from truncated
+  pieces). Upstream `tool_paths` test dropped (helper not ported).
+- Verify: 314 passed / 0 failed / 1 ignored (single-threaded; ≥286 required),
+  clippy `--all-targets` 3 baseline warnings only, 0 unused.
+
 ## feat(md): wire render pipeline + render_markdown shim behind USE_NEW_MD (V3/T8)
 First on-screen rich markdown output (flag-gated). Integration is OUR code
 (RULES piene); no new md module. `history.rs` untouched (signature frozen).

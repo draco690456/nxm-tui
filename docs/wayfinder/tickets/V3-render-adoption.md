@@ -136,8 +136,12 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     `parse_inline.rs` (295, metodi inline). `latex.rs` (17, stub `None`). Ora
     `parse()` PRODUCE highlights. 252 test. Review: ~26 warning clippy nuovi
     (unused imports + 2 lint) trovati e corretti — il report li aveva dichiarati 0.
-  - **T5g** `src/md/parse_table.rs` — `format_table` & co (~540). ← PROSSIMO
-- **T6** `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di
+  - **T5g** ✅ (main `70af2ee`) rendering tabelle, split in 3 file (≤300):
+    `parse_table.rs` (300, `format_table`), `parse_table_fmt.rs` (269, row/border),
+    `parse_table_word.rs` (231, `cell_wrap_joins`). Stub `format_table` rimosso da
+    `parse_end.rs`. 259 test. Deviazioni: let-chains→if annidati (Rust 2021),
+    sort_by_key(Reverse). **→ PARSE COMPLETO (T5a-g tutti fatti).**
+- **T6** ← PROSSIMO `render_style.rs` + `render_events.rs` + `render.rs` ← CORE di
   `render.rs`. Escluso render_ansi + test.
 - **T7** `output.rs` ← CORE di `output.rs`.
 - **T8** code-fence: NON il backend grok; estendere il `highlight.rs` esistente

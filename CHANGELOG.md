@@ -2,6 +2,39 @@
 
 # 2026-10-17
 
+## feat(md): complete output.rs — render output types (V3/T6b)
+Derived from xai-grok-markdown/src/output.rs (Apache-2.0).
+- `src/md/output.rs` completed (180 lines ≤ cap): added the render output
+  types from the upstream production section (lines 1-180), verbatim, AFTER
+  the existing `HyperlinkTarget` (T5c, untouched — no duplication):
+  `CodeBlockSpan` (info, body, output_line_range, source_byte_range),
+  `MarkdownRenderOutput` (+ `new`/`clear`/`as_view`; fields lines,
+  line_source_map, hyperlinks, code_blocks, tables), `MarkdownRenderView<'a>`
+  (zero-copy slices + `line_count()`), and the pure mapping
+  `build_code_block_spans` (monotonic newline cursor over
+  `CodeBlockMeta.body_source_range`s → per-block pre-wrap
+  `output_line_range`). Scope notes: the enumeration in the ticket listed
+  the three types only; the declared production range (1-180) also contains
+  `build_code_block_spans`, which depends solely on already-ported types —
+  decision included it (nxm-decision include_builder, 97.5% conf.), keeping
+  the copy at its natural whole. Header updated to the T6b `Modified:` form;
+  `crate::buffers::…` adapted to our split: `crate::md::buffers::CodeBlockMeta`
+  + `crate::md::buffers_table::TableCopyMeta`; visibility-for-testability:
+  `build_code_block_spans` widened from `pub(crate)` to `pub` (tested
+  directly in tests/ — upstream's inline tests all go through the not-yet-
+  ported renderer and could not be adapted).
+- `tests/md_output.rs` (7 tests): `new()` empty on all buffers; `clear()`
+  empties after pushes; `as_view()`/`line_count()` slice coherence;
+  `CodeBlockSpan` field round-trip; `build_code_block_spans` mapping (two
+  blocks → disjoint increasing output ranges), empty-body anchoring + empty
+  metas → no spans; rendered-lines slice contract.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 271 passed,
+  0 failed, 1 ignored (7 new); `cargo clippy --all-targets` = 0 unused, 3
+  baseline, 0 new (test-side `useless use of vec!` fixed → array);
+  `wc -l` src/md/output.rs = 180 ≤300.
+
+# 2026-10-16
+
 ## feat(md): copy SourceMap (V3/T6a)
 Derived from xai-grok-markdown/src/source_map.rs (Apache-2.0).
 - New `src/md/source_map.rs` (105 lines ≤ cap): VERBATIM copy of upstream

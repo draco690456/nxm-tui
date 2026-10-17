@@ -127,6 +127,13 @@ an interactive chat interface in the terminal.
   `to_source`/`is_empty`/`len`/`extend_with_offsets`/`segments`/`truncate`/
   `clear`). Pure logic, no deps. Prerequisite of the T6 render pipeline.
   Tests in `tests/md_source_map.rs` (5).
+- T6b completes `src/md/output.rs` (verbatim production slice of upstream
+  `output.rs`): `CodeBlockSpan`, `MarkdownRenderOutput` (+ `new`/`clear`/
+  `as_view`), `MarkdownRenderView<'a>` (+ `line_count`), pure
+  `build_code_block_spans` mapping (`CodeBlockMeta` → `CodeBlockSpan` over
+  the `line_source_map`). `HyperlinkTarget` unchanged (no duplication).
+  Render types ready for the T6d render pipeline. Tests in `tests/md_output.rs`
+  (7).
 
 ## NOT included
 - Inference logic (connects to external server)

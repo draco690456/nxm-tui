@@ -148,8 +148,7 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   T7, anticipato), `hyperlinks` (OSC8+chunk link), `adapt_style` (già stub T1).
   - **T6a** ✅ (main `6fa7c0a`) `src/md/source_map.rs` (105) ← verbatim (mapping rendered→source). 264 test. ← FATTO
   - **T6b** ✅ (main `cfa5647`) `src/md/output.rs` (180) completato: CodeBlockSpan, MarkdownRenderOutput, MarkdownRenderView, build_code_block_spans. 271 test. ← FATTO
-  - **T6c** `src/md/hyperlinks.rs` ← `hyperlinks.rs` (763, split per cap 300):
-    OSC8 + `chunk_link_offsets`/`emit_segment_hyperlinks`/`ChunkLinkRange`.
+  - **T6c** ✅ (main `ee8944a`) `src/md/hyperlinks.rs` (153, prod ~150 → no split) — proiezione link→celle: ChunkLinkRange, source_to_chunk_offset, chunk_link_offsets, emit_segment_hyperlinks. 276 test. ← FATTO. (prerequisiti render COMPLETI)
   - **T6d** `src/md/render.rs` ← CORE di `render.rs` (`render_ratatui` +
     `build_render_events` + `apply_transforms` + helper; split per cap 300).
     Escluso `render_ansi` (path ANSI, non ci serve) + test inline (adattati in tests/).

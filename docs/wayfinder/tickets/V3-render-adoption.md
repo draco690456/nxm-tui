@@ -147,8 +147,7 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   `source_map` (16 usi), `output::MarkdownRenderOutput`/`MarkdownRenderView` (era
   T7, anticipato), `hyperlinks` (OSC8+chunk link), `adapt_style` (già stub T1).
   - **T6a** ✅ (main `6fa7c0a`) `src/md/source_map.rs` (105) ← verbatim (mapping rendered→source). 264 test. ← FATTO
-  - **T6b** `src/md/output.rs` — COMPLETA (era T7): `MarkdownRenderOutput`,
-    `MarkdownRenderView`, `CodeBlockSpan`, ecc. (`HyperlinkTarget` già da T5c).
+  - **T6b** ✅ (main `cfa5647`) `src/md/output.rs` (180) completato: CodeBlockSpan, MarkdownRenderOutput, MarkdownRenderView, build_code_block_spans. 271 test. ← FATTO
   - **T6c** `src/md/hyperlinks.rs` ← `hyperlinks.rs` (763, split per cap 300):
     OSC8 + `chunk_link_offsets`/`emit_segment_hyperlinks`/`ChunkLinkRange`.
   - **T6d** `src/md/render.rs` ← CORE di `render.rs` (`render_ratatui` +

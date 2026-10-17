@@ -122,6 +122,11 @@ an interactive chat interface in the terminal.
   box-drawing output with hyperlinks, cell-copies and source line offsets.
   Rust-2021 rewrites documented in the file headers. Tests in
   `tests/md_parse_table.rs` (7).
+- T6a adds `src/md/source_map.rs`: verbatim copy of upstream `SourceMap`
+  (byte-level rendered→source mapping for copy/selection; `new`/`add`/
+  `to_source`/`is_empty`/`len`/`extend_with_offsets`/`segments`/`truncate`/
+  `clear`). Pure logic, no deps. Prerequisite of the T6 render pipeline.
+  Tests in `tests/md_source_map.rs` (5).
 
 ## NOT included
 - Inference logic (connects to external server)

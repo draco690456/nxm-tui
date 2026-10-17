@@ -39,6 +39,7 @@ pub mod parse_start;
 pub mod parse_table;
 pub mod parse_table_fmt;
 pub mod parse_table_word;
+pub mod source_map;
 pub mod syntax;
 pub mod theme;
 pub mod url_scan;

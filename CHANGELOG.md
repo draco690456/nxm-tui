@@ -2,6 +2,31 @@
 
 # 2026-10-17
 
+## feat(md): copy SourceMap (V3/T6a)
+Derived from xai-grok-markdown/src/source_map.rs (Apache-2.0).
+- New `src/md/source_map.rs` (105 lines ≤ cap): VERBATIM copy of upstream
+  `SourceMap` — rendered→source byte mapping for copy/selection. All methods
+  copied with upstream docs: `new`, `add`, `to_source` (overlap-clamped min/max
+  resolution, `None` when not covered), `is_empty`, `len`, `extend_with_offsets`
+  (rend./source offsets for merging frozen + tail maps), `segments`, `truncate`,
+  `clear`. Zero dependencies (`std::ops::Range` only), pure logic, private
+  `segments` field (public API only — matches upstream visibility).
+- Provenance header replaces the upstream doc-module first line; the rest of
+  upstream module doc is kept Doc-verbatim. The trailing design-note comment
+  (post-impl fragment about ratatui line-level mapping) was OMITTED
+  (per-ticket "copia o ometti": it is a leftover fragment, not API).
+- `src/md/mod.rs`: `pub mod source_map;`.
+- New `tests/md_source_map.rs` (5 tests): add+to_source 1:1 mapping; None for
+  unmapped ranges/gaps; partial-overlap → source slice; `extend_with_offsets`
+  merging with both offsets (segments + resolution through merged map);
+  len/is_empty/truncate/clear coherence.
+- Verifica: `cargo build` ok; `cargo test -- --test-threads=1` = 264 passed,
+  0 failed, 1 ignored (5 new); `cargo clippy --all-targets` = 0 unused, 3
+  baseline, 0 new (one `length comparison to zero` in the new test fixed);
+  `wc -l` src/md/source_map.rs = 105 ≤300.
+
+# 2026-10-16
+
 ## feat(md): table rendering — format_table (V3/T5g)
 Derived from xai-grok-markdown/src/parse.rs (Apache-2.0).
 - New `src/md/parse_table.rs` (300 lines ≤ cap): `MarkdownParser::format_table`

@@ -3,7 +3,7 @@
 use std::ops::Range;
 
 use anstyle::Style;
-use pulldown_cmark::{CowStr, Event, Tag, TagEnd, TextMergeWithOffset};
+use pulldown_cmark::{CowStr, Tag, TextMergeWithOffset};
 
 use crate::md::buffers::MarkdownBuffers;
 use crate::md::buffers_table::TableState;
@@ -15,7 +15,7 @@ use crate::md::core::offset_events;
 
 /// Trait for converting anstyle to ratatui style.
 #[allow(dead_code)]
-trait StyleInto<T> {
+pub(crate) trait StyleInto<T> {
     fn style_into(self) -> T;
 }
 
@@ -86,7 +86,7 @@ fn anstyle_to_ratatui_color(color: anstyle::Color) -> ratatui::style::Color {
 }
 
 #[allow(dead_code)]
-fn find_substring(
+pub(crate) fn find_substring(
     haystack: &str,
     needle: &CowStr,
     allow_outside: bool,
@@ -125,7 +125,7 @@ fn find_substring(
 }
 
 #[allow(dead_code)]
-fn decode_html_entity(entity: &str) -> Option<String> {
+pub(crate) fn decode_html_entity(entity: &str) -> Option<String> {
     let decoded = html_escape::decode_html_entities(entity);
     if decoded.as_ref() == entity {
         return None;
@@ -137,7 +137,7 @@ fn decode_html_entity(entity: &str) -> Option<String> {
 }
 
 #[allow(dead_code)]
-fn has_blank_line_after(text: &str, pos: usize) -> bool {
+pub(crate) fn has_blank_line_after(text: &str, pos: usize) -> bool {
     text.as_bytes()
         .get(pos..)
         .and_then(|s| s.iter().copied().find(|&c| c != b' ' && c != b'\t'))
@@ -145,7 +145,7 @@ fn has_blank_line_after(text: &str, pos: usize) -> bool {
 }
 
 #[allow(dead_code)]
-fn is_br_tag(html: &str) -> bool {
+pub(crate) fn is_br_tag(html: &str) -> bool {
     let Some(inner) = html
         .trim()
         .strip_prefix('<')
@@ -161,11 +161,11 @@ fn is_br_tag(html: &str) -> bool {
 /// Transient state for the fenced code block currently being parsed.
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-struct PendingCodeBlock {
-    info: String,
-    body_range: Range<usize>,
-    body_text: String,
-    body_seen: bool,
+pub(crate) struct PendingCodeBlock {
+    pub(crate) info: String,
+    pub(crate) body_range: Range<usize>,
+    pub(crate) body_text: String,
+    pub(crate) body_seen: bool,
 }
 
 /// Markdown parser that processes events and populates buffers.
@@ -173,22 +173,31 @@ struct PendingCodeBlock {
 /// After calling `parse()`, the transient state (tag_stack, table_state, depth) is dropped and a `ParsedMarkdown` is returned for rendering.
 #[allow(dead_code)]
 pub struct MarkdownParser<'a, 'b, 'syn, 'oc> {
-    text: &'a str,
-    ms: MarkdownStyle,
-    buffers: &'b mut MarkdownBuffers,
-    syntect: Option<&'syn Syntect>,
+    pub(crate) text: &'a str,
+    pub(crate) ms: MarkdownStyle,
+    pub(crate) buffers: &'b mut MarkdownBuffers,
+    pub(crate) syntect: Option<&'syn Syntect>,
     /// Incremental highlighter for the trailing still-open fenced code block.
-    open_code: Option<&'oc mut OpenCodeHighlighter>,
+    pub(crate) open_code: Option<&'oc mut OpenCodeHighlighter>,
     // Transient state (dropped after parse)
-    tag_stack: Vec<Tag<'a>>,
-    table_state: Option<TableState>,
-    depth: usize,
-    bq_depth: usize,
-    last_checkpoint: Option<(CheckpointKind, usize)>,
-    max_table_width: Option<usize>,
-    link_id_counter: u32,
-    collapse_soft_breaks: bool,
-    pending_code_block: Option<PendingCodeBlock>,
+    pub(crate) tag_stack: Vec<Tag<'a>>,
+    pub(crate) table_state: Option<TableState>,
+    pub(crate) depth: usize,
+    pub(crate) bq_depth: usize,
+    pub(crate) last_checkpoint: Option<(CheckpointKind, usize)>,
+    /// Maximum width for rendered tables (in display columns).
+    /// When `Some(w)`, column widths are shrunk proportionally so the table fits within `w` columns.
+    /// When `None`, columns use natural widths.
+    pub(crate) max_table_width: Option<usize>,
+    /// Monotonically increasing counter for assigning stable link IDs.
+    /// Persisted across `rerender_tail` calls via the streaming renderer.
+    pub(crate) link_id_counter: u32,
+    /// When `true` (default), CommonMark soft breaks collapse to a single space.
+    /// When `false`, the source newline is preserved so each source line keeps its own visual line.
+    /// The line-numbered plan preview needs that, since its rendered lines must map 1:1 to file lines.
+    pub(crate) collapse_soft_breaks: bool,
+    /// In-progress fenced code block, set between its start and end events.
+    pub(crate) pending_code_block: Option<PendingCodeBlock>,
 }
 
 impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
@@ -248,24 +257,6 @@ impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
             self.last_checkpoint,
             self.link_id_counter,
         )
-    }
-
-    /// Stub: dispatch a parsed markdown event (T5f).
-    #[allow(dead_code)]
-    fn on_event(&mut self, _event: Event<'a>, _range: Range<usize>) {
-        // T5f: event dispatch not yet implemented.
-    }
-
-    /// Stub: handle a tag start event (T5f).
-    #[allow(dead_code)]
-    fn on_start(&mut self, _tag: Tag<'a>) {
-        // T5f: tag start handling not yet implemented.
-    }
-
-    /// Stub: handle a tag end event (T5f).
-    #[allow(dead_code)]
-    fn on_end(&mut self, _tag_end: TagEnd) {
-        // T5f: tag end handling not yet implemented.
     }
 }
 

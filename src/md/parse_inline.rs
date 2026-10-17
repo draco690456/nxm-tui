@@ -1,12 +1,9 @@
 use std::ops::Range;
 use anstyle::Style;
 use pulldown_cmark::{CowStr, Tag};
-use crate::md::buffers::{Highlight, LinkTarget, MarkdownBuffers, Transform};
+use crate::md::buffers::{Highlight, LinkTarget, Transform};
 use crate::md::checkpoint::CheckpointKind;
-use crate::md::latex;
-use crate::md::parse::{decode_html_entity, find_substring, MarkdownParser, StyleInto};
-use crate::md::style::MarkdownStyle;
-use crate::md::syntax::Syntect;
+use crate::md::parse::{decode_html_entity, find_substring, MarkdownParser};
 use crate::md::url_scan;
 impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
     /// Push a highlight range into the buffers.
@@ -167,7 +164,7 @@ impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
         };
         if !title.is_empty() {
             for t in [format!("\"{title}\""), format!("'{title}'")]
-                .map(|s| pulldown_cmark::CowStr::from(s))
+                .map(pulldown_cmark::CowStr::from)
             {
                 if let Some(r) = find_substring(tag_str, &t, true, true) {
                     let title_range = (r.start + range.start)..(r.end + range.start);

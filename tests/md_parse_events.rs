@@ -56,5 +56,5 @@ fn math_inline_does_not_panic() {
 
     assert_eq!(parsed.text, "$x$");
     // Non deve panica; output può essere vuoto o contenere il sorgente TeX
-    assert!(parsed.buffers.highlights.len() > 0 || parsed.buffers.transforms.is_empty());
+    assert!(!parsed.buffers.highlights.is_empty() || parsed.buffers.transforms.is_empty());
 }

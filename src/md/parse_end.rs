@@ -3,16 +3,15 @@
 use std::ops::Range;
 
 use anstyle::Style;
-use pulldown_cmark::{CodeBlockKind, Tag, TagEnd};
+use pulldown_cmark::TagEnd;
 use ratatui::text::Line;
 
 use crate::md::buffers::{
-    CodeBlockMeta, Highlight, LinkTarget, MarkdownBuffers, TableReplace, Transform,
+    CodeBlockMeta, TableReplace,
 };
 use crate::md::buffers_table::{TableCellCopy, TableHyperlink};
 use crate::md::checkpoint::CheckpointKind;
-use crate::md::parse::{has_blank_line_after, MarkdownParser, PendingCodeBlock};
-use crate::md::style::MarkdownStyle;
+use crate::md::parse::{has_blank_line_after, MarkdownParser};
 
 /// Output of [`MarkdownParser::format_table`]: the rendered lines of a single table.
 /// Stub for T5g — full table formatting is deferred.

@@ -1,20 +1,13 @@
 //! Derived from xai-grok-markdown/src/parse.rs (xai-org/grok-build, Apache-2.0). Modified: split for the 300-line cap; latex/format_table stubbed (dedicated/T5g tickets); mermaid/math branches stubbed.
 use std::ops::Range;
 use anstyle::Style;
-use pulldown_cmark::{CodeBlockKind, CowStr, Event, Tag, TagEnd, TextMergeWithOffset};
-use ratatui::text::{Line, Span};
-use unicode_segmentation::UnicodeSegmentation;
+use pulldown_cmark::{CodeBlockKind, Event, Tag};
 use crate::md::buffers::{
-    CodeBlockMeta, Highlight, LinkTarget, MarkdownBuffers, Replace, TableReplace, Transform,
+    Replace, Transform,
 };
-use crate::md::buffers_table::TableHyperlink;
-use crate::md::checkpoint::CheckpointKind;
-use crate::md::core::offset_events;
 use crate::md::parse::{find_substring, is_br_tag, MarkdownParser};
 use crate::md::latex;
-use crate::md::open_code_highlighter::OpenCodeHighlighter;
-use crate::md::style::MarkdownStyle;
-use crate::md::syntax::{syntax_highlight_raw, Syntect};
+use crate::md::syntax::syntax_highlight_raw;
 impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
     /// Dispatch a parsed markdown event to the appropriate handler.
     pub(crate) fn on_event(&mut self, event: Event<'a>, range: Range<usize>) {

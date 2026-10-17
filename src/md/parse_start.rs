@@ -3,14 +3,11 @@
 use std::ops::Range;
 
 use anstyle::Style;
-use pulldown_cmark::{CodeBlockKind, CowStr, Tag, TagEnd};
+use pulldown_cmark::{CodeBlockKind, Tag};
 
-use crate::md::buffers::{Highlight, LinkTarget, MarkdownBuffers, Transform};
+use crate::md::buffers::{Highlight, Transform};
 use crate::md::buffers_table::TableState;
-use crate::md::checkpoint::CheckpointKind;
-use crate::md::core::offset_events;
 use crate::md::parse::{find_substring, MarkdownParser, PendingCodeBlock};
-use crate::md::style::MarkdownStyle;
 
 impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
     /// Handle tag start events.

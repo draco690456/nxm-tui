@@ -164,10 +164,19 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   **→ IL RENDERER V3 È CABLATO E ATTIVABILE. Test visivo utente: `NXM_USE_NEW_MD=1`.**
   **→ dopo T8: PRIMO OUTPUT MARKDOWN RICCO A SCHERMO.**
 
-### Fase 2 — Wrapping
-- **T9** `wrap.rs` + `wrap_spans.rs` ← `wrapping.rs` CORE (flatten, slice_line_spans,
-  RtOptions, joiners, blockquote). dep `textwrap` + `unicode-segmentation`.
-- **T10** integra wrap nel render path.
+### Fase 2 — Wrapping (BISOGNO VERIFICATO 2026-10-17: il render V3 NON wrappa la
+prosa → una riga lunga sfora il pane. Serve prima del test visivo.)
+- **T9a** `src/md/line_utils.rs` ← `pager-render/src/render/line_utils.rs` (470,
+  prerequisito di wrapping: `fit_line_to_width`, `push_owned_lines`, + helper).
+  Split per cap 300.
+- **T9b** `src/md/wrap.rs` ← `pager-render/src/render/wrapping.rs` (prod ~690,
+  split per cap 300): `word_wrap_line(_with_joiners)`, `word_wrap_lines`,
+  `RtOptions`, `slice_line_spans`, table-line detection, blockquote prefix,
+  `wrap_header_*`. dep `textwrap` (già) + `unicode-segmentation` (già).
+  NB: è del pager-render, non di xai-grok-markdown → path/attribuzione adattati.
+- **T10** integra il wrap nel path: `md::render` (o lo shim) applica
+  `word_wrap_lines(output.lines, max_width)` così la prosa sta nel pane.
+  Verifica: la prosa lunga di 182 col a width 40 → più righe ≤40.
 
 ### Fase 3 — Link
 - **T11** `url_scan.rs` ← `url_scan.rs` (linkify).

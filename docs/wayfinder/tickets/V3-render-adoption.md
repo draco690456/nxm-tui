@@ -155,15 +155,13 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
     `build_render_events`. Escluso path ANSI (0 chiamate). Helper riusati da
     parse.rs. **280 test. → PARSE + RENDER COMPLETI.** render_ratatui produce
     MarkdownRenderOutput con Line ratatui (heading/bold/code/tabella/link verificati).
-- **T8 (SWAP)** ← PROSSIMO. **Revisione del piano (2026-10-17):** il code-fence
-  highlighting NON è più un ticket a sé — `render_ratatui` (T6d) lo gestisce già
-  via `RenderEventKind::Replace` + `syntax_highlight_raw`/`open_code_highlighter`
-  (T5b/d). Quindi T8 = **cablare la pipeline + swap**: `md::render(content,
-  max_width)` (ora placeholder `Vec::new()` da T0) assembla
-  `MarkdownParser::new(content, fixed_style(), &mut buffers, Some(&Syntect::new()))`
-  → `.parse()` → `.render_ratatui(true)` → `output.lines`. Poi `src/markdown.rs`
-  `render_markdown` diventa uno **shim** che chiama `md::render` + riapplica il
-  `prefix` a ogni `Line`, dietro flag `USE_NEW_MD`. `history.rs` invariato.
+- **T8 (SWAP)** ✅ (main `7e23dd0`) pipeline cablata + shim. `md::render` ora
+  esegue `MarkdownParser::new(content, fixed_style(), &mut buffers, Syntect::new()
+  .as_ref()).max_table_width(Some(w)).parse().render_ratatui(true).lines`.
+  `render_markdown` = shim dietro flag `NXM_USE_NEW_MD` (default OFF): ON → V3 +
+  prefix per riga; OFF → legacy (estratto verbatim in `markdown_legacy.rs`,
+  fallback intatto). `history.rs`/`highlight.rs` INVARIATI. 286 test; 6 test swap.
+  **→ IL RENDERER V3 È CABLATO E ATTIVABILE. Test visivo utente: `NXM_USE_NEW_MD=1`.**
   **→ dopo T8: PRIMO OUTPUT MARKDOWN RICCO A SCHERMO.**
 
 ### Fase 2 — Wrapping

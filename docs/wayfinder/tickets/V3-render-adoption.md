@@ -146,7 +146,7 @@ allo swap; `history.rs` non cambia fino alla Fase 4.
   `render_ratatui`, poi il render. Dipendenze non-copiate che render tira dentro:
   `source_map` (16 usi), `output::MarkdownRenderOutput`/`MarkdownRenderView` (era
   T7, anticipato), `hyperlinks` (OSC8+chunk link), `adapt_style` (già stub T1).
-  - **T6a** `src/md/source_map.rs` ← `source_map.rs` (107, autoportante, zero dep).
+  - **T6a** ✅ (main `6fa7c0a`) `src/md/source_map.rs` (105) ← verbatim (mapping rendered→source). 264 test. ← FATTO
   - **T6b** `src/md/output.rs` — COMPLETA (era T7): `MarkdownRenderOutput`,
     `MarkdownRenderView`, `CodeBlockSpan`, ecc. (`HyperlinkTarget` già da T5c).
   - **T6c** `src/md/hyperlinks.rs` ← `hyperlinks.rs` (763, split per cap 300):

@@ -170,9 +170,10 @@ prosa → una riga lunga sfora il pane. Serve prima del test visivo.)
   prerequisito di wrapping: `fit_line_to_width`, `push_owned_lines`, + helper).
   Split per cap 300.
 - **T9b** ✅ (main `940b0e1`) word-wrap, split 3 file: `wrap.rs` (280), `wrap_line.rs` (291, word_wrap_line/lines), `wrap_input.rs` (132). dep line_utils T9a. 319 test. Test comportamentali (width≤N). ← FATTO
-- **T10** integra il wrap nel path: `md::render` (o lo shim) applica
-  `word_wrap_lines(output.lines, max_width)` così la prosa sta nel pane.
-  Verifica: la prosa lunga di 182 col a width 40 → più righe ≤40.
+- **T10** ✅ (main `5bd6ac9`) `md::render` applica `word_wrap_lines(output.lines,
+  max_width)` dopo `render_ratatui`. Verificato: prosa 180 col a width 40 → 5 righe
+  tutte ≤40 (prima 1 riga da 182). Non-regressione tabelle/code (is_table_line le
+  salta). 324 test. **→ FASE 2 (WRAPPING) COMPLETA. La prosa sta nel pane.**
 
 ### Fase 3 — Link
 - **T11** `url_scan.rs` ← `url_scan.rs` (linkify).

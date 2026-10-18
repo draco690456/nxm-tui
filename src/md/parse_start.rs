@@ -12,6 +12,17 @@ use crate::md::parse::{find_substring, MarkdownParser, PendingCodeBlock};
 impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
     /// Handle tag start events.
     pub(crate) fn on_start(&mut self, tag: Tag<'a>, range: Range<usize>) {
+        // Track nesting depth for checkpoint detection (upstream parse.rs on_start).
+        match &tag {
+            Tag::BlockQuote(_) | Tag::List(_) | Tag::Item | Tag::Table(_) => {
+                self.depth += 1;
+            }
+            _ => {}
+        }
+        if matches!(&tag, Tag::BlockQuote(_)) {
+            self.bq_depth += 1;
+        }
+
         if let Some(style) = self.on_start_tag(tag, range.clone()) {
             self.push_highlight(Some(style), &range);
         }

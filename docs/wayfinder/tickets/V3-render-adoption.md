@@ -175,18 +175,28 @@ prosa → una riga lunga sfora il pane. Serve prima del test visivo.)
   tutte ≤40 (prima 1 riga da 182). Non-regressione tabelle/code (is_table_line le
   salta). 324 test. **→ FASE 2 (WRAPPING) COMPLETA. La prosa sta nel pane.**
 
-### Fase 3 — Link
-- **T11** `url_scan.rs` ← `url_scan.rs` (linkify).
-- **T12** `hyperlinks.rs` ← `hyperlinks.rs`.
-- **T13** `osc8.rs` ← 3 fn escape; integrazione schermo DA DECIDERE (ratatui std
-  non espone OSC8 per-cella).
+### Fase 3 — Link (DIFFERITA al test visivo: OSC8 cliccabile si valida solo a TTY)
+- **T11** ✅ (= T5c, `url_scan.rs`). **T12** ✅ (= T6c, `hyperlinks.rs` projection).
+- **T13** OSC8 cliccabile a schermo — **DIFFERITO**: NON copiare l'`osc8.rs` del
+  pager (2000 righe, accoppiato al loro backend); adattare la tecnica ratatui
+  ufficiale (escape nel `set_symbol` della cella, ~100 righe nostre). I
+  `HyperlinkTarget` sono già prodotti; l'emissione tocca il draw loop → si valida
+  col test visivo utente (altro computer). Rimandato.
 
-### Fase 4 — Streaming (tocca history.rs)
-- **T14** `checkpoint.rs` + emissione incrementale.
-- **T15** `open_code.rs` ← `open_code_highlighter.rs` (verificare resume per-linea
-  con fancy-regex vs onig; fallback re-highlight tail).
-- **T16** `streaming.rs` + `streaming_tail.rs`; `StreamingMarkdownRenderer`
-  per-messaggio live, one-shot per lo storico.
+### Fase 4 — Streaming (prod streaming.rs ~490 righe; cablaggio tocca history.rs)
+Nota: `checkpoint` (T5a) e `open_code_highlighter` (T5d) GIÀ su main. I prerequisiti
+veri sono altri (sotto). Segmentato (2026-10-18):
+- **T14a** prereq: (1) stub `LatexDelimiterNormalizer` in `src/md/latex.rs`
+  (`new`/`reset`/`push(chunk)->chunk`/`finish()->""`, passthrough, latex stubbato);
+  (2) helper `render_markdown_ratatui_with_link_id` (← grok `lib.rs:122`, variante
+  di `render_ratatui` che gestisce il link_id counter per stabilità OSC8 id).
+- **T14b** copia `src/md/streaming.rs` ← `streaming.rs` prod 1-492 (split per cap
+  300): `StreamingMarkdownRenderer` (new/push/render/push_and_render/view/finish,
+  frozen checkpoint + OpenCodeHighlighter). Test HEADLESS: push incrementale ==
+  render one-shot. NON cablare ancora.
+- **T16** cablaggio live in `history.rs`/`app.rs` dietro flag (streaming
+  per-messaggio) — **DIFFERITO al test runtime utente** (tocca il loop live,
+  validabile solo a runtime sull'altro computer).
 
 ## NON copiare ora (motivazione)
 Mermaid (grafico), LaTeX/Math (nicchia, eventi stub no-op), immagini/video/gboom

@@ -2,6 +2,18 @@
 
 # 2026-10-18
 
+## feat(tools): in-memory tool selection + filtered manifest + Tools overlay (T1)
+
+Selezione tool in-memory: al modello va solo il sottoinsieme attivo. Nessun MCP, nessun async (T2), nessuna persistenza (fase 2), `src/md/` intatto.
+- `nxm-tui-tools`: `Registry` guadagna `enabled: HashSet<String>` (invariante: tutti attivi al `register()`), `set_enabled`/`is_enabled`/`enable_all`/`disable_all`/`tool_names`/`manifest_selected`; `manifest()` invariato (compat). I tool concreti (`ReadFile`/`ListResources`/`WebSearch`) spostati in `builtins.rs` + re-export alla radice (API invariata) per il cap 300 righe.
+- `src/agent.rs`: `Agent::new` riceve la `Registry`; `request_body()` (estratta da `stream_turn`, pura) usa `manifest_selected()`. Un tool disattivato non compare nel body `tools`.
+- UI: `App` possiede `tool_registry` + `show_tools`/`tools_cursor`; `main.rs` passa uno snapshot allo spawn; nuovo overlay `tools_overlay::render_tools` (checkbox `[x]`/`[ ]`, lista piatta), Ctrl+E apre (Ctrl+T era sessions), ↑/↓ cursore, Space toggle, `a`/`n` tutti/nessuno, Esc chiude.
+- Test: `nxm-tui-tools/tests/selection.rs` (7), `tests/agent_request.rs` (3, incluso il DoD: tool disattivato assente dal body), `tests/tools_overlay.rs` (3, render su TestBackend), `tests/tools_overlay_keys.rs` (5, tasti + seam overlay→body). Doctest sui nuovi metodi Registry.
+- Suite verde su tutti i target compilanti: `356 passed / 0 failed / 1 ignorato noto` (`cargo test --workspace`, esclusi i WIP md rotti dell'utente); `cargo clippy` 0 nuovi warning; i miei file a 0 diff `rustfmt --check`. `src/md/` non toccato (i WIP T14a/T14b dell'utente sono preesistenti e non compilano indipendentemente dal mio lavoro).
+- Branch `work/21-tools-selection` su `df3d690`.
+
+# 2026-10-18
+
 ## feat(md): streaming prerequisites — latex normalizer stub + link_id render helper + parser builders (V3/T14a)
 
 Prepara i 3 pezzi richiesti dallo streaming renderer (T14b) senza implementarlo (lo streaming vero resta T14b):

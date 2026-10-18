@@ -110,7 +110,7 @@ async fn agent_real_round_trip_read_file() {
     let client = reqwest::Client::new();
     let model = String::from("mock-model");
     let initial = vec![Message::new(Role::User, String::from("read the temp file"))];
-    let mut agent = Agent::new(&client, &base, &model, Some(String::from("test-key")), initial, None);
+    let mut agent = Agent::new(&client, &base, &model, Some(String::from("test-key")), initial, None, nxm_tui_tools::default_registry());
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();
     agent.run(&tx).await.expect("agent turn must complete");

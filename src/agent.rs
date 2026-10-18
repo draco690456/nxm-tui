@@ -17,7 +17,7 @@
 use std::collections::HashMap;
 
 use futures::StreamExt;
-use nxm_tui_tools::{default_registry, Registry};
+use nxm_tui_tools::Registry;
 use reqwest::Client;
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -31,6 +31,8 @@ pub struct Agent<'a> {
     base_url: &'a str,
     model: &'a str,
     api_key: Option<String>,
+    /// The tool registry the agent dispatches through. Built by `App` (which
+    /// owns the T1 selection) and handed over as a snapshot at spawn time.
     registry: Registry,
     /// Growing transcript. Cloned from `app.messages` at spawn and evolved
     /// across turns (assistant tool-call messages + their `role:"tool"` results)
@@ -57,13 +59,14 @@ impl<'a> Agent<'a> {
         api_key: Option<String>,
         initial_messages: Vec<Message>,
         approval_tx: Option<mpsc::UnboundedSender<ApprovalRequest>>,
+        registry: Registry,
     ) -> Self {
         Self {
             client,
             base_url,
             model,
             api_key,
-            registry: default_registry(),
+            registry,
             transcript: initial_messages,
             approval_tx,
             in_thinking: false,
@@ -84,18 +87,40 @@ impl<'a> Agent<'a> {
         }
     }
 
+    /// Build the JSON body for one streaming chat turn. Pure (no I/O) —
+    /// extracted from [`run`](Agent::run) so tests can assert the `tools`
+    /// payload without a server.
+    ///
+    /// `tools` is `registry.manifest_selected()`: only the tools the user
+    /// left active in the Tools overlay reach the model (T1 selection).
+    ///
+    /// ```
+    /// use nxm_tui::agent::Agent;
+    /// use nxm_tui_tools::default_registry;
+    /// use reqwest::Client;
+    ///
+    /// let client = Client::new();
+    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry());
+    /// let body = agent.request_body();
+    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(3));
+    /// ```
+    pub fn request_body(&self) -> Value {
+        let tools = self.registry.manifest_selected();
+        tracing::debug!(target: "nexum::agent::request", tool_count = tools.len(), "request body built");
+        serde_json::json!({
+            "model": self.model,
+            "messages": serialize_messages(&self.transcript),
+            "stream": true,
+            "tools": tools,
+        })
+    }
+
     /// Stream one assistant turn; return tool invocations emitted by the model.
     async fn stream_turn(
         &mut self,
         tx: &mpsc::UnboundedSender<ToolPart>,
     ) -> Result<Vec<ToolInvocation>, String> {
-        let api_messages = serialize_messages(&self.transcript);
-        let body = serde_json::json!({
-            "model": self.model,
-            "messages": api_messages,
-            "stream": true,
-            "tools": self.registry.manifest(),
-        });
+        let body = self.request_body();
 
         let mut req = self
             .client

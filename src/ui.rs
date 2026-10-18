@@ -34,6 +34,11 @@ pub fn render(f: &mut Frame, app: &mut App) {
             if app.show_tool {
                 crate::tool_overlay::render_tool(f, app);
             }
+            // Tool selection overlay (T1) — under the approval modal so a
+            // pending approval always sits on top.
+            if app.show_tools {
+                crate::tools_overlay::render_tools(f, app);
+            }
             if app.show_approval {
                 crate::tool_overlay::render_approval(f, app);
             }

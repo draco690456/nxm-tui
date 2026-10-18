@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::time::Instant;
 
+use nxm_tui_tools::{default_registry, Registry};
 use zeroize::Zeroizing;
 
 // Re-export ServerProcess for App struct
@@ -295,6 +296,15 @@ pub struct App {
     pub show_thinking: bool,
     pub show_tool: bool,
     pub show_approval: bool,
+    /// Tool selection overlay (T1) open state.
+    pub show_tools: bool,
+    /// Cursor over [`tool_registry`](App::tool_registry)'s names in the
+    /// Tools overlay (index into `tool_names()`).
+    pub tools_cursor: usize,
+    /// The T1 tool selection: source of truth for which tools the model
+    /// sees. Owned here (the overlay mutates it); a snapshot is handed to
+    /// each spawned `Agent`, which sends `manifest_selected()` in its body.
+    pub tool_registry: Registry,
     pub pending_approval: Option<PendingApproval>,
     pub max_context: u32,
     pub metrics: Metrics,
@@ -388,6 +398,9 @@ impl App {
             show_thinking: false,
             show_tool: false,
             show_approval: false,
+            show_tools: false,
+            tools_cursor: 0,
+            tool_registry: default_registry(),
             pending_approval: None,
             max_context: 8192,
             metrics: Metrics::new(),

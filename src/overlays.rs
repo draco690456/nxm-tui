@@ -79,6 +79,10 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::raw("  Tool detail overlay"),
         ]),
         Line::from(vec![
+            Span::styled("  Ctrl+E", Style::default().fg(Color::DarkGray)),
+            Span::raw("  Tool selection overlay"),
+        ]),
+        Line::from(vec![
             Span::styled("  ↑/↓", Style::default().fg(Color::DarkGray)),
             Span::raw("  Scroll history   "),
             Span::styled("PgUp/PgDn", Style::default().fg(Color::DarkGray)),

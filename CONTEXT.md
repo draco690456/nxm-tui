@@ -211,6 +211,13 @@ an interactive chat interface in the terminal.
   fences whole, styles preserved across wrapped rows.
 - T14a (prerequisiti streaming T14b): `src/md/latex.rs` `LatexDelimiterNormalizer` stub passthrough; `src/md/mod.rs` `render_markdown_ratatui_with_link_id` (gestisce il link_id counter) + builder `open_code` su `MarkdownParser`; `src/md/parse.rs` builder `link_id_start`. Test in `tests/md_stream_prereq.rs`. Lo streaming vero (`streaming.rs`) resta T14b, non implementato qui. Branch `work/T14a-md-stream-prereq` su `origin/main` (ecf798b).
 
+## T1 — tool selection (in-memory)
+
+- `nxm-tui-tools` `Registry` tiene `enabled: HashSet<String>` accanto a `tools: Vec<Arc<dyn Tool>>` (ora `Clone`). `register()` inserisce sempre il nome in `enabled` (invariante: default attivo). `manifest()` resta il manifest completo (compat); `manifest_selected()` filtra sui tool abilitati ed è ciò che l'agente manda al modello. `set_enabled`/`is_enabled`/`enable_all`/`disable_all`/`tool_names` esposti per l'UI. La selezione è ORTOGONALE al gating di approvazione (`needs_approval`): un tool può essere selezionato e comunque gated. I tool nativi (`ReadFile`/`ListResources`/`WebSearch`) vivono in `nxm-tui-tools/src/builtins.rs`, re-exportati alla radice.
+- `Agent::new` prende la `Registry` come argomento. `App` la possiede (`app.tool_registry`, costruita da `default_registry()`) ed è la fonte di verità della selezione; `main.rs` clona uno snapshot allo spawn. `Agent::request_body()` (funzione pura estratta da `stream_turn`) costruisce il body con `self.registry.manifest_selected()` — un tool disattivato dall'utente non compare in `body.tools`. I toggle dell'overlay valgono dal prossimo spawn.
+- Overlay "Tools": `src/tools_overlay.rs` `render_tools` (checkbox `[x]`/`[ ]`, cursore `>`), stato in `App` (`show_tools`, `tools_cursor`). Tasti in `handler.rs`: Ctrl+E apre/chiude (Ctrl+T era già sessions), ↑/↓ muovono il cursore con wrap, Space toggola il tool sotto il cursore, `a` = enable_all, `n` = disable_all, Esc chiude. Lista piatta: il raggruppamento per sorgente serve con MCP → T2.
+- Fuori scope T1: tool MCP / `McpTool` proxy / async (T2), persistenza TOML (fase 2), profili/preset.
+
 ## NOT included
 - Inference logic (connects to external server)
 - Model loading (that's the engine's job)

@@ -192,7 +192,7 @@ async fn run_turn_with_decision(
     let model = String::from("mock-model");
     let initial = vec![Message::new(Role::User, String::from("read the temp file"))];
     let (atx, mut arx) = mpsc::unbounded_channel::<ApprovalRequest>();
-    let mut agent = Agent::new(&client, base, &model, None, initial, Some(atx));
+    let mut agent = Agent::new(&client, base, &model, None, initial, Some(atx), nxm_tui_tools::default_registry());
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();
     let agent_tx = tx.clone();
     let run_fut = agent.run(&agent_tx);

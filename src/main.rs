@@ -328,6 +328,9 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         let tx = part_tx.clone();
                         let approval = approval_tx.clone();
                         let pass = app.passphrase.clone();
+                        // T1: hand the agent a snapshot of the tool selection
+                        // (toggles in the Tools overlay apply from the next spawn).
+                        let tool_registry = app.tool_registry.clone();
 
                         // Resolve API key for the active provider (once per agent spawn)
                         let api_key = if let Some(ref p) = active_provider {
@@ -353,7 +356,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         inference_task = Some(tokio::spawn(async move {
                             let mut agent = agent::Agent::new(
                                 &client, &base, &model, api_key, initial_msgs,
-                                Some(approval),
+                                Some(approval), tool_registry,
                             );
                             agent.run(&tx).await.unwrap_or_else(|e| {
                                 tracing::error!("agent error: {e}");

@@ -283,6 +283,10 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             app.show_tool = false;
             return;
         }
+        if app.show_tools {
+            app.show_tools = false;
+            return;
+        }
         if app.show_approval {
             app.show_approval = false;
             return;
@@ -314,6 +318,59 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             }
         }
         return;
+    }
+
+    // Tools overlay (T1): intercept navigation/toggle keys while it is open
+    // so they never reach the prompt. Cursor wraps within the tool list;
+    // Space toggles the tool under the cursor; a/n enable/disable all.
+    if app.show_tools {
+        match key.code {
+            KeyCode::Up => {
+                let len = app.tool_registry.tool_names().len();
+                if len > 0 {
+                    app.tools_cursor = if app.tools_cursor == 0 {
+                        len - 1
+                    } else {
+                        app.tools_cursor - 1
+                    };
+                }
+                return;
+            }
+            KeyCode::Down => {
+                let len = app.tool_registry.tool_names().len();
+                if len > 0 {
+                    app.tools_cursor = (app.tools_cursor + 1) % len;
+                }
+                return;
+            }
+            KeyCode::Char(' ') => {
+                if let Some(name) = app
+                    .tool_registry
+                    .tool_names()
+                    .get(app.tools_cursor)
+                    .map(|s| s.to_string())
+                {
+                    let on = !app.tool_registry.is_enabled(&name);
+                    app.tool_registry.set_enabled(&name, on);
+                    app.set_status(format!(
+                        "Tool `{name}` {}",
+                        if on { "enabled" } else { "disabled" }
+                    ));
+                }
+                return;
+            }
+            KeyCode::Char('a') => {
+                app.tool_registry.enable_all();
+                app.set_status("All tools enabled".into());
+                return;
+            }
+            KeyCode::Char('n') => {
+                app.tool_registry.disable_all();
+                app.set_status("All tools disabled".into());
+                return;
+            }
+            _ => {}
+        }
     }
 
     if key.modifiers == KeyModifiers::CONTROL {
@@ -371,6 +428,22 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 app.show_metrics = false;
                 app.show_context = false;
                 app.show_thinking = false;
+                return;
+            }
+            KeyCode::Char('e') => {
+                // Tools selection overlay (T1). Ctrl+T was taken (sessions);
+                // Ctrl+E is free.
+                app.show_tools = !app.show_tools;
+                if app.show_tools {
+                    let len = app.tool_registry.tool_names().len();
+                    app.tools_cursor = app.tools_cursor.min(len.saturating_sub(1));
+                    app.show_help = false;
+                    app.show_sessions = false;
+                    app.show_metrics = false;
+                    app.show_context = false;
+                    app.show_thinking = false;
+                    app.show_tool = false;
+                }
                 return;
             }
             KeyCode::Char('b') => {

@@ -38,5 +38,6 @@ pub mod session;
 pub mod sidebar;
 pub mod tool_overlay;
 pub mod tool_types;
+pub mod tools_overlay;
 pub mod ui;
 pub mod utils;

@@ -7,12 +7,15 @@
 //!
 //! Run: `cargo test --workspace` (lib + integration tests under `tests/`).
 
-use std::path::PathBuf;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use anyhow::Result;
 use serde_json::{json, Value};
 use tracing::info;
+
+mod builtins;
+pub use builtins::{ListResources, ReadFile, WebSearch};
 
 /// Tracing target per `RULES.md` (`nexum::<module>::<feature>`).
 pub const TARGET: &str = "nexum::tools::runtime";
@@ -31,7 +34,10 @@ impl ToolResult {
         Self { ok: true, content }
     }
     pub fn err(msg: String) -> Self {
-        Self { ok: false, content: msg }
+        Self {
+            ok: false,
+            content: msg,
+        }
     }
 }
 
@@ -49,8 +55,16 @@ pub trait Tool: Send + Sync {
 }
 
 /// Registry of available tools + OpenAI manifest builder.
+///
+/// Holds the T1 in-memory selection: every registered tool is **enabled** by
+/// default, and [`manifest_selected`](Registry::manifest_selected) is the
+/// model-visible subset. Selection is orthogonal to approval gating — a
+/// selected tool can still be gated in `tool_types::needs_approval`.
+#[derive(Clone)]
 pub struct Registry {
     tools: Vec<Arc<dyn Tool>>,
+    /// Names of the tools currently sent to the model (T1 selection).
+    enabled: HashSet<String>,
 }
 
 impl Default for Registry {
@@ -61,12 +75,80 @@ impl Default for Registry {
 
 impl Registry {
     pub fn new() -> Self {
-        Self { tools: Vec::new() }
+        Self {
+            tools: Vec::new(),
+            enabled: HashSet::new(),
+        }
     }
 
     pub fn register<T: Tool + 'static>(&mut self, tool: T) {
         info!(target: TARGET, "register tool `{name}`", name = tool.name());
+        // Invariant: registering a tool always (re-)enables it.
+        self.enabled.insert(tool.name().to_string());
         self.tools.push(Arc::new(tool));
+    }
+
+    /// Enable or disable a tool for the model-visible manifest (T1).
+    ///
+    /// ```
+    /// use nxm_tui_tools::default_registry;
+    ///
+    /// let mut reg = default_registry();
+    /// reg.set_enabled("web_search", false);
+    /// assert!(!reg.is_enabled("web_search"));
+    /// ```
+    pub fn set_enabled(&mut self, name: &str, on: bool) {
+        tracing::debug!(target: TARGET, "set tool `{name}` enabled={on}");
+        if on {
+            self.enabled.insert(name.to_string());
+        } else {
+            self.enabled.remove(name);
+        }
+    }
+
+    /// Whether a tool is part of the model-visible selection.
+    ///
+    /// ```
+    /// use nxm_tui_tools::default_registry;
+    ///
+    /// assert!(default_registry().is_enabled("read_file"));
+    /// ```
+    pub fn is_enabled(&self, name: &str) -> bool {
+        self.enabled.contains(name)
+    }
+
+    /// Enable every registered tool (restore the full selection).
+    ///
+    /// ```
+    /// use nxm_tui_tools::default_registry;
+    ///
+    /// let mut reg = default_registry();
+    /// reg.disable_all();
+    /// reg.enable_all();
+    /// assert_eq!(reg.manifest_selected(), reg.manifest());
+    /// ```
+    pub fn enable_all(&mut self) {
+        tracing::debug!(target: TARGET, "enable all tools");
+        self.enabled = self.tools.iter().map(|t| t.name().to_string()).collect();
+    }
+
+    /// Disable every registered tool (the model sees an empty `tools` list).
+    ///
+    /// ```
+    /// use nxm_tui_tools::default_registry;
+    ///
+    /// let mut reg = default_registry();
+    /// reg.disable_all();
+    /// assert!(reg.manifest_selected().is_empty());
+    /// ```
+    pub fn disable_all(&mut self) {
+        tracing::debug!(target: TARGET, "disable all tools");
+        self.enabled.clear();
+    }
+
+    /// Registered tool names, in registration order (for the Tools overlay UI).
+    pub fn tool_names(&self) -> Vec<&str> {
+        self.tools.iter().map(|t| t.name()).collect()
     }
 
     /// Look up a tool by name (clones the `Arc`, no cloning of the tool itself).
@@ -99,128 +181,37 @@ impl Registry {
             })
             .collect()
     }
-}
 
-/// Read the full contents of a file (`args.path`).
-pub struct ReadFile;
-
-impl Tool for ReadFile {
-    fn name(&self) -> &str {
-        "read_file"
-    }
-    fn description(&self) -> &str {
-        "Read the full contents of a file on disk."
-    }
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "path": { "type": "string", "description": "Absolute or relative file path." }
-            },
-            "required": ["path"]
-        })
-    }
-    fn run(&self, args: &Value) -> Result<ToolResult> {
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| anyhow::anyhow!("`path` argument is required"))?;
-        let content = std::fs::read_to_string(PathBuf::from(path))?;
-        Ok(ToolResult::ok(content))
-    }
-}
-
-/// List entries in a directory (`args.path`, default cwd).
-pub struct ListResources;
-
-impl Tool for ListResources {
-    fn name(&self) -> &str {
-        "list_resources"
-    }
-    fn description(&self) -> &str {
-        "List files and directories in a path."
-    }
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "path": { "type": "string", "description": "Directory to list; defaults to cwd." }
-            },
-            "required": []
-        })
-    }
-    fn run(&self, args: &Value) -> Result<ToolResult> {
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or(".");
-        let mut names: Vec<String> = Vec::new();
-        for entry in std::fs::read_dir(PathBuf::from(path))? {
-            let entry = entry?;
-            names.push(entry.file_name().to_string_lossy().to_string());
-        }
-        names.sort();
-        Ok(ToolResult::ok(json!({ "entries": names }).to_string()))
-    }
-}
-
-/// Web search via a configurable HTTP endpoint (Nexum engine / provider).
-/// Endpoint from `NEXUM_SEARCH_ENDPOINT` (default `http://localhost:8080`).
-pub struct WebSearch {
-    endpoint: String,
-}
-
-impl WebSearch {
-    pub fn new(endpoint: impl Into<String>) -> Self {
-        Self {
-            endpoint: endpoint.into(),
-        }
-    }
-}
-
-impl Default for WebSearch {
-    fn default() -> Self {
-        let ep = std::env::var("NEXUM_SEARCH_ENDPOINT")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string());
-        Self::new(ep)
-    }
-}
-
-impl Tool for WebSearch {
-    fn name(&self) -> &str {
-        "web_search"
-    }
-    fn description(&self) -> &str {
-        "Search the web via a configured HTTP search endpoint."
-    }
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "query": { "type": "string", "description": "Search query." }
-            },
-            "required": ["query"]
-        })
-    }
-    fn run(&self, args: &Value) -> Result<ToolResult> {
-        let query = args
-            .get("query")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| anyhow::anyhow!("`query` argument is required"))?;
-        let mut url = reqwest::Url::parse(&format!(
-            "{}/search",
-            self.endpoint.trim_end_matches('/')
-        ))?;
-        url.query_pairs_mut().append_pair("q", query);
-        let resp = reqwest::blocking::get(url.as_str())?;
-        if !resp.status().is_success() {
-            return Ok(ToolResult::err(format!(
-                "search endpoint returned {}",
-                resp.status()
-            )));
-        }
-        let text = resp.text()?;
-        Ok(ToolResult::ok(text))
+    /// Like [`manifest`](Registry::manifest) but filtered to the enabled
+    /// subset — what the agent puts in the request's `tools` body (T1).
+    ///
+    /// ```
+    /// use nxm_tui_tools::default_registry;
+    ///
+    /// let mut reg = default_registry();
+    /// reg.set_enabled("web_search", false);
+    /// let selected = reg.manifest_selected();
+    /// let names: Vec<&str> = selected
+    ///     .iter()
+    ///     .filter_map(|v| v["function"]["name"].as_str())
+    ///     .collect();
+    /// assert!(!names.contains(&"web_search"));
+    /// ```
+    pub fn manifest_selected(&self) -> Vec<Value> {
+        self.tools
+            .iter()
+            .filter(|t| self.is_enabled(t.name()))
+            .map(|t| {
+                json!({
+                    "type": "function",
+                    "function": {
+                        "name": t.name(),
+                        "description": t.description(),
+                        "parameters": t.schema(),
+                    }
+                })
+            })
+            .collect()
     }
 }
 

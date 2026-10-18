@@ -1,5 +1,18 @@
 # Changelog
 
+# 2026-10-18
+
+## feat(md): streaming prerequisites — latex normalizer stub + link_id render helper + parser builders (V3/T14a)
+
+Prepara i 3 pezzi richiesti dallo streaming renderer (T14b) senza implementarlo (lo streaming vero resta T14b):
+- `src/md/latex.rs`: `LatexDelimiterNormalizer` stub passthrough (`new`/`reset`/`push`/`finish`, `Clone` + `Default`); LaTeX resta stubbato, nessun vero normalizzatore copiato.
+- `src/md/mod.rs`: `render_markdown_ratatui_with_link_id` (variante del render che gestisce il link_id counter; firma 9 argomenti imposta dallo spec, `#[allow(clippy::too_many_arguments)]` sul solo punto) + builder `open_code` su `MarkdownParser` (spostato fuori da `parse.rs` per rispettare il cap 300 righe).
+- `src/md/parse.rs`: builder `link_id_start` su `MarkdownParser`.
+- Test: `tests/md_stream_prereq.rs` (4 test: normalizer passthrough/finish/reset/clone, `link_id_start` usato come primo id, `open_code` chaina, `next_link_id` avanza oltre `link_id_start`).
+
+- `cargo build` ok; suite `328 passed / 0 failed / 1 ignorato noto` (`--test-threads=1`); `cargo clippy --all-targets` = 3 warning baseline (pre-esistenti in `app.rs`/`metrics.rs`), 0 nuovi, 0 `unused`; `src/md/parse.rs` 300 / `latex.rs` 36 / `mod.rs` 139 righe (≤300 cap).
+- Branch `work/T14a-md-stream-prereq` su `origin/main` (ecf798b); nessun commit su `main`/`develop`.
+
 # 2026-10-17
 
 ## feat(md): wrap render output to pane width (V3/T10)

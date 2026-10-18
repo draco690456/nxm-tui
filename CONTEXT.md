@@ -209,6 +209,7 @@ an interactive chat interface in the terminal.
   `tests/md_wrap_integration.rs` (5): the Fase-2 key test (every row ≤ 40
   for ~180-col prose), short prose untouched, table rows never split, code
   fences whole, styles preserved across wrapped rows.
+- T14a (prerequisiti streaming T14b): `src/md/latex.rs` `LatexDelimiterNormalizer` stub passthrough; `src/md/mod.rs` `render_markdown_ratatui_with_link_id` (gestisce il link_id counter) + builder `open_code` su `MarkdownParser`; `src/md/parse.rs` builder `link_id_start`. Test in `tests/md_stream_prereq.rs`. Lo streaming vero (`streaming.rs`) resta T14b, non implementato qui. Branch `work/T14a-md-stream-prereq` su `origin/main` (ecf798b).
 
 ## NOT included
 - Inference logic (connects to external server)

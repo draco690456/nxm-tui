@@ -239,6 +239,15 @@ impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
         self
     }
 
+    // Derived from xai-grok-markdown/src/parse.rs (Apache-2.0). Modified: crate::md paths; LatexDelimiterNormalizer stubbed (passthrough, latex deferred).
+    /// Set the starting id for the streaming link counter (V3/T14a).
+    /// The first link parsed after this call receives `id`, and the counter
+    /// advances from there (`ParsedMarkdown::next_link_id`).
+    pub fn link_id_start(mut self, id: u32) -> Self {
+        self.link_id_counter = id;
+        self
+    }
+
     /// Parse markdown and return a ParsedMarkdown ready for rendering.
     pub fn parse(mut self) -> ParsedMarkdown<'a, 'b> {
         self.tag_stack.clear();

@@ -15,3 +15,22 @@ pub fn latex_to_unicode_inline(_src: &str) -> Option<String> {
 pub fn latex_to_unicode_display(_src: &str) -> Option<Vec<String>> {
     None
 }
+
+/// Delimitatori LaTeX: stub passthrough (latex è stubbato, normalizzazione
+/// differita a un ticket dedicato). Restituisce il chunk così com'è, senza
+/// alcuna trasformazione; coerente con "latex off".
+#[derive(Clone, Default)]
+pub struct LatexDelimiterNormalizer;
+impl LatexDelimiterNormalizer {
+    pub fn new() -> Self {
+        Self
+    }
+    pub fn reset(&mut self) {}
+    /// Passthrough: nessuna normalizzazione LaTeX. Ritorna il chunk così com'è.
+    pub fn push(&mut self, chunk: &str) -> String {
+        chunk.to_string()
+    }
+    pub fn finish(&mut self) -> String {
+        String::new()
+    }
+}

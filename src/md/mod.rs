@@ -57,7 +57,11 @@ mod style_adapt;
 use ratatui::text::Line;
 
 use crate::md::buffers::MarkdownBuffers;
+use crate::md::checkpoint::Checkpoint;
+use crate::md::open_code_highlighter::OpenCodeHighlighter;
+use crate::md::output::MarkdownRenderOutput;
 use crate::md::parse::MarkdownParser;
+use crate::md::style::MarkdownStyle;
 use crate::md::syntax::Syntect;
 use crate::md::theme::fixed_style;
 
@@ -91,4 +95,48 @@ pub fn render(content: &str, max_width: usize) -> Vec<Line<'static>> {
     // wrap engine (`is_table_line`), so pre-formatted tables stay whole; prose
     // and code content wrap instead of overflowing (was 182 cols at width 40).
     crate::md::wrap_line::word_wrap_lines(output.lines, max_width)
+}
+
+// Derived from xai-grok-markdown/src/parse.rs (Apache-2.0). Modified: crate::md paths; LatexDelimiterNormalizer stubbed (passthrough, latex deferred).
+// Spostato qui (fuori da `parse.rs`) per rispettare il cap di 300 righe di `parse.rs`.
+impl<'a, 'b, 'syn, 'oc> MarkdownParser<'a, 'b, 'syn, 'oc> {
+    /// Imposta l'highlighter incrementale per il blocco di codice fenced ancora aperto (V3/T14a).
+    /// Usato dallo streaming renderer per continuare l'highlight di un blocco
+    /// non chiuso al momento del render precedente.
+    pub fn open_code(mut self, oc: Option<&'oc mut OpenCodeHighlighter>) -> Self {
+        self.open_code = oc;
+        self
+    }
+}
+
+// Derived from xai-grok-markdown/src/lib.rs (Apache-2.0). Modified: crate::md paths; LatexDelimiterNormalizer stubbed (passthrough, latex deferred).
+/// Variante di render che gestisce il `link_id` counter (V3/T14a, prerequisito
+/// dello streaming T14b).
+/// Costruisce il `MarkdownParser` con i builder `max_table_width`,
+/// `link_id_start`, `collapse_soft_breaks` e `open_code`, fa il parse, legge
+/// `parsed.next_link_id`, renderizza via `render_ratatui` e restituisce
+/// `(output, checkpoint, next_link_id)`.
+/// Firma imposta dallo spec T14a (9 argomenti): `too_many_arguments` è
+/// accettato qui, non si introduce un parametro opaco solo per il lint.
+#[allow(clippy::too_many_arguments)]
+pub fn render_markdown_ratatui_with_link_id(
+    text: &str,
+    ms: MarkdownStyle,
+    pretty: bool,
+    buffers: &mut MarkdownBuffers,
+    syntect: Option<&Syntect>,
+    max_table_width: Option<usize>,
+    link_id_start: u32,
+    collapse_soft_breaks: bool,
+    open_code: Option<&mut OpenCodeHighlighter>,
+) -> (MarkdownRenderOutput, Option<Checkpoint>, u32) {
+    let mut parsed = MarkdownParser::new(text, ms, buffers, syntect)
+        .max_table_width(max_table_width)
+        .link_id_start(link_id_start)
+        .collapse_soft_breaks(collapse_soft_breaks)
+        .open_code(open_code)
+        .parse();
+    let next_link_id = parsed.next_link_id;
+    let (output, checkpoint) = parsed.render_ratatui(pretty);
+    (output, checkpoint, next_link_id)
 }

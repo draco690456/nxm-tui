@@ -147,6 +147,14 @@ impl Registry {
     }
 
     /// Registered tool names, in registration order (for the Tools overlay UI).
+    ///
+    /// ```
+    /// use nxm_tui_tools::Registry;
+    ///
+    /// let mut reg = Registry::new();
+    /// reg.register(nxm_tui_tools::ReadFile);
+    /// assert_eq!(reg.tool_names(), vec!["read_file"]);
+    /// ```
     pub fn tool_names(&self) -> Vec<&str> {
         self.tools.iter().map(|t| t.name()).collect()
     }
@@ -169,16 +177,7 @@ impl Registry {
     pub fn manifest(&self) -> Vec<Value> {
         self.tools
             .iter()
-            .map(|t| {
-                json!({
-                    "type": "function",
-                    "function": {
-                        "name": t.name(),
-                        "description": t.description(),
-                        "parameters": t.schema(),
-                    }
-                })
-            })
+            .map(|t| manifest_entry(t.as_ref()))
             .collect()
     }
 
@@ -201,18 +200,22 @@ impl Registry {
         self.tools
             .iter()
             .filter(|t| self.is_enabled(t.name()))
-            .map(|t| {
-                json!({
-                    "type": "function",
-                    "function": {
-                        "name": t.name(),
-                        "description": t.description(),
-                        "parameters": t.schema(),
-                    }
-                })
-            })
+            .map(|t| manifest_entry(t.as_ref()))
             .collect()
     }
+}
+
+/// One OpenAI `tools` entry for `t` — shared by [`Registry::manifest`] and
+/// [`Registry::manifest_selected`].
+fn manifest_entry(t: &dyn Tool) -> Value {
+    json!({
+        "type": "function",
+        "function": {
+            "name": t.name(),
+            "description": t.description(),
+            "parameters": t.schema(),
+        }
+    })
 }
 
 /// Build the default MVP registry (read_file, list_resources, web_search).

@@ -79,3 +79,16 @@ fn tools_overlay_shows_cursor_row() {
         "cursor marker on row 1: {cursor_row}"
     );
 }
+
+#[test]
+fn tools_overlay_renders_in_a_tiny_terminal_without_panicking() {
+    // Degenerate case: fewer than the overlay's 8-row minimum. The height
+    // clamp must cap at the frame, not overshoot it (ratatui clips, but the
+    // rect itself should stay inside the area).
+    let app = App::new();
+    let backend = TestBackend::new(60, 4);
+    let mut terminal = Terminal::new(backend).expect("test terminal");
+    terminal
+        .draw(|f| render_tools(f, &app))
+        .expect("draw must not panic");
+}

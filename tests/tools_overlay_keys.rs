@@ -74,6 +74,29 @@ fn a_and_n_bulk_enable_and_disable() {
 }
 
 #[test]
+fn overlay_swallows_keys_that_are_not_shortcuts() {
+    // Review finding: while the overlay is open no key may fall through to
+    // the prompt (typing, Enter-to-submit) — same contract as search mode.
+    let mut app = App::new();
+    handle_key(&mut app, ctrl('e'));
+    handle_key(&mut app, key(KeyCode::Char('x')));
+    assert!(
+        app.prompt_state.text().is_empty(),
+        "prompt untouched while overlay is open"
+    );
+    handle_key(&mut app, key(KeyCode::Enter));
+    assert!(
+        app.messages.is_empty(),
+        "Enter must not submit a message with the overlay open"
+    );
+    assert!(
+        app.input.is_empty(),
+        "Enter must not stage a message with the overlay open"
+    );
+    assert!(app.show_tools, "unknown keys leave the overlay open");
+}
+
+#[test]
 fn toggling_selection_filters_the_agent_request_body() {
     // End-to-end seam: overlay toggle -> App registry -> agent snapshot body.
     use nxm_tui::agent::Agent;

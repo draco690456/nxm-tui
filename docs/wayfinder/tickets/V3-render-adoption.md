@@ -186,7 +186,7 @@ prosa → una riga lunga sfora il pane. Serve prima del test visivo.)
 ### Fase 4 — Streaming (prod streaming.rs ~490 righe; cablaggio tocca history.rs)
 Nota: `checkpoint` (T5a) e `open_code_highlighter` (T5d) GIÀ su main. I prerequisiti
 veri sono altri (sotto). Segmentato (2026-10-18):
-- **T14a** prereq: (1) stub `LatexDelimiterNormalizer` in `src/md/latex.rs`
+- **T14a** ✅ (main `8e4b79e`) prereq FATTO: (1) stub `LatexDelimiterNormalizer` in `src/md/latex.rs`
   (`new`/`reset`/`push(chunk)->chunk`/`finish()->""`, passthrough, latex stubbato);
   (2) helper `render_markdown_ratatui_with_link_id` (← grok `lib.rs:122`, variante
   di `render_ratatui` che gestisce il link_id counter per stabilità OSC8 id).

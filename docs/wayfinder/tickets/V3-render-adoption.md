@@ -190,10 +190,7 @@ veri sono altri (sotto). Segmentato (2026-10-18):
   (`new`/`reset`/`push(chunk)->chunk`/`finish()->""`, passthrough, latex stubbato);
   (2) helper `render_markdown_ratatui_with_link_id` (← grok `lib.rs:122`, variante
   di `render_ratatui` che gestisce il link_id counter per stabilità OSC8 id).
-- **T14b** copia `src/md/streaming.rs` ← `streaming.rs` prod 1-492 (split per cap
-  300): `StreamingMarkdownRenderer` (new/push/render/push_and_render/view/finish,
-  frozen checkpoint + OpenCodeHighlighter). Test HEADLESS: push incrementale ==
-  render one-shot. NON cablare ancora.
+- **T14b** ✅ (main `6d64eb7`) copia FEDELE StreamingMarkdownRenderer, split 3 file: streaming.rs (258), streaming_tail.rs (127, rerender_tail), streaming_finish.rs (75). FrozenState 3 campi upstream, new(style,pretty). 8 test headless incl. finish()==one-shot. Primo tentativo RESPINTO (reimplementazione); v2 copia verbatim. + FIX T5f (0622ff3): ripristinati incrementi on_start depth/bq_depth persi nello split (panic su blockquote). 336 test. ← FATTO. NON cablato (T16 differito al test runtime).
 - **T16** cablaggio live in `history.rs`/`app.rs` dietro flag (streaming
   per-messaggio) — **DIFFERITO al test runtime utente** (tocca il loop live,
   validabile solo a runtime sull'altro computer).

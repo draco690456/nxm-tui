@@ -39,7 +39,7 @@ fn set_enabled_false_excludes_tool_from_selected_manifest() {
     assert!(selected.contains(&"read_file".to_string()));
     assert!(selected.contains(&"list_resources".to_string()));
     // Compat: the unfiltered manifest still lists everything.
-    assert_eq!(reg.manifest().len(), 3);
+    assert_eq!(reg.manifest().len(), 4);
 }
 
 #[test]
@@ -58,7 +58,7 @@ fn disable_all_yields_empty_selected_manifest() {
     reg.disable_all();
     assert!(reg.manifest_selected().is_empty());
     // Compat manifest unaffected by the selection.
-    assert_eq!(reg.manifest().len(), 3);
+    assert_eq!(reg.manifest().len(), 4);
 }
 
 #[test]

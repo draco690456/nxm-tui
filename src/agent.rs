@@ -102,7 +102,7 @@ impl<'a> Agent<'a> {
     /// let client = Client::new();
     /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry());
     /// let body = agent.request_body();
-    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(3));
+    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(4));
     /// ```
     pub fn request_body(&self) -> Value {
         let tools = self.registry.manifest_selected();
@@ -197,8 +197,9 @@ impl<'a> Agent<'a> {
                         let _ = tx.send(ToolPart::Reasoning(thinking.to_string()));
                     }
                 }
-                if let Some(arr) =
-                    json.pointer("/choices/0/delta/tool_calls").and_then(|v| v.as_array())
+                if let Some(arr) = json
+                    .pointer("/choices/0/delta/tool_calls")
+                    .and_then(|v| v.as_array())
                 {
                     for tc in arr {
                         let entry = pending
@@ -249,9 +250,9 @@ impl<'a> Agent<'a> {
         calls: Vec<ToolInvocation>,
     ) -> Result<(), String> {
         for inv in calls {
-            let args: Value = serde_json::from_str(&inv.args).unwrap_or_else(|e| {
-                serde_json::json!({ "_raw": &inv.args, "_parse_error": e.to_string() })
-            });
+            let args: Value = serde_json::from_str(&inv.args).unwrap_or_else(
+                |e| serde_json::json!({ "_raw": &inv.args, "_parse_error": e.to_string() }),
+            );
             if !self.approve(&inv).await {
                 let denied = format!(
                     "denied by user — tool `{}` was not executed; proceed without its output",
@@ -303,7 +304,10 @@ impl<'a> Agent<'a> {
 /// Merge one OpenAI `tool_call` delta fragment into an in-progress invocation.
 /// Returns the delta's `index` (0 when absent).
 fn apply_tool_call_delta(inv: &mut ToolInvocation, tc: &Value) -> Option<usize> {
-    let idx = tc.get("index").and_then(|v| v.as_u64()).map(|u| u as usize)?;
+    let idx = tc
+        .get("index")
+        .and_then(|v| v.as_u64())
+        .map(|u| u as usize)?;
     if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
         inv.id = id.to_string();
     }

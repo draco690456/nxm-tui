@@ -1,5 +1,34 @@
 # Changelog
 
+# 2026-10-20
+
+## feat(tools): add grep tool (regex search over files)
+
+Nuovo tool nativo `grep` in `nxm-tui-tools`: dato `pattern` (regex) e `path`
+(file o directory), restituisce le righe matchanti come `file:line:testo`.
+Registrato in `default_registry()` (abilitato di default).
+- `nxm-tui-tools/src/grep.rs` (nuovo, ~150 righe ≤ 300 cap): `Grep` tool con
+  schema `pattern`+`path` required; `regex` crate per matching vero;
+  pattern invalido → `ToolResult::err` (non panico, non `Err`); argomenti
+  mancanti → `anyhow::Err`; directory ricorsiva con esclusioni hard-coded
+  `.git/` e `target/`; file binari/non-UTF8 saltati silenziosamente;
+  output ordinato per path poi riga (1-based); cap 1000 match con troncatura;
+  logging `tracing` su `run` (target `nexum::tools::runtime`); doc `///`
+  con esempio doctest.
+- `nxm-tui-tools/Cargo.toml`: `regex.workspace = true` (pin esatto
+  `1.13.1` già nel workspace); `nxm-tui-tools/src/lib.rs`: `mod grep`,
+  re-export `Grep`, registrazione in `default_registry()`.
+- Test: `nxm-tui-tools/tests/grep.rs` (6: `grep_schema`, `grep_missing_args`,
+  `grep_invalid_regex`, `grep_single_file`, `grep_directory_excludes`,
+  `grep_in_default_registry`); alberi di file temporanei via `tempfile`.
+- `nxm-tui-tools/tests/tools.rs`, `tests/selection.rs`, `tests/agent_request.rs`,
+  `src/agent.rs`: conteggio manifest aggiornato a 5 tool + doctest.
+- Gate: `cargo test -p nxm-tui-tools --test grep` 6/6; `cargo test --workspace`
+  verde; `cargo clippy --all-targets` 0 nuovi warning; `cargo fmt -- --check`
+  0 diff sui file toccati.
+- Branch `work/28-tools-grep` su `feat/tools-grep`; nessun commit su
+  `main`/`develop`.
+
 # 2026-10-19
 
 ## chore(fmt): format the whole repo (CHORE1)

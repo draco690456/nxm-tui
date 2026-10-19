@@ -44,7 +44,13 @@ fn manifest_exposes_the_mvp_tool_set() {
         .collect();
     assert_eq!(
         names,
-        ["read_file", "list_resources", "web_search", "web_fetch"]
+        [
+            "read_file",
+            "list_resources",
+            "web_search",
+            "web_fetch",
+            "grep"
+        ]
     );
 }
 

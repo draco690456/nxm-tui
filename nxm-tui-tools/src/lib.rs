@@ -15,7 +15,9 @@ use serde_json::{json, Value};
 use tracing::info;
 
 mod builtins;
+mod grep;
 pub use builtins::{ListResources, ReadFile, WebFetch, WebSearch};
+pub use grep::Grep;
 
 /// Tracing target per `RULES.md` (`nexum::<module>::<feature>`).
 pub const TARGET: &str = "nexum::tools::runtime";
@@ -225,5 +227,6 @@ pub fn default_registry() -> Registry {
     reg.register(ListResources);
     reg.register(WebSearch::default());
     reg.register(WebFetch);
+    reg.register(Grep);
     reg
 }

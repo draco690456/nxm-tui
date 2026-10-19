@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task` (epic)
 - **Type:** Adozione (estende il `Registry` di `nxm-tui-tools`)
-- **Status:** 🚧 Parte A consolidata (toggle manuale, 2026-10-19) — selezione automatica per-task + Parte B aperte
+- **Status:** 🚧 Parte A consolidata (toggle manuale) · P2 `web_fetch` consolidato 2026-10-19 (main @ `9fdd47d`) — selezione automatica per-task, `grep`/`search_replace` (P2/P3) aperti; follow-up: `TOOLS-2` (SSRF), `CHORE1` (fmt)
 - **Related:** V3-render-adoption (stesso scopo: replicare+adattare grok in nxm-tui)
 
 ## Scopo (deciso dall'utente)

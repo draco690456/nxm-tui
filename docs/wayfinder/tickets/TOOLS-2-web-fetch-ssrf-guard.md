@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task`
 - **Type:** Security hardening (segue TOOLS-1 P2 `web_fetch`)
-- **Status:** 📋 Aperto 2026-10-19
+- **Status:** ✅ Risolto 2026-10-19 — guardia SSRF + fix IPv4-mapped IPv6 (commit `7653a6c`+`984b1aa`). Follow-up: `CHORE2` (isolamento env nei test)
 - **Priority:** ALTA prima di esporre `web_fetch` a un modello non fidato
 - **Related:** `TOOLS-1-adoption-and-selection.md` (Parte B, P2). Commit feature: `ca4e298`+`9fdd47d` (main @ `9fdd47d`).
 

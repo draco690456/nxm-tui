@@ -190,6 +190,87 @@ fn ssrf_validate_url_scheme() {
 }
 
 // ========================================================================
+// IPv4-mapped IPv6 tests (R1-R4 from 30-tools-ssrf-mapped-ipv6)
+// ========================================================================
+
+#[test]
+fn ssrf_blocks_mapped_loopback() {
+    // R1: IPv4-mapped loopback should be blocked
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:127.0.0.1").unwrap()
+    ));
+    // Also test the full 127.0.0.0/8 range via mapped
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:127.255.255.255").unwrap()
+    ));
+}
+
+#[test]
+fn ssrf_blocks_mapped_metadata() {
+    // R2: IPv4-mapped metadata endpoint should be blocked
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:169.254.169.254").unwrap()
+    ));
+    // Also test link-local range via mapped
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:169.254.0.1").unwrap()
+    ));
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:169.254.255.255").unwrap()
+    ));
+}
+
+#[test]
+fn ssrf_blocks_mapped_private() {
+    // R3: IPv4-mapped private addresses should be blocked
+    // 10.0.0.0/8
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:10.0.0.1").unwrap()
+    ));
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:10.255.255.255").unwrap()
+    ));
+    // 172.16.0.0/12
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:172.16.0.1").unwrap()
+    ));
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:172.31.255.255").unwrap()
+    ));
+    // 192.168.0.0/16
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:192.168.0.1").unwrap()
+    ));
+    assert!(is_blocked_addr(
+        IpAddr::from_str("::ffff:192.168.255.255").unwrap()
+    ));
+}
+
+#[test]
+fn ssrf_mapped_fix_keeps_public_v6() {
+    // R4: Native IPv6 public addresses should still be allowed
+    // example.org IPv6
+    assert!(!is_blocked_addr(
+        IpAddr::from_str("2606:2800:220:1:248:1893:25c8:1946").unwrap()
+    ));
+    // Cloudflare DNS IPv6
+    assert!(!is_blocked_addr(
+        IpAddr::from_str("2606:4700:4700::1111").unwrap()
+    ));
+    // Google DNS IPv6
+    assert!(!is_blocked_addr(
+        IpAddr::from_str("2001:4860:4860::8888").unwrap()
+    ));
+    // IPv4-mapped public should also be allowed
+    assert!(!is_blocked_addr(
+        IpAddr::from_str("::ffff:93.184.216.34").unwrap() // example.org
+    ));
+    assert!(!is_blocked_addr(
+        IpAddr::from_str("::ffff:8.8.8.8").unwrap() // Google DNS
+    ));
+}
+
+// ========================================================================
 // End-to-end tests: web_fetch run() returns ToolResult::err for blocked URLs
 // ========================================================================
 

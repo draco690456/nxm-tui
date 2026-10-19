@@ -65,20 +65,43 @@ fn is_blocked_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_blocked_ipv6(ip: Ipv6Addr) -> bool {
-    // Loopback: ::1
+    // Native IPv6 loopback (::1) and unspecified (::) must be checked FIRST,
+    // because to_ipv4() also matches the deprecated IPv4-compat form (::a.b.c.d)
+    // which would incorrectly map ::1 to 0.0.0.1 (not loopback in IPv4).
     if ip.is_loopback() {
         return true;
     }
+    if ip.is_unspecified() {
+        return true;
+    }
+
+    // Handle IPv4-mapped addresses (::ffff:a.b.c.d) only.
+    // These are the only ones that should be classified via IPv4 logic.
+    // Check for the mapped prefix (first 80 bits zero, next 16 bits 0xffff).
+    let segments = ip.segments();
+    if segments[0] == 0
+        && segments[1] == 0
+        && segments[2] == 0
+        && segments[3] == 0
+        && segments[4] == 0
+        && segments[5] == 0xffff
+    {
+        // Extract the embedded IPv4 address from the last 32 bits
+        let v4 = Ipv4Addr::new(
+            (segments[6] >> 8) as u8,
+            (segments[6] & 0xff) as u8,
+            (segments[7] >> 8) as u8,
+            (segments[7] & 0xff) as u8,
+        );
+        return is_blocked_ipv4(v4);
+    }
+
     // Link-local: fe80::/10
     if ip.is_unicast_link_local() {
         return true;
     }
     // ULA (private): fc00::/7
     if ip.segments()[0] & 0xfe00 == 0xfc00 {
-        return true;
-    }
-    // Unspecified: ::
-    if ip.is_unspecified() {
         return true;
     }
     false

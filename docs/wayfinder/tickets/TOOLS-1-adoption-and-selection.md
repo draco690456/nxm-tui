@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:task` (epic)
 - **Type:** Adozione (estende il `Registry` di `nxm-tui-tools`)
-- **Status:** 🚧 In design 2026-10-18
+- **Status:** 🚧 Parte A consolidata (toggle manuale, 2026-10-19) — selezione automatica per-task + Parte B aperte
 - **Related:** V3-render-adoption (stesso scopo: replicare+adattare grok in nxm-tui)
 
 ## Scopo (deciso dall'utente)
@@ -20,6 +20,7 @@ grok ha un sistema ricco (`tool_taxonomy.rs`, `tool_metadata.rs`,
 `requirements.rs`, `registry/types.rs` 5580 righe) — **sovradimensionato**. Prendiamo
 il CONCETTO (kind/categoria + subset + core-sempre-inclusi), non le 6000 righe.
 
+**Design originale (proposto):**
 - **MT-1** (no behavior change): `enum ToolKind {Read,Search,Edit,Core,Other}` +
   metodi default `kind()`/`keywords()` sul trait `Tool`; implementati sui 3 tool
   attuali. `manifest()` invariato.
@@ -29,6 +30,33 @@ il CONCETTO (kind/categoria + subset + core-sempre-inclusi), non le 6000 righe.
   ultimo messaggio user). `call()`/`get()` restano sul registro completo.
 - Strategia: keyword-match deterministico ora; evolvibile (capability/LLM-choice)
   dopo, senza riscritture.
+
+### ✅ As-built (merge su `main` 2026-10-19, commit `89d0e87`+`a53d1ad`)
+
+La Parte A è stata consolidata con un design **diverso da quello proposto**:
+**selezione manuale** via overlay UI, non selezione automatica per-task.
+
+- **Selezione in-memory, manuale (non per-task):** `Registry` tiene un set
+  `enabled: HashSet<String>` (ogni tool registrato è abilitato di default).
+  API: `set_enabled/is_enabled/enable_all/disable_all` + `manifest_selected()`
+  (manifest filtrato al subset abilitato). **Nessun** `task` in input.
+- **Overlay UI `Tools`** (`src/tools_overlay.rs`): l'utente accende/spegne i tool
+  a mano; l'overlay è la source of truth della selezione.
+- **Wiring:** `agent.rs::request_body` usa `registry.manifest_selected()` (non
+  `manifest()`); `call()`/`get()` restano sul registro completo.
+- **NON implementato** rispetto al design proposto: `enum ToolKind`,
+  `kind()`/`keywords()` sul trait, `Registry::select(task)`/`manifest_for(task)`,
+  keyword-match case-insensitive, fail-open. Il trait `Tool` resta
+  `name/description/schema/run`.
+- Test: `nxm-tui-tools/tests/selection.rs`, `tests/agent_request.rs`,
+  `tests/tools_overlay.rs`, `tests/tools_overlay_keys.rs` + doctest. Gate verde
+  (clippy unused=0, test workspace verdi).
+
+### ⏳ Da fare — selezione automatica per-task (il design proposto originale)
+
+MT-1→MT-3 (ToolKind + keywords + `select(task)` + `manifest_for` + fail-open)
+restano **aperti**: sono la selezione *automatica* per-task, complementare al
+toggle manuale già in main. Ticket a sé quando serve.
 
 ## Parte B — Inventario tool grok-build (per decidere le priorità)
 

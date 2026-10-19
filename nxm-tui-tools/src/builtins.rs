@@ -8,8 +8,9 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use serde_json::{json, Value};
+use tracing::warn;
 
-use crate::{Tool, ToolResult};
+use crate::{ssrf, Tool, ToolResult};
 
 /// Read the full contents of a file (`args.path`).
 pub struct ReadFile;
@@ -163,7 +164,20 @@ impl Tool for WebFetch {
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("`url` argument is required"))?;
         tracing::info!(target: crate::TARGET, "web_fetch GET {url}");
-        let resp = reqwest::blocking::get(url)?;
+        let resp = match ssrf::fetch_with_ssrf_guard(url) {
+            Ok(r) => r,
+            Err(e) => {
+                warn!(target: crate::TARGET, "web_fetch SSRF block: {e}");
+                // Include full error chain for debugging
+                let mut msg = format!("SSRF guard: {e}");
+                let mut source = e.source();
+                while let Some(s) = source {
+                    msg.push_str(&format!("\n  caused by: {s}"));
+                    source = s.source();
+                }
+                return Ok(ToolResult::err(msg));
+            }
+        };
         if !resp.status().is_success() {
             return Ok(ToolResult::err(format!(
                 "fetch {url} returned {}",

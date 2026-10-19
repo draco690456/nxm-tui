@@ -16,8 +16,12 @@ use tracing::info;
 
 mod builtins;
 mod grep;
+mod ssrf;
 pub use builtins::{ListResources, ReadFile, WebFetch, WebSearch};
 pub use grep::Grep;
+pub use ssrf::{
+    fetch_with_ssrf_guard, is_allowed_scheme, is_blocked_addr, validate_host, validate_url,
+};
 
 /// Tracing target per `RULES.md` (`nexum::<module>::<feature>`).
 pub const TARGET: &str = "nexum::tools::runtime";

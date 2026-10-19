@@ -2,6 +2,32 @@
 
 # 2026-10-20
 
+## feat(tools): web_fetch SSRF guard (block private/loopback/metadata + redirects)
+
+Aggiunta guardia SSRF a `WebFetch` (`nxm-tui-tools/src/builtins.rs`):
+- Nuovo modulo `nxm-tui-tools/src/ssrf.rs` (~140 righe): `is_blocked_addr`
+  classifica indirizzi (loopback, link-local, private-use, metadata
+  169.254.169.254, unspecified, IPv6 ULA/link-local); `validate_url` verifica
+  schema (solo http/https) + risoluzione host; `fetch_with_ssrf_guard` segue
+  redirect manualmente (max 10 hop) validando **ogni hop** con
+  `reqwest::Client` + `Policy::none()`; anti-DNS-rebinding: **tutti** gli IP
+  risolti per un host devono passare il check.
+- Allow-list dev: `NEXUM_WEBFETCH_ALLOW_LOCAL=1` salta la validazione
+  dell'URL iniziale (ma valida comunque i redirect).
+- `WebFetch::run` usa `fetch_with_ssrf_guard`; errori SSRF → `ToolResult::err`
+  con catena cause completa; logging `warn` su `nexum::tools::runtime`.
+- Test: `nxm-tui-tools/tests/web_fetch.rs` aggiornati (allow-list per server
+  loopback); nuovo `tests/web_fetch_ssrf.rs` (10 test: R1-R7 — loopback,
+  metadata, private, schema non-http, redirect→loopback, allow-list, IP
+  pubblici, unspecified, IPv6 link-local, validazione schema).
+- Gate: `cargo test -p nxm-tui-tools web_fetch` 15/15; `cargo test --workspace`
+  verde; `cargo clippy --all-targets` 0 nuovi warning (5 pre-esistenti);
+  `cargo fmt -- --check` 0 diff.
+- Branch `work/29-web-fetch-ssrf` su `feat/tools-web-fetch-ssrf`; nessun commit
+  su `main`/`develop`.
+
+# 2026-10-20
+
 ## feat(tools): add grep tool (regex search over files)
 
 Nuovo tool nativo `grep` in `nxm-tui-tools`: dato `pattern` (regex) e `path`

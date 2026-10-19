@@ -31,6 +31,12 @@ fn spawn_test_server(body: &str, status: &str) -> u16 {
     port
 }
 
+// Helper to run web_fetch with allow-local for tests that need loopback access.
+fn reg_with_allow_local() -> nxm_tui_tools::Registry {
+    std::env::set_var("NEXUM_WEBFETCH_ALLOW_LOCAL", "1");
+    default_registry()
+}
+
 #[test]
 fn web_fetch_schema() {
     let reg = default_registry();
@@ -53,7 +59,7 @@ fn web_fetch_missing_url() {
 #[test]
 fn web_fetch_ok() {
     let port = spawn_test_server("hello-fetch", "200 OK");
-    let reg = default_registry();
+    let reg = reg_with_allow_local();
     let args = json!({ "url": format!("http://127.0.0.1:{port}") });
     let res = reg.call("web_fetch", &args).expect("run web_fetch");
     assert!(res.ok);
@@ -63,7 +69,7 @@ fn web_fetch_ok() {
 #[test]
 fn web_fetch_http_error() {
     let port = spawn_test_server("not found", "404 Not Found");
-    let reg = default_registry();
+    let reg = reg_with_allow_local();
     let args = json!({ "url": format!("http://127.0.0.1:{port}") });
     let res = reg.call("web_fetch", &args).expect("run web_fetch");
     assert!(!res.ok);

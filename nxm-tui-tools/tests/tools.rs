@@ -42,12 +42,17 @@ fn manifest_exposes_the_mvp_tool_set() {
         .iter()
         .map(|m| m["function"]["name"].as_str().expect("name").to_string())
         .collect();
-    assert_eq!(names, ["read_file", "list_resources", "web_search"]);
+    assert_eq!(
+        names,
+        ["read_file", "list_resources", "web_search", "web_fetch"]
+    );
 }
 
 #[test]
 fn unknown_tool_call_is_an_error() {
     let reg = default_registry();
-    let err = reg.call("no_such_tool", &serde_json::json!({})).unwrap_err();
+    let err = reg
+        .call("no_such_tool", &serde_json::json!({}))
+        .unwrap_err();
     assert!(err.to_string().contains("unknown tool"));
 }

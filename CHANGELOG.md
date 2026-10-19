@@ -1,5 +1,31 @@
 # Changelog
 
+# 2026-10-19
+
+## feat(tools): add web_fetch tool (HTTP GET → text)
+
+Nuovo tool nativo `web_fetch` in `nxm-tui-tools`: dato un argomento `url`,
+scarica via HTTP (GET sincrono, `reqwest::blocking`) e restituisce il body
+come testo in un `ToolResult`. Nessuna estrazione HTML/markdown, nessuna
+policy di sandbox. Registrato in `default_registry()` (abilitato di default).
+- `nxm-tui-tools/src/builtins.rs`: `WebFetch` (forma clonata da `WebSearch`:
+  schema con `url` required, status non-2xx → `ToolResult::err` con lo status,
+  argomento mancante/non stringa → `anyhow::Err`); logging `tracing` su
+  `run` (target `nexum::tools::runtime`). File a 170 righe (≤300 cap).
+- `nxm-tui-tools/src/lib.rs`: re-export `WebFetch` + registrazione in
+  `default_registry()`.
+- Test: `nxm-tui-tools/tests/web_fetch.rs` (5: `web_fetch_schema`,
+  `web_fetch_missing_url`, `web_fetch_ok`, `web_fetch_http_error`,
+  `web_fetch_in_default_registry`); server HTTP grezzo su TCP locale,
+  zero nuove dipendenze.
+- `nxm-tui-tools/tests/tools.rs`, `tests/agent_request.rs`: conteggio
+  manifest aggiornato a 4 tool.
+- Gate: `cargo test -p nxm-tui-tools web_fetch` 5/5; `cargo test --workspace`
+  verde; `cargo clippy --all-targets` 0 nuovi warning (5 pre-esistenti);
+  `cargo fmt -- --check` 0 diff.
+- Branch `work/27-tools-web-fetch` su `feat/tools-web-fetch`; nessun commit
+  su `main`/`develop`.
+
 # 2026-10-18
 
 ## feat(tools): in-memory tool selection + filtered manifest + Tools overlay (T1)

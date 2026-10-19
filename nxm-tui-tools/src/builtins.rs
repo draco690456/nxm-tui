@@ -128,3 +128,49 @@ impl Tool for WebSearch {
         Ok(ToolResult::ok(text))
     }
 }
+
+/// Fetch an URL via HTTP GET and return the body as plain text.
+/// No HTML extraction, no markdown conversion, no sandbox policy.
+///
+/// ```
+/// use nxm_tui_tools::{Tool, WebFetch};
+///
+/// let tool = WebFetch;
+/// assert_eq!(tool.name(), "web_fetch");
+/// assert!(!tool.description().is_empty());
+/// ```
+pub struct WebFetch;
+
+impl Tool for WebFetch {
+    fn name(&self) -> &str {
+        "web_fetch"
+    }
+    fn description(&self) -> &str {
+        "Fetch an URL via HTTP GET and return the body as plain text."
+    }
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "url": { "type": "string", "description": "URL to fetch (HTTP GET)." }
+            },
+            "required": ["url"]
+        })
+    }
+    fn run(&self, args: &Value) -> Result<ToolResult> {
+        let url = args
+            .get("url")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| anyhow::anyhow!("`url` argument is required"))?;
+        tracing::info!(target: crate::TARGET, "web_fetch GET {url}");
+        let resp = reqwest::blocking::get(url)?;
+        if !resp.status().is_success() {
+            return Ok(ToolResult::err(format!(
+                "fetch {url} returned {}",
+                resp.status()
+            )));
+        }
+        let text = resp.text()?;
+        Ok(ToolResult::ok(text))
+    }
+}

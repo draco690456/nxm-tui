@@ -6,7 +6,6 @@
 
 #![allow(dead_code, unused_imports)]
 
-
 use nxm_tui::app::{App, Message, PendingApproval, Role};
 use nxm_tui::overlays;
 use nxm_tui::tool_overlay;
@@ -16,9 +15,7 @@ use ratatui::Terminal;
 
 /// Render `draw` on an 80x24 headless terminal and return the whole screen
 /// as one string (all cell symbols concatenated row by row).
-fn screen_text(
-    draw: impl FnOnce(&mut ratatui::Frame),
-) -> String {
+fn screen_text(draw: impl FnOnce(&mut ratatui::Frame)) -> String {
     let backend = TestBackend::new(80, 24);
     let mut terminal = Terminal::new(backend).expect("test terminal");
     terminal.draw(draw).expect("draw must not panic");

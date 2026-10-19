@@ -40,10 +40,13 @@ fn syntax_highlight_raw_produces_spans() {
     let lines = syntax_highlight_raw(Some(&syntect), "rust", "fn main() {}")
         .expect("rust fence must highlight");
     assert!(!lines.is_empty(), "must produce at least one line");
-    let has_multi = lines.iter().any(|line| {
-        line.len() >= 2 && line.windows(2).any(|w| w[0].0 != w[1].0)
-    });
-    assert!(has_multi, "expected at least one line with >=2 distinct styles");
+    let has_multi = lines
+        .iter()
+        .any(|line| line.len() >= 2 && line.windows(2).any(|w| w[0].0 != w[1].0));
+    assert!(
+        has_multi,
+        "expected at least one line with >=2 distinct styles"
+    );
 }
 
 /// `syntax_highlight_raw(None, ...)` == `None`; lang ignoto → `None` (no panic).

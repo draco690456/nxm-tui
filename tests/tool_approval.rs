@@ -13,10 +13,11 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
-
 use nxm_tui::agent::Agent;
 use nxm_tui::app::{App, Message, PendingApproval, Role};
-use nxm_tui::tool_types::{self, needs_approval, risk_badge, ApprovalRequest, ToolInvocation, ToolPart};
+use nxm_tui::tool_types::{
+    self, needs_approval, risk_badge, ApprovalRequest, ToolInvocation, ToolPart,
+};
 
 #[test]
 fn policy_auto_approves_only_list_resources() {
@@ -160,8 +161,7 @@ async fn mock_two_turn_server(path: String) -> (String, tokio::task::JoinHandle<
             };
             let _ = read_http_request(&mut socket).await;
             let resp = if turn == 0 {
-                let args =
-                    serde_json::to_string(&serde_json::json!({"path": &path})).unwrap();
+                let args = serde_json::to_string(&serde_json::json!({"path": &path})).unwrap();
                 sse(&serde_json::to_string(&serde_json::json!({
                     "choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_read",
                         "type": "function", "function": {"name": "read_file", "arguments": args}}]},
@@ -183,16 +183,20 @@ async fn mock_two_turn_server(path: String) -> (String, tokio::task::JoinHandle<
 
 /// Drive one full agent turn, answering the (single) approval with `allow`.
 /// Returns all emitted parts.
-async fn run_turn_with_decision(
-    base: &str,
-    path: &str,
-    allow: bool,
-) -> Vec<ToolPart> {
+async fn run_turn_with_decision(base: &str, path: &str, allow: bool) -> Vec<ToolPart> {
     let client = reqwest::Client::new();
     let model = String::from("mock-model");
     let initial = vec![Message::new(Role::User, String::from("read the temp file"))];
     let (atx, mut arx) = mpsc::unbounded_channel::<ApprovalRequest>();
-    let mut agent = Agent::new(&client, base, &model, None, initial, Some(atx), nxm_tui_tools::default_registry());
+    let mut agent = Agent::new(
+        &client,
+        base,
+        &model,
+        None,
+        initial,
+        Some(atx),
+        nxm_tui_tools::default_registry(),
+    );
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();
     let agent_tx = tx.clone();
     let run_fut = agent.run(&agent_tx);

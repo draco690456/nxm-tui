@@ -1,8 +1,8 @@
 //! Session management for nexum-terminal TUI.
 //! Handles save/load/list of chat sessions.
 
-use std::path::PathBuf;
 use crate::app::{AgentMode, Message, Role};
+use std::path::PathBuf;
 
 /// Session storage directory (~/.nexum/sessions).
 pub fn session_dir() -> PathBuf {
@@ -31,7 +31,12 @@ pub fn list_sessions() -> Vec<String> {
     let mut sessions = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&dir) {
         for entry in entries.flatten() {
-            if entry.path().extension().map(|e| e == "json").unwrap_or(false) {
+            if entry
+                .path()
+                .extension()
+                .map(|e| e == "json")
+                .unwrap_or(false)
+            {
                 if let Some(name) = entry.path().file_stem().and_then(|s| s.to_str()) {
                     sessions.push(name.to_string());
                 }

@@ -2,6 +2,17 @@
 
 # 2026-10-19
 
+## chore(fmt): format the whole repo (CHORE1)
+
+Applicato `cargo fmt` a tutto il codice nostro (63 file `src/*.rs` + `tests/*.rs`
++ 2 file `src/md/` nostri). I 20 file `src/md/**` con header `//! Derived from`
+(copie verbatim di grok-build) sono **esclusi di proposito**: riformattarli
+devierebbe dall'upstream (vedi `RULES.md` → Verbatim-copy exemption), complicando
+i realign futuri. Dopo questo commit `cargo fmt -- --check` è verde su tutto il
+codice nostro; gli unici residui sono i 20 verbatim, per scelta documentata.
+Nessun cambiamento di semantica (build + 375 test invariati). Vedi
+`docs/wayfinder/tickets/CHORE1-cargo-fmt-repo.md`.
+
 ## feat(tools): add web_fetch tool (HTTP GET → text)
 
 Nuovo tool nativo `web_fetch` in `nxm-tui-tools`: dato un argomento `url`,

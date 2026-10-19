@@ -77,7 +77,11 @@ fn parse_model_entry(entry: &Value) -> Option<ModelEntry> {
 
     let created = parse_created(entry.get("created"));
 
-    Some(ModelEntry { id, owned_by, created })
+    Some(ModelEntry {
+        id,
+        owned_by,
+        created,
+    })
 }
 
 /// Parse `created` field: accepts int (Unix epoch) or ISO 8601 string.
@@ -121,9 +125,9 @@ pub fn models_candidate_paths(base_url: &str) -> Vec<String> {
     let base = base_url.trim_end_matches('/');
     let root = base.strip_suffix("/v1").unwrap_or(base);
     vec![
-        format!("{root}/v1/models"),   // OpenAI dialect
-        format!("{root}/models"),       // bare host
-        format!("{root}/api/tags"),     // Ollama native
+        format!("{root}/v1/models"), // OpenAI dialect
+        format!("{root}/models"),    // bare host
+        format!("{root}/api/tags"),  // Ollama native
     ]
 }
 

@@ -192,10 +192,16 @@ impl McpClient {
     /// Route a `sampling/createMessage` request to the handler and reply.
     async fn handle_sampling(&mut self, value: Value) -> Result<()> {
         let rid: RequestId = serde_json::from_value(
-            value.get("id").cloned().context("sampling request missing id")?,
+            value
+                .get("id")
+                .cloned()
+                .context("sampling request missing id")?,
         )?;
         let params: CreateMessageParams = serde_json::from_value(
-            value.get("params").cloned().context("sampling request missing params")?,
+            value
+                .get("params")
+                .cloned()
+                .context("sampling request missing params")?,
         )
         .context("invalid sampling params")?;
 

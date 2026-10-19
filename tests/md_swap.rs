@@ -17,7 +17,12 @@ const FLAG: &str = "NXM_USE_NEW_MD";
 fn lines_text(lines: &[Line<'static>]) -> String {
     lines
         .iter()
-        .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect::<String>())
+        .map(|l| {
+            l.spans
+                .iter()
+                .map(|s| s.content.as_ref())
+                .collect::<String>()
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -45,7 +50,12 @@ fn md_render_baseline_not_empty() {
 /// `md::render` must never panic on degenerate documents.
 #[test]
 fn md_render_no_panic_on_edge_inputs() {
-    for input in ["", "   \n\t  ", "```rust\nlet x = 1;\n```", "| a | b |\n|---|---|\n| 1 | 2 |\n"] {
+    for input in [
+        "",
+        "   \n\t  ",
+        "```rust\nlet x = 1;\n```",
+        "| a | b |\n|---|---|\n| 1 | 2 |\n",
+    ] {
         let lines = render(input, 80);
         if input.starts_with("```") || input.starts_with('|') {
             assert!(!lines.is_empty(), "fence/table must render: {input:?}");
@@ -56,7 +66,10 @@ fn md_render_no_panic_on_edge_inputs() {
 /// `max_width` is applied to tables: a too-wide table shrinks to the budget.
 #[test]
 fn md_render_table_bound_to_max_width() {
-    let style = render("| aaaaaaaaaaaa | bbbbbbbbbbbbbbbb |\n|---|---|\n| 1 | 2 |\n", 12);
+    let style = render(
+        "| aaaaaaaaaaaa | bbbbbbbbbbbbbbbb |\n|---|---|\n| 1 | 2 |\n",
+        12,
+    );
     let text = lines_text(&style);
     assert!(text.contains('a'), "text: {text:?}");
     assert!(text.contains('b'), "text: {text:?}");
@@ -81,7 +94,11 @@ fn shim_flag_on_prefixes_every_line() {
     let lines = render_markdown("# Titolo\n\ntesto **bold** e `code`", 80, "   ");
     assert!(!lines.is_empty());
     for line in &lines {
-        let text = line.spans.iter().map(|s| s.content.as_ref()).collect::<String>();
+        let text = line
+            .spans
+            .iter()
+            .map(|s| s.content.as_ref())
+            .collect::<String>();
         assert!(text.starts_with("   "), "line without prefix: {text:?}");
     }
     let text = lines_text(&lines);

@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:chore`
 - **Type:** Chore (formattazione)
-- **Status:** 📋 Aperto 2026-10-19
+- **Status:** ✅ Risolto 2026-10-19 — formattato il codice nostro; i 20 `Derived from` esclusi per scelta
 - **Priority:** BASSA (non blocca le feature, ma sporca ogni `fmt --check`)
 
 ## Problema

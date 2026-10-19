@@ -31,7 +31,9 @@ fn key(code: KeyCode) -> KeyEvent {
 fn screen_text(app: &mut App) -> String {
     let backend = ratatui::backend::TestBackend::new(80, 30);
     let mut terminal = ratatui::Terminal::new(backend).expect("test terminal");
-    terminal.draw(|f| ui::render(f, app)).expect("draw must not panic");
+    terminal
+        .draw(|f| ui::render(f, app))
+        .expect("draw must not panic");
     let buf = terminal.backend().buffer().clone();
     let mut out = String::new();
     for y in 0..buf.area.height {
@@ -118,7 +120,10 @@ fn passphrase_overlay_masks_the_literal_value() {
     let screen = screen_text(&mut app);
     assert!(screen.contains("Passphrase"), "prompt must be visible");
     assert!(screen.contains("•••••••"), "characters must be masked");
-    assert!(!screen.contains("hunter2"), "literal value must never render");
+    assert!(
+        !screen.contains("hunter2"),
+        "literal value must never render"
+    );
 }
 
 /// The shared gate: prompt only when the mode is passphrase-locked AND no

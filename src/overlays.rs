@@ -15,7 +15,12 @@ pub fn render_help(f: &mut Frame, _app: &App) {
     let w = 56.min(area.width);
 
     let items = vec![
-        Line::from(Span::styled(" Commands", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            " Commands",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
         Line::from(vec![
             Span::styled("  /help  /h  /?", Style::default().fg(Color::Magenta)),
             Span::raw("  Show this help"),
@@ -28,11 +33,22 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::styled("  /quit  /q", Style::default().fg(Color::Magenta)),
             Span::raw("        Quit"),
         ]),
-        Line::from(Span::styled(" Server", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(vec![
-            Span::styled("  /server start|stop|status", Style::default().fg(Color::Magenta)),
-        ]),
-        Line::from(Span::styled(" Models", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            " Server",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(vec![Span::styled(
+            "  /server start|stop|status",
+            Style::default().fg(Color::Magenta),
+        )]),
+        Line::from(Span::styled(
+            " Models",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
         Line::from(vec![
             Span::styled("  /models", Style::default().fg(Color::Magenta)),
             Span::raw("           List models from active provider"),
@@ -41,27 +57,56 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::styled("  /model use <id|n>", Style::default().fg(Color::Magenta)),
             Span::raw("  Select model by id or index"),
         ]),
-        Line::from(Span::styled(" Modes", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            " Modes",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(vec![Span::styled(
+            "  /mode chat|arch|dev|research",
+            Style::default().fg(Color::Magenta),
+        )]),
+        Line::from(Span::styled(
+            " Sessions",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(vec![Span::styled(
+            "  /save [name]  /load <name>  /new",
+            Style::default().fg(Color::Magenta),
+        )]),
+        Line::from(Span::styled(
+            " Provider",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(vec![Span::styled(
+            "  /provider list|add|use|remove",
+            Style::default().fg(Color::Magenta),
+        )]),
         Line::from(vec![
-            Span::styled("  /mode chat|arch|dev|research", Style::default().fg(Color::Magenta)),
-        ]),
-        Line::from(Span::styled(" Sessions", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(vec![
-            Span::styled("  /save [name]  /load <name>  /new", Style::default().fg(Color::Magenta)),
-        ]),
-        Line::from(Span::styled(" Provider", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(vec![
-            Span::styled("  /provider list|add|use|remove", Style::default().fg(Color::Magenta)),
-        ]),
-        Line::from(vec![
-            Span::styled("  /provider set-key <name>", Style::default().fg(Color::Magenta)),
+            Span::styled(
+                "  /provider set-key <name>",
+                Style::default().fg(Color::Magenta),
+            ),
             Span::raw("  Store API key (masked)"),
         ]),
         Line::from(vec![
-            Span::styled("  /provider remove-key <name>", Style::default().fg(Color::Magenta)),
+            Span::styled(
+                "  /provider remove-key <name>",
+                Style::default().fg(Color::Magenta),
+            ),
             Span::raw("  Delete API key"),
         ]),
-        Line::from(Span::styled(" Keys", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            " Keys",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
         Line::from(vec![
             Span::styled("  Ctrl+Q", Style::default().fg(Color::DarkGray)),
             Span::raw("  Quit   "),
@@ -88,10 +133,16 @@ pub fn render_help(f: &mut Frame, _app: &App) {
             Span::styled("PgUp/PgDn", Style::default().fg(Color::DarkGray)),
             Span::raw("  Page"),
         ]),
-        Line::from(Span::styled(" Security", Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))),
-        Line::from(vec![
-            Span::styled("  API keys are NEVER printed or logged.", Style::default().fg(Color::DarkGray)),
-        ]),
+        Line::from(Span::styled(
+            " Security",
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
+        Line::from(vec![Span::styled(
+            "  API keys are NEVER printed or logged.",
+            Style::default().fg(Color::DarkGray),
+        )]),
     ];
 
     // Size to content (+2 borders) so added hints never fall outside the box.
@@ -126,7 +177,9 @@ pub fn render_sessions(f: &mut Frame, app: &App) {
     let mut lines: Vec<Line> = vec![
         Line::from(Span::styled(
             " Sessions",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
     ];
@@ -139,17 +192,26 @@ pub fn render_sessions(f: &mut Frame, app: &App) {
     } else {
         for s in &sessions {
             let is_active = app.session_name.as_ref().map(|n| n == s).unwrap_or(false);
-            
+
             // Get preview from session file
             let preview = get_session_preview(s).unwrap_or_default();
-            
+
             if is_active {
                 lines.push(Line::from(vec![
                     Span::styled("  ▶ ", Style::default().fg(Color::Green)),
-                    Span::styled(s.clone(), Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+                    Span::styled(
+                        s.clone(),
+                        Style::default()
+                            .fg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    ),
                     Span::raw(" "),
                     Span::styled(
-                        if preview.len() > 25 { format!("{}...", &preview[..25]) } else { preview },
+                        if preview.len() > 25 {
+                            format!("{}...", &preview[..25])
+                        } else {
+                            preview
+                        },
                         Style::default().fg(Color::Rgb(120, 120, 120)),
                     ),
                 ]));
@@ -159,7 +221,11 @@ pub fn render_sessions(f: &mut Frame, app: &App) {
                     Span::raw(s),
                     Span::raw(" "),
                     Span::styled(
-                        if preview.len() > 20 { format!("{}...", &preview[..20]) } else { preview },
+                        if preview.len() > 20 {
+                            format!("{}...", &preview[..20])
+                        } else {
+                            preview
+                        },
                         Style::default().fg(Color::Rgb(80, 80, 80)),
                     ),
                 ]));
@@ -199,7 +265,9 @@ pub fn render_thinking(f: &mut Frame, app: &App) {
     let mut lines: Vec<Line> = vec![
         Line::from(Span::styled(
             " Reasoning",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
     ];
@@ -245,14 +313,14 @@ fn get_session_preview(name: &str) -> Option<String> {
     let path = crate::app::session_dir().join(format!("{name}.json"));
     let content = std::fs::read_to_string(&path).ok()?;
     let data: serde_json::Value = serde_json::from_str(&content).ok()?;
-    
+
     let messages = data["messages"].as_array()?;
     for m in messages {
         let role = m["role"].as_str()?;
         if role == "user" {
-            return m["content"].as_str().map(|s| {
-                s.chars().take(30).collect::<String>()
-            });
+            return m["content"]
+                .as_str()
+                .map(|s| s.chars().take(30).collect::<String>());
         }
     }
     None

@@ -61,7 +61,9 @@ pub fn render_tool(f: &mut Frame, app: &App) {
     let mut lines: Vec<Line> = vec![
         Line::from(Span::styled(
             " Tool detail",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
     ];
@@ -74,7 +76,12 @@ pub fn render_tool(f: &mut Frame, app: &App) {
         Some((inv, output)) => {
             lines.push(Line::from(vec![
                 Span::raw("  "),
-                Span::styled(inv.name.clone(), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                Span::styled(
+                    inv.name.clone(),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                ),
                 Span::styled(
                     format!("  id:{}", inv.id),
                     Style::default().fg(Color::Rgb(120, 120, 120)),
@@ -94,7 +101,10 @@ pub fn render_tool(f: &mut Frame, app: &App) {
                 for raw in inv.args.lines() {
                     lines.push(Line::from(vec![
                         Span::raw("    "),
-                        Span::styled(fit(raw, inner_w.saturating_sub(4).max(10)), Style::default().fg(Color::White)),
+                        Span::styled(
+                            fit(raw, inner_w.saturating_sub(4).max(10)),
+                            Style::default().fg(Color::White),
+                        ),
                     ]));
                 }
             }
@@ -177,14 +187,18 @@ pub fn render_approval(f: &mut Frame, app: &App) {
     let mut lines: Vec<Line> = vec![
         Line::from(Span::styled(
             " Allow tool?",
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(vec![
             Span::raw("  "),
             Span::styled(
                 pending.invocation.name.clone(),
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
                 format!("  id:{}", pending.invocation.id),
@@ -219,9 +233,17 @@ pub fn render_approval(f: &mut Frame, app: &App) {
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  y", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "  y",
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD),
+            ),
             Span::raw("  approve   "),
-            Span::styled("n", Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)),
+            Span::styled(
+                "n",
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+            ),
             Span::raw("  deny   "),
             Span::styled("Esc", Style::default().fg(Color::DarkGray)),
             Span::raw("  deny"),

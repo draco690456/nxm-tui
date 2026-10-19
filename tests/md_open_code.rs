@@ -5,9 +5,7 @@
 
 use syntect::util::LinesWithEndings;
 
-use nxm_tui::md::open_code_highlighter::{
-    CLOSED_MEMO_CAP_BYTES, OpenCodeHighlighter, HlLine,
-};
+use nxm_tui::md::open_code_highlighter::{HlLine, OpenCodeHighlighter, CLOSED_MEMO_CAP_BYTES};
 use nxm_tui::md::syntax::Syntect;
 
 /// Batch reference highlight, mirroring `parse::syntax_highlight_raw`.
@@ -38,9 +36,7 @@ fn append_only_growth_matches_fresh_full_highlight() {
         let Some(prefix) = full.get(..end) else {
             continue;
         };
-        let got = cache
-            .highlight(&syn, "yaml", 0, prefix)
-            .expect("hl");
+        let got = cache.highlight(&syn, "yaml", 0, prefix).expect("hl");
         assert_eq!(got, batch(&syn, "yaml", prefix), "prefix len {end}");
     }
 }
@@ -75,11 +71,9 @@ fn start_offset_change_invalidates() {
 fn unknown_fence_returns_none() {
     let syn = Syntect::new().expect("syntect defaults");
     let mut cache = OpenCodeHighlighter::new(&syn);
-    assert!(
-        cache
-            .highlight(&syn, "definitely-not-a-language-xyz", 0, "data\n")
-            .is_none(),
-    );
+    assert!(cache
+        .highlight(&syn, "definitely-not-a-language-xyz", 0, "data\n")
+        .is_none(),);
 }
 
 // ── highlight_closed (closed-fence memo) ─────────────────────────

@@ -207,7 +207,10 @@ fn fit_line_preserves_span_styles_when_padding() {
 #[test]
 fn push_owned_lines_makes_static_copies() {
     let source = String::from("owned text");
-    let src = vec![Line::from(vec![Span::raw(source.as_str()), Span::raw(" two")])];
+    let src = vec![Line::from(vec![
+        Span::raw(source.as_str()),
+        Span::raw(" two"),
+    ])];
     let mut out = Vec::new();
     push_owned_lines(&src, &mut out);
     assert_eq!(out.len(), 1);
@@ -233,8 +236,7 @@ fn line_to_static_returns_owned_content() {
 
 #[test]
 fn cascade_truncate_all_fit() {
-    let (t, d, a, m) =
-        cascade_truncate(50, "type  ", "description", " \u{2014} running", "  meta");
+    let (t, d, a, m) = cascade_truncate(50, "type  ", "description", " \u{2014} running", "  meta");
     assert_eq!(t, "type  ");
     assert_eq!(d, "description");
     assert_eq!(a, " \u{2014} running");

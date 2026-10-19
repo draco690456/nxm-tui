@@ -9,9 +9,7 @@ use crate::server_proc::ServerProcess;
 
 // Re-export the extracted command/metric types so existing call sites
 // (`handler.rs`, `tests/*`) keep resolving via `app::` unchanged.
-pub use crate::commands::{
-    Command, ConfigCommand, ProviderCommand, ServerCommand, parse_command,
-};
+pub use crate::commands::{parse_command, Command, ConfigCommand, ProviderCommand, ServerCommand};
 pub use crate::metrics::Metrics;
 
 // Re-export the extracted message types so existing call sites
@@ -54,7 +52,6 @@ impl AgentMode {
         }
     }
 }
-
 
 /// Append streaming text to the thinking buffer, stripping a trailing partial
 /// tag fragment ("hidden</thinking" arriving before its ">") so the overlay
@@ -174,7 +171,11 @@ pub struct ModelRoleInfo {
 
 impl ModelRoleInfo {
     pub fn none(role: &'static str) -> Self {
-        Self { role, name: "—".into(), status: "not loaded".into() }
+        Self {
+            role,
+            name: "—".into(),
+            status: "not loaded".into(),
+        }
     }
 }
 
@@ -222,10 +223,7 @@ pub fn git_branch() -> Option<String> {
         Err(_) => return None,
     };
 
-    let fresh = guard
-        .0
-        .map(|t| t.elapsed() < TTL)
-        .unwrap_or(false);
+    let fresh = guard.0.map(|t| t.elapsed() < TTL).unwrap_or(false);
     if fresh {
         return guard.1.clone();
     }
@@ -449,7 +447,9 @@ impl App {
         if self.passphrase_pending.is_none() {
             tracing::info!(target: "nexum::keystore", "passphrase prompt open");
             self.passphrase_pending = Some(PassphraseEntry::default());
-            self.set_status("Keystore cifrato: inserisci la passphrase (una tantum, Esc annulla)".into());
+            self.set_status(
+                "Keystore cifrato: inserisci la passphrase (una tantum, Esc annulla)".into(),
+            );
         }
     }
 
@@ -472,7 +472,9 @@ impl App {
     }
 
     pub fn operation_elapsed(&self) -> u64 {
-        self.operation_start.map(|s| s.elapsed().as_secs()).unwrap_or(0)
+        self.operation_start
+            .map(|s| s.elapsed().as_secs())
+            .unwrap_or(0)
     }
 
     pub fn is_working(&self) -> bool {
@@ -563,7 +565,9 @@ impl App {
     fn messages_fingerprint(&self) -> (usize, Option<(usize, u8)>) {
         (
             self.messages.len(),
-            self.messages.last().map(|m| (m.content.len(), m.role as u8)),
+            self.messages
+                .last()
+                .map(|m| (m.content.len(), m.role as u8)),
         )
     }
 
@@ -657,7 +661,9 @@ impl App {
     pub fn context_pct(&self) -> f64 {
         let used = self.estimated_tokens() as f64;
         let max = self.max_context as f64;
-        if max == 0.0 { return 0.0; }
+        if max == 0.0 {
+            return 0.0;
+        }
         (used / max * 100.0).min(100.0)
     }
 

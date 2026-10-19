@@ -20,11 +20,17 @@ struct MockKeyStore {
 
 impl MockKeyStore {
     fn new() -> Self {
-        MockKeyStore { map: RefCell::new(BTreeMap::new()), fail: false }
+        MockKeyStore {
+            map: RefCell::new(BTreeMap::new()),
+            fail: false,
+        }
     }
 
     fn failing() -> Self {
-        MockKeyStore { map: RefCell::new(BTreeMap::new()), fail: true }
+        MockKeyStore {
+            map: RefCell::new(BTreeMap::new()),
+            fail: true,
+        }
     }
 
     fn seed(self, entries: &[(&str, &str)]) -> Self {
@@ -40,7 +46,11 @@ impl KeyStore for MockKeyStore {
         if self.fail {
             return Err(KeyStoreError::Backend("mock forced failure".into()));
         }
-        Ok(self.map.borrow().get(provider).map(|s| Zeroizing::new(s.clone())))
+        Ok(self
+            .map
+            .borrow()
+            .get(provider)
+            .map(|s| Zeroizing::new(s.clone())))
     }
 
     fn set(&self, provider: &str, secret: &str) -> Result<(), KeyStoreError> {
@@ -81,7 +91,14 @@ fn migrate_copies_present_keys_to_dest() {
 
     let report = migrate_keys(&source, &dest, &names(&["NVIDIA", "OpenAI"]));
 
-    assert_eq!(report, MigrateReport { migrated: 2, absent: 0, errors: 0 });
+    assert_eq!(
+        report,
+        MigrateReport {
+            migrated: 2,
+            absent: 0,
+            errors: 0
+        }
+    );
     assert_eq!(got(&dest, "NVIDIA"), Some("nv-secret".into()));
     assert_eq!(got(&dest, "OpenAI"), Some("oa-secret".into()));
 }
@@ -94,7 +111,14 @@ fn migrate_counts_absent_providers() {
 
     let report = migrate_keys(&source, &dest, &names(&["NVIDIA", "Anthropic", "Groq"]));
 
-    assert_eq!(report, MigrateReport { migrated: 1, absent: 2, errors: 0 });
+    assert_eq!(
+        report,
+        MigrateReport {
+            migrated: 1,
+            absent: 2,
+            errors: 0
+        }
+    );
     assert_eq!(got(&dest, "Anthropic"), None);
 }
 
@@ -109,7 +133,14 @@ fn migrate_is_idempotent() {
     let second = migrate_keys(&source, &dest, &want);
 
     assert_eq!(first, second);
-    assert_eq!(second, MigrateReport { migrated: 2, absent: 0, errors: 0 });
+    assert_eq!(
+        second,
+        MigrateReport {
+            migrated: 2,
+            absent: 0,
+            errors: 0
+        }
+    );
     assert_eq!(got(&dest, "NVIDIA"), Some("nv-secret".into()));
     assert_eq!(got(&dest, "OpenAI"), Some("oa-secret".into()));
 }
@@ -121,7 +152,14 @@ fn migrate_source_error_is_counted_and_continues() {
     let dest = MockKeyStore::new();
 
     let report = migrate_keys(&source, &dest, &names(&["NVIDIA", "OpenAI"]));
-    assert_eq!(report, MigrateReport { migrated: 0, absent: 0, errors: 2 });
+    assert_eq!(
+        report,
+        MigrateReport {
+            migrated: 0,
+            absent: 0,
+            errors: 2
+        }
+    );
 }
 
 /// A destination write error is counted; migration continues to the next.
@@ -131,7 +169,14 @@ fn migrate_dest_error_is_counted_and_continues() {
     let dest = MockKeyStore::failing();
 
     let report = migrate_keys(&source, &dest, &names(&["NVIDIA", "OpenAI"]));
-    assert_eq!(report, MigrateReport { migrated: 0, absent: 0, errors: 2 });
+    assert_eq!(
+        report,
+        MigrateReport {
+            migrated: 0,
+            absent: 0,
+            errors: 2
+        }
+    );
 }
 
 /// An empty provider list is a clean no-op.
@@ -146,11 +191,21 @@ fn migrate_empty_provider_list_is_noop() {
 #[test]
 fn migrate_report_status_line() {
     assert_eq!(
-        MigrateReport { migrated: 3, absent: 0, errors: 0 }.status_line(),
+        MigrateReport {
+            migrated: 3,
+            absent: 0,
+            errors: 0
+        }
+        .status_line(),
         "3 chiavi migrate"
     );
     assert_eq!(
-        MigrateReport { migrated: 1, absent: 2, errors: 1 }.status_line(),
+        MigrateReport {
+            migrated: 1,
+            absent: 2,
+            errors: 1
+        }
+        .status_line(),
         "1 chiavi migrate (1 errori, 2 assenti)"
     );
 }

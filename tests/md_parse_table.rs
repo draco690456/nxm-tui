@@ -42,15 +42,28 @@ fn parse_gfm_table_populates_table_replaces() {
         "a GFM table must produce exactly one TableReplace"
     );
     let table = &parsed.buffers.table_replaces[0];
-    assert!(!table.lines.is_empty(), "formatted table lines must be non-empty");
+    assert!(
+        !table.lines.is_empty(),
+        "formatted table lines must be non-empty"
+    );
     assert_eq!(table.n_cols, 2, "two GFM header cells");
     // Box-drawing borders are present in the plain lines.
-    assert!(table.lines.iter().any(|l| l.contains('│')), "need a `│` border char in {lines:?}", lines = table.lines);
+    assert!(
+        table.lines.iter().any(|l| l.contains('│')),
+        "need a `│` border char in {lines:?}",
+        lines = table.lines
+    );
     // The last line is the bottom border: └ … ┘
     let last = table.lines.last().expect("bottom border line");
-    assert!(last.starts_with('└') && last.ends_with('┘'), "bottom border suspicious: {last}");
+    assert!(
+        last.starts_with('└') && last.ends_with('┘'),
+        "bottom border suspicious: {last}"
+    );
     // A plain cell value survives in the body lines.
-    assert!(table.lines.iter().any(|l| l.contains("1")), "cell `1` must appear");
+    assert!(
+        table.lines.iter().any(|l| l.contains("1")),
+        "cell `1` must appear"
+    );
 }
 
 /// `format_border_line` produces the correct border chars via `TableBorders`.
@@ -66,7 +79,8 @@ fn format_border_line_produces_box_chars() {
     assert_eq!(line, "┌─────┬────┐");
 
     let ascii = TableBorders::ASCII;
-    let line = parser.format_border_line(&[1], 1, ascii.c_tl(), ascii.t_t(), ascii.c_tr(), ascii.h());
+    let line =
+        parser.format_border_line(&[1], 1, ascii.c_tl(), ascii.t_t(), ascii.c_tr(), ascii.h());
     assert_eq!(line, "+---+");
 }
 

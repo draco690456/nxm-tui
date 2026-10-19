@@ -116,7 +116,9 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                     }
                     Err(KeyStoreError::Unavailable(msg)) => {
                         tracing::warn!(target: "nexum::keystore", provider = %provider_name, error = %msg, "keystore unavailable on save");
-                        app.set_status(format!("Keystore non disponibile per {provider_name}: {msg}"));
+                        app.set_status(format!(
+                            "Keystore non disponibile per {provider_name}: {msg}"
+                        ));
                     }
                     Err(e) => {
                         tracing::error!(target: "nexum::keystore", provider = %provider_name, error = %e, "keystore save error");
@@ -331,9 +333,10 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
     if key.modifiers == KeyModifiers::CONTROL {
         match key.code {
             KeyCode::Char('s') => {
-                let name = app.session_name.clone().or_else(|| {
-                    Some(chrono::Local::now().format("%Y%m%d_%H%M%S").to_string())
-                });
+                let name = app
+                    .session_name
+                    .clone()
+                    .or_else(|| Some(chrono::Local::now().format("%Y%m%d_%H%M%S").to_string()));
                 if let Some(ref n) = name.clone() {
                     match app::save_session(n, &app.messages, app.mode) {
                         Ok(()) => {
@@ -404,7 +407,14 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             KeyCode::Char('b') => {
                 // Toggle sidebar visibility
                 app.sidebar_open = !app.sidebar_open;
-                app.set_status(if app.sidebar_open { "Sidebar enabled" } else { "Sidebar disabled" }.to_string());
+                app.set_status(
+                    if app.sidebar_open {
+                        "Sidebar enabled"
+                    } else {
+                        "Sidebar disabled"
+                    }
+                    .to_string(),
+                );
                 return;
             }
             KeyCode::Char('k') => {
@@ -477,7 +487,9 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                         }
                         crate::app::ConfigCommand::Generate { engine: _, model } => {
                             if model.is_empty() {
-                                app.set_status("Usage: /config generate <model_path> [engine]".into());
+                                app.set_status(
+                                    "Usage: /config generate <model_path> [engine]".into(),
+                                );
                                 return;
                             }
                             // Resolve model path (supports relative or ~/nexum/models/... )
@@ -492,11 +504,17 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                                     return;
                                 }
                                 // TODO: introspect not yet migrated
-                                app.set_status("Model introspect not yet available (pending migration)".to_string());
+                                app.set_status(
+                                    "Model introspect not yet available (pending migration)"
+                                        .to_string(),
+                                );
                                 return;
                             }
                             // TODO: introspect not yet migrated
-                            app.set_status("Model introspect not yet available (pending migration)".to_string());
+                            app.set_status(
+                                "Model introspect not yet available (pending migration)"
+                                    .to_string(),
+                            );
                         }
                     }
                 }
@@ -521,18 +539,16 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                         Err(e) => app.set_status(format!("Save error: {e}")),
                     }
                 }
-                Command::LoadSession(name) => {
-                    match app::load_session(&name) {
-                        Ok((msgs, mode)) => {
-                            app.messages = msgs;
-                            app.mode = mode;
-                            app.session_name = Some(name.clone());
-                            app.stick_to_bottom();
-                            app.set_status(format!("Loaded: {name}"));
-                        }
-                        Err(e) => app.set_status(format!("Load error: {e}")),
+                Command::LoadSession(name) => match app::load_session(&name) {
+                    Ok((msgs, mode)) => {
+                        app.messages = msgs;
+                        app.mode = mode;
+                        app.session_name = Some(name.clone());
+                        app.stick_to_bottom();
+                        app.set_status(format!("Loaded: {name}"));
                     }
-                }
+                    Err(e) => app.set_status(format!("Load error: {e}")),
+                },
                 Command::ListSessions => {
                     app.show_sessions = !app.show_sessions;
                 }
@@ -542,80 +558,85 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 }
                 Command::Sidebar => {
                     app.sidebar_open = !app.sidebar_open;
-                    app.set_status(if app.sidebar_open { "Sidebar enabled" } else { "Sidebar disabled" }.to_string());
+                    app.set_status(
+                        if app.sidebar_open {
+                            "Sidebar enabled"
+                        } else {
+                            "Sidebar disabled"
+                        }
+                        .to_string(),
+                    );
                 }
-                Command::Server(cmd) => {
-                    match cmd {
-                        crate::app::ServerCommand::Start => {
-                            if let Some(pid) = crate::server_proc::server_running_by_pid() {
-                                tracing::warn!(target: "nexum::server", pid, "Server already running via PID file");
-                                app.set_status(format!("Server already running (PID {pid})"));
-                            }
-                            if app.server_is_running() {
-                                app.set_status(format!(
-                                    "Server already running on port {}",
-                                    app.server_process.as_ref().unwrap().port
-                                ));
-                                return;
-                            }
-                            let port = 11434u16;
-                            tracing::info!(target: "nexum::server", port, "Starting server from TUI");
-                            match app.start_server(port) {
-                                Ok(()) => {
-                                    tracing::info!(target: "nexum::server", port, "Server process spawned");
-                                    app.set_status(format!("Server starting on port {port}..."));
-                                }
-                                Err(e) => {
-                                    tracing::error!(target: "nexum::server", error = %e, "Failed to start server");
-                                    app.set_status(format!("Error: {e}"));
-                                }
-                            }
+                Command::Server(cmd) => match cmd {
+                    crate::app::ServerCommand::Start => {
+                        if let Some(pid) = crate::server_proc::server_running_by_pid() {
+                            tracing::warn!(target: "nexum::server", pid, "Server already running via PID file");
+                            app.set_status(format!("Server already running (PID {pid})"));
                         }
-                        crate::app::ServerCommand::Stop => {
-                            if app.server_is_running() {
-                                tracing::info!(target: "nexum::server", "Stopping server (child process)");
-                                match app.stop_server() {
-                                    Ok(()) => {
-                                        tracing::info!(target: "nexum::server", "Server stopped");
-                                        app.set_status("Server stopped".into());
-                                        return;
-                                    }
-                                    Err(e) => {
-                                        tracing::warn!(target: "nexum::server", error = %e, "Child stop failed, trying PID");
-                                    }
-                                }
-                            }
-                            match crate::server_proc::stop_server_by_pid() {
-                                Ok(()) => {
-                                    tracing::info!(target: "nexum::server", "Server stopped via PID");
-                                    app.set_status("Server stopped".into());
-                                }
-                                Err(e) => {
-                                    tracing::warn!(target: "nexum::server", error = %e, "No server to stop");
-                                    app.set_status(e.to_string());
-                                }
-                            }
+                        if app.server_is_running() {
+                            app.set_status(format!(
+                                "Server already running on port {}",
+                                app.server_process.as_ref().unwrap().port
+                            ));
+                            return;
                         }
-                        crate::app::ServerCommand::Status => {
-                            if let Some(ref proc) = app.server_process {
-                                app.set_status(format!(
-                                    "Server running on port {} (PID {})",
-                                    proc.port,
-                                    proc.child.id()
-                                ));
-                                return;
+                        let port = 11434u16;
+                        tracing::info!(target: "nexum::server", port, "Starting server from TUI");
+                        match app.start_server(port) {
+                            Ok(()) => {
+                                tracing::info!(target: "nexum::server", port, "Server process spawned");
+                                app.set_status(format!("Server starting on port {port}..."));
                             }
-                            match crate::server_proc::server_running_by_pid() {
-                                Some(pid) => {
-                                    app.set_status(format!("Server running (PID {pid})"));
-                                }
-                                None => {
-                                    app.set_status("No server running".into());
-                                }
+                            Err(e) => {
+                                tracing::error!(target: "nexum::server", error = %e, "Failed to start server");
+                                app.set_status(format!("Error: {e}"));
                             }
                         }
                     }
-                }
+                    crate::app::ServerCommand::Stop => {
+                        if app.server_is_running() {
+                            tracing::info!(target: "nexum::server", "Stopping server (child process)");
+                            match app.stop_server() {
+                                Ok(()) => {
+                                    tracing::info!(target: "nexum::server", "Server stopped");
+                                    app.set_status("Server stopped".into());
+                                    return;
+                                }
+                                Err(e) => {
+                                    tracing::warn!(target: "nexum::server", error = %e, "Child stop failed, trying PID");
+                                }
+                            }
+                        }
+                        match crate::server_proc::stop_server_by_pid() {
+                            Ok(()) => {
+                                tracing::info!(target: "nexum::server", "Server stopped via PID");
+                                app.set_status("Server stopped".into());
+                            }
+                            Err(e) => {
+                                tracing::warn!(target: "nexum::server", error = %e, "No server to stop");
+                                app.set_status(e.to_string());
+                            }
+                        }
+                    }
+                    crate::app::ServerCommand::Status => {
+                        if let Some(ref proc) = app.server_process {
+                            app.set_status(format!(
+                                "Server running on port {} (PID {})",
+                                proc.port,
+                                proc.child.id()
+                            ));
+                            return;
+                        }
+                        match crate::server_proc::server_running_by_pid() {
+                            Some(pid) => {
+                                app.set_status(format!("Server running (PID {pid})"));
+                            }
+                            None => {
+                                app.set_status("No server running".into());
+                            }
+                        }
+                    }
+                },
                 Command::Provider(pcmd) => {
                     handle_provider_command(app, pcmd);
                 }
@@ -629,10 +650,13 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 }
                 Command::Normal(text) => {
                     if let Some(sys) = app.system_prompt_for_mode() {
-                        if !app.messages.iter().any(|m| {
-                            matches!(m.role, Role::System) && m.content == sys
-                        }) {
-                            app.messages.push(Message::new(Role::System, sys.to_string()));
+                        if !app
+                            .messages
+                            .iter()
+                            .any(|m| matches!(m.role, Role::System) && m.content == sys)
+                        {
+                            app.messages
+                                .push(Message::new(Role::System, sys.to_string()));
                         }
                     }
                     app.messages.push(Message::new(Role::User, text.clone()));
@@ -642,7 +666,9 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                 }
             }
         }
-        KeyCode::Enter if app.show_help || app.show_sessions || app.show_metrics || app.show_context => {
+        KeyCode::Enter
+            if app.show_help || app.show_sessions || app.show_metrics || app.show_context =>
+        {
             app.show_help = false;
             app.show_sessions = false;
             app.show_metrics = false;
@@ -697,14 +723,16 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
         KeyCode::Up => {
             // History navigation with Alt/Ctrl modifiers
             if key.modifiers == KeyModifiers::ALT || key.modifiers == KeyModifiers::CONTROL {
-                app.prompt_state.navigate_history(crate::prompt::HistoryDirection::Up);
+                app.prompt_state
+                    .navigate_history(crate::prompt::HistoryDirection::Up);
             } else {
                 app.scroll_up();
             }
         }
         KeyCode::Down => {
             if key.modifiers == KeyModifiers::ALT || key.modifiers == KeyModifiers::CONTROL {
-                app.prompt_state.navigate_history(crate::prompt::HistoryDirection::Down);
+                app.prompt_state
+                    .navigate_history(crate::prompt::HistoryDirection::Down);
             } else {
                 app.scroll_down();
             }
@@ -741,14 +769,19 @@ fn handle_model_use(app: &mut App, x: &str) {
     let model_id = if let Ok(idx) = x.parse::<usize>() {
         // Numeric index into the current list
         if idx == 0 || idx > app.models_list.len() {
-            app.set_status(format!("Invalid model index: {idx} (1-{})", app.models_list.len()));
+            app.set_status(format!(
+                "Invalid model index: {idx} (1-{})",
+                app.models_list.len()
+            ));
             return;
         }
         app.models_list[idx - 1].id.clone()
     } else {
         // Direct id match
         if !app.models_list.iter().any(|m| m.id == x) {
-            app.set_status(format!("Unknown model: {x} — use /models to list available models"));
+            app.set_status(format!(
+                "Unknown model: {x} — use /models to list available models"
+            ));
             return;
         }
         x.to_string()
@@ -858,7 +891,9 @@ fn handle_provider_command(app: &mut App, pcmd: crate::app::ProviderCommand) {
                     provider: name.clone(),
                     buffer: String::new(),
                 });
-                app.set_status(format!("Enter API key for {name} (masked, Enter=save, Esc=cancel)"));
+                app.set_status(format!(
+                    "Enter API key for {name} (masked, Enter=save, Esc=cancel)"
+                ));
             } else {
                 app.set_status(format!("Unknown provider: {name}"));
             }

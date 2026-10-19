@@ -10,7 +10,10 @@ static COMMANDS: &[(&str, &str)] = &[
     ("/help", "Show this help"),
     ("/load", "Load session"),
     ("/metrics", "Show metrics"),
-    ("/mode", "Set agent mode: chat|architect|developer|researcher"),
+    (
+        "/mode",
+        "Set agent mode: chat|architect|developer|researcher",
+    ),
     ("/model use", "Select model by id or index"),
     ("/models", "List models from active provider"),
     ("/new", "New session"),
@@ -25,14 +28,14 @@ static COMMANDS: &[(&str, &str)] = &[
 fn score_match(pattern: &str, text: &str) -> u32 {
     let pattern_lower = pattern.to_lowercase();
     let text_lower = text.to_lowercase();
-    
+
     if text_lower.starts_with(&pattern_lower) {
         return 1000 + (200 - pattern.len() as u32);
     }
     if text_lower.contains(&pattern_lower) {
         return 500 + (100 - pattern.len() as u32);
     }
-    
+
     // Levenshtein distance approximation
     let mut score = 0u32;
     let mut p_idx = 0;
@@ -51,7 +54,7 @@ fn score_match(pattern: &str, text: &str) -> u32 {
 /// Find matching commands for autocomplete.
 pub fn find_matches(input: &str, limit: usize) -> Vec<(String, String)> {
     let mut matches: Vec<(String, u32, String, String)> = Vec::new();
-    
+
     for &(cmd, desc) in COMMANDS {
         if input.is_empty() || cmd.starts_with('/') && !input.starts_with('/') {
             continue; // Only complete slash commands
@@ -61,9 +64,13 @@ pub fn find_matches(input: &str, limit: usize) -> Vec<(String, String)> {
             matches.push((cmd.to_string(), score, desc.to_string(), cmd.to_string()));
         }
     }
-    
+
     matches.sort_by_key(|m| std::cmp::Reverse(m.1));
-    matches.into_iter().take(limit).map(|(c, _, d, _)| (c, d)).collect()
+    matches
+        .into_iter()
+        .take(limit)
+        .map(|(c, _, d, _)| (c, d))
+        .collect()
 }
 
 /// Commands shown in the slash-command popup.

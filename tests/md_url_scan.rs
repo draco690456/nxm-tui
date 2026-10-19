@@ -79,7 +79,10 @@ fn detect_plain_urls_split_across_style_spans_is_one_target() {
 #[test]
 fn detect_plain_urls_empty_document_returns_empty() {
     let (found, _next_id) = detect_plain_urls(&[], &[], 0);
-    assert!(found.is_empty(), "empty document should produce no hyperlinks");
+    assert!(
+        found.is_empty(),
+        "empty document should produce no hyperlinks"
+    );
 }
 
 /// `detect_plain_urls_with_offset` con offset di linea.

@@ -62,39 +62,39 @@ pub fn render(f: &mut Frame, app: &mut App) {
 fn render_chat(f: &mut Frame, app: &mut App) {
     let area = f.area();
     let width = area.width;
-    
+
     // Sidebar visible only if width > threshold
     let show_sidebar = app.sidebar_open && width > SIDEBAR_THRESHOLD;
-    
+
     let chat_area = if show_sidebar {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Length(crate::sidebar::SIDEBAR_WIDTH), // Sidebar
-                Constraint::Min(20), // Chat area
+                Constraint::Min(20),                               // Chat area
             ])
             .split(area);
-        
+
         // Render sidebar if visible
         let sidebar_area = chunks[0];
         let info = SidebarInfo::from_app(app);
         crate::sidebar::render_sidebar(&info, sidebar_area, f.buffer_mut());
-        
+
         chunks[1] // Chat area
     } else {
         area
     };
-    
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1),   // mode bar (compact)
-            Constraint::Min(3),      // chat history
-            Constraint::Length(1),   // working indicator
-            Constraint::Length(1),   // separator
-            Constraint::Length(1),   // input
-            Constraint::Length(1),   // separator
-            Constraint::Length(3),   // bottom 3 lines: Indexer / Router / Worker
+            Constraint::Length(1), // mode bar (compact)
+            Constraint::Min(3),    // chat history
+            Constraint::Length(1), // working indicator
+            Constraint::Length(1), // separator
+            Constraint::Length(1), // input
+            Constraint::Length(1), // separator
+            Constraint::Length(3), // bottom 3 lines: Indexer / Router / Worker
         ])
         .split(chat_area);
 
@@ -149,7 +149,10 @@ fn render_command_menu(f: &mut Frame, app: &App, prompt_area: Rect) {
         .map(|(i, (cmd, desc))| {
             let is_sel = i == selected;
             let cmd_style = if is_sel {
-                Style::default().fg(Color::Black).bg(Color::Cyan).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Black)
+                    .bg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default().fg(Color::Cyan)
             };
@@ -183,7 +186,9 @@ fn render_no_server(f: &mut Frame) {
     let mut lines = vec![
         Line::from(Span::styled(
             "Server non attivo",
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled(
@@ -277,7 +282,9 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
     let mut lines: Vec<Line> = vec![
         Line::from(Span::styled(
             " Metrics",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(Span::styled(
@@ -286,15 +293,24 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
         )),
         Line::from(vec![
             Span::raw("  Duration:      "),
-            Span::styled(format!("{session_min}m {session_sec}s"), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{session_min}m {session_sec}s"),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::raw("  User messages: "),
-            Span::styled(format!("{}", m.session_user_msgs), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", m.session_user_msgs),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::raw("  Responses:     "),
-            Span::styled(format!("{}", m.response_times_ms.len()), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", m.response_times_ms.len()),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(""),
         Line::from(Span::styled(
@@ -303,15 +319,24 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
         )),
         Line::from(vec![
             Span::raw("  Avg response:  "),
-            Span::styled(format!("{}ms", m.avg_response_time_ms()), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}ms", m.avg_response_time_ms()),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::raw("  Avg tokens:    "),
-            Span::styled(format!("{}", m.avg_tokens_per_response()), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", m.avg_tokens_per_response()),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::raw("  Tokens/sec:    "),
-            Span::styled(format!("{:.1}", m.tokens_per_second()), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{:.1}", m.tokens_per_second()),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(""),
         Line::from(Span::styled(
@@ -320,15 +345,24 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
         )),
         Line::from(vec![
             Span::raw("  Total tokens:  "),
-            Span::styled(format!("{}", m.total_tokens), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", m.total_tokens),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::raw("  Total chars:   "),
-            Span::styled(format!("{}", m.total_chars), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", m.total_chars),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(vec![
             Span::raw("  Total calls:   "),
-            Span::styled(format!("{}", m.total_responses), Style::default().fg(Color::White)),
+            Span::styled(
+                format!("{}", m.total_responses),
+                Style::default().fg(Color::White),
+            ),
         ]),
         Line::from(""),
         Line::from(vec![
@@ -346,7 +380,13 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
             "  Last response times (ms):",
             Style::default().fg(Color::Rgb(120, 120, 120)),
         )));
-        let max_t = m.response_times_ms.iter().max().copied().unwrap_or(1).max(1);
+        let max_t = m
+            .response_times_ms
+            .iter()
+            .max()
+            .copied()
+            .unwrap_or(1)
+            .max(1);
         let bar_w = w.saturating_sub(6) as usize;
         for t in m.response_times_ms.iter().rev().take(10).rev() {
             let frac = (*t as f64 / max_t as f64).min(1.0);
@@ -370,7 +410,11 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
 
     let block = Block::default()
         .title(" Observability Dashboard ")
-        .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .title_style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));
@@ -383,7 +427,11 @@ fn render_metrics_overlay(f: &mut Frame, app: &App) {
 fn render_context_overlay(f: &mut Frame, app: &App) {
     let area = f.area();
     let w = 54.min(area.width);
-    let h = if app.messages.len() > 20 { 22 } else { (app.messages.len() + 12).max(14) as u16 };
+    let h = if app.messages.len() > 20 {
+        22
+    } else {
+        (app.messages.len() + 12).max(14) as u16
+    };
     let x = (area.width.saturating_sub(w)) / 2;
     let y = (area.height.saturating_sub(h)) / 3;
 
@@ -394,9 +442,13 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
     let used = app.estimated_tokens();
     let max_k = app.max_context as f64 / 1000.0;
 
-    let ctx_color = if pct < 60.0 { Color::Green }
-    else if pct < 85.0 { Color::Yellow }
-    else { Color::Red };
+    let ctx_color = if pct < 60.0 {
+        Color::Green
+    } else if pct < 85.0 {
+        Color::Yellow
+    } else {
+        Color::Red
+    };
 
     let bar_w = (w.saturating_sub(6)) as usize;
     let filled = ((pct / 100.0) * bar_w as f64).round() as usize;
@@ -405,7 +457,9 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
     let mut lines: Vec<Line> = vec![
         Line::from(Span::styled(
             " Context Budget",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(vec![
@@ -415,7 +469,11 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
         Line::from(vec![
             Span::raw("  "),
             Span::styled(
-                format!("{:.1}K / {max_k}K tokens  ({:.0}%)", used as f64 / 1000.0, pct),
+                format!(
+                    "{:.1}K / {max_k}K tokens  ({:.0}%)",
+                    used as f64 / 1000.0,
+                    pct
+                ),
                 Style::default().fg(Color::White),
             ),
         ]),
@@ -446,15 +504,29 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
         };
         let first_line = msg.content.lines().next().unwrap_or("");
         let preview: String = first_line.chars().take(30).collect();
-        let preview = if first_line.len() > 30 { format!("{preview}…") } else { preview };
+        let preview = if first_line.len() > 30 {
+            format!("{preview}…")
+        } else {
+            preview
+        };
         lines.push(Line::from(vec![
-            Span::styled(format!("  {i:>2} "), Style::default().fg(Color::Rgb(80, 80, 80))),
+            Span::styled(
+                format!("  {i:>2} "),
+                Style::default().fg(Color::Rgb(80, 80, 80)),
+            ),
             Span::styled(role_label, Style::default().fg(Color::Cyan)),
             Span::raw(" "),
-            Span::styled(format!("{t:>4}t"), Style::default().fg(Color::Rgb(200, 200, 200))),
+            Span::styled(
+                format!("{t:>4}t"),
+                Style::default().fg(Color::Rgb(200, 200, 200)),
+            ),
             Span::raw("  "),
             Span::styled(
-                if preview.is_empty() { "(empty)".into() } else { preview.to_string() },
+                if preview.is_empty() {
+                    "(empty)".into()
+                } else {
+                    preview.to_string()
+                },
                 Style::default().fg(Color::Rgb(140, 140, 140)),
             ),
         ]));
@@ -477,7 +549,11 @@ fn render_context_overlay(f: &mut Frame, app: &App) {
 
     let block = Block::default()
         .title(" Context Budget ")
-        .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .title_style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));
@@ -510,7 +586,9 @@ fn render_search_overlay(f: &mut Frame, app: &App) {
     let lines = vec![
         Line::from(Span::styled(
             " Search",
-            Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(""),
         Line::from(vec![
@@ -535,7 +613,11 @@ fn render_search_overlay(f: &mut Frame, app: &App) {
 
     let block = Block::default()
         .title(" Search ")
-        .title_style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
+        .title_style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));
@@ -584,7 +666,11 @@ fn render_set_key_overlay(f: &mut Frame, app: &mut App) {
 
     let block = Block::default()
         .title(" Set API Key ")
-        .title_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD))
+        .title_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        )
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));
@@ -629,7 +715,11 @@ fn render_passphrase_overlay(f: &mut Frame, app: &mut App) {
 
     let block = Block::default()
         .title(" Keystore Passphrase ")
-        .title_style(Style::default().fg(Color::Magenta).add_modifier(Modifier::BOLD))
+        .title_style(
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        )
         .borders(Borders::ALL)
         .border_style(Style::default().fg(Color::Rgb(100, 100, 100)))
         .style(Style::default().bg(Color::Rgb(20, 20, 20)));

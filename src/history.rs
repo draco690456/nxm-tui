@@ -58,7 +58,10 @@ pub fn render_history(f: &mut Frame, app: &mut App, area: Rect) {
             }
         }
         let rendered = render_message(msg, w, user_count);
-        let entry = MsgEntry { key, lines: rendered.clone() };
+        let entry = MsgEntry {
+            key,
+            lines: rendered.clone(),
+        };
         if idx == app.history_cache.entries.len() {
             app.history_cache.entries.push(entry);
         } else {
@@ -158,7 +161,10 @@ fn render_message(msg: &Message, w: usize, user_count: usize) -> Vec<Line<'stati
         Role::Tool => {
             lines.push(Line::from(vec![
                 Span::styled(" ◀ tool ", Style::default().fg(Color::Cyan)),
-                Span::styled(msg.content.clone(), Style::default().fg(Color::Rgb(180, 180, 80))),
+                Span::styled(
+                    msg.content.clone(),
+                    Style::default().fg(Color::Rgb(180, 180, 80)),
+                ),
             ]));
             lines.push(Line::from(""));
         }

@@ -61,7 +61,10 @@ pub fn role_line<'a>(info: &'a ModelRoleInfo, right_text: &str, width: u16) -> L
         _ => Color::Rgb(80, 80, 80),
     };
 
-    let left = format!(" Model {}: {} Status: {}", info.role, info.name, status_display);
+    let left = format!(
+        " Model {}: {} Status: {}",
+        info.role, info.name, status_display
+    );
     let right = format!("{} ", right_text);
     let pad = (width as usize).saturating_sub(left.len() + right.len());
 
@@ -72,7 +75,10 @@ pub fn role_line<'a>(info: &'a ModelRoleInfo, right_text: &str, width: u16) -> L
         ),
         Span::styled(info.name.clone(), Style::default().fg(Color::White)),
         Span::styled(" Status: ", Style::default().fg(Color::Rgb(100, 100, 100))),
-        Span::styled(status_display.to_string(), Style::default().fg(status_color)),
+        Span::styled(
+            status_display.to_string(),
+            Style::default().fg(status_color),
+        ),
         Span::raw(" ".repeat(pad)),
         Span::styled(right, Style::default().fg(Color::Rgb(120, 120, 120))),
     ];

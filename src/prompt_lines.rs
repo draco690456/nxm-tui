@@ -1,8 +1,8 @@
 //! Prompt lines rendering for nexum-terminal TUI.
 
+use super::prompt::PromptState;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
-use super::prompt::PromptState;
 
 /// Generate prompt lines for rendering.
 pub fn generate(state: &PromptState) -> Vec<Line<'static>> {
@@ -15,7 +15,10 @@ pub fn generate(state: &PromptState) -> Vec<Line<'static>> {
     if state.text().is_empty() {
         vec![Line::from(vec![
             Span::styled(prefix, prefix_style),
-            Span::styled(state.placeholder, Style::default().fg(Color::Rgb(60, 60, 60))),
+            Span::styled(
+                state.placeholder,
+                Style::default().fg(Color::Rgb(60, 60, 60)),
+            ),
         ])]
     } else {
         state

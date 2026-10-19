@@ -96,7 +96,10 @@ impl EncryptedFileStore {
             return Err(KeyStoreError::Corrupt("bad magic".into()));
         }
         if raw[4] != VERSION {
-            return Err(KeyStoreError::Corrupt(format!("unsupported version {}", raw[4])));
+            return Err(KeyStoreError::Corrupt(format!(
+                "unsupported version {}",
+                raw[4]
+            )));
         }
         let salt = &raw[5..5 + SALT_LEN];
         let nonce = &raw[5 + SALT_LEN..HEADER_LEN];
@@ -129,8 +132,8 @@ impl EncryptedFileStore {
         let cipher = Aes256Gcm::new_from_slice(key.as_ref())
             .map_err(|e| KeyStoreError::Backend(format!("aes init: {e}")))?;
 
-        let mut plaintext = serde_json::to_vec(map)
-            .map_err(|e| KeyStoreError::Backend(format!("json: {e}")))?;
+        let mut plaintext =
+            serde_json::to_vec(map).map_err(|e| KeyStoreError::Backend(format!("json: {e}")))?;
         let nonce_arr = Nonce::try_from(&nonce[..])
             .map_err(|e| KeyStoreError::Backend(format!("nonce: {e}")))?;
         let ciphertext = cipher
@@ -221,7 +224,9 @@ impl KeyStore for EncryptedFileStore {
         // or exists and is readable. A non-empty passphrase is required.
         !self.passphrase.is_empty()
             && (!Self::exists(&self.path)
-                || std::fs::metadata(&self.path).map(|m| m.is_file()).unwrap_or(false))
+                || std::fs::metadata(&self.path)
+                    .map(|m| m.is_file())
+                    .unwrap_or(false))
     }
 
     fn kind(&self) -> &'static str {

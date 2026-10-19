@@ -16,7 +16,6 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
-
 use nxm_tui::agent::Agent;
 use nxm_tui::app::{Message, Role};
 use nxm_tui::tool_types::ToolPart;
@@ -87,7 +86,8 @@ async fn agent_real_round_trip_read_file() {
             };
             let req = read_http_request(&mut socket).await;
             assert!(
-                req.to_ascii_lowercase().contains("authorization: bearer test-key"),
+                req.to_ascii_lowercase()
+                    .contains("authorization: bearer test-key"),
                 "bearer token must be forwarded to the OpenAI-compatible endpoint"
             );
             let resp = if turn == 0 {
@@ -96,11 +96,13 @@ async fn agent_real_round_trip_read_file() {
                     "choices": [{"delta": {"tool_calls": [{"index": 0, "id": "call_read",
                         "type": "function", "function": {"name": "read_file", "arguments": args}}]},
                                "finish_reason": "tool_calls"}]
-                })).unwrap())
+                }))
+                .unwrap())
             } else {
                 sse(&serde_json::to_string(&serde_json::json!({
                     "choices": [{"delta": {"content": "read_file OK"}, "finish_reason": "stop"}]
-                })).unwrap())
+                }))
+                .unwrap())
             };
             let _ = socket.write_all(resp.as_bytes()).await;
             let _ = socket.flush().await;
@@ -110,7 +112,15 @@ async fn agent_real_round_trip_read_file() {
     let client = reqwest::Client::new();
     let model = String::from("mock-model");
     let initial = vec![Message::new(Role::User, String::from("read the temp file"))];
-    let mut agent = Agent::new(&client, &base, &model, Some(String::from("test-key")), initial, None, nxm_tui_tools::default_registry());
+    let mut agent = Agent::new(
+        &client,
+        &base,
+        &model,
+        Some(String::from("test-key")),
+        initial,
+        None,
+        nxm_tui_tools::default_registry(),
+    );
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();
     agent.run(&tx).await.expect("agent turn must complete");
@@ -139,7 +149,10 @@ async fn agent_real_round_trip_read_file() {
         })
         .expect("expected a ToolResult from read_file");
     assert_eq!(result.call_id, "call_read");
-    assert_eq!(result.output, payload, "read_file returned the file contents");
+    assert_eq!(
+        result.output, payload,
+        "read_file returned the file contents"
+    );
     assert!(
         parts
             .iter()

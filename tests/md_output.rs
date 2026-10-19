@@ -8,9 +8,7 @@
 use ratatui::text::{Line, Span};
 
 use nxm_tui::md::buffers::CodeBlockMeta;
-use nxm_tui::md::output::{
-    build_code_block_spans, CodeBlockSpan, MarkdownRenderOutput,
-};
+use nxm_tui::md::output::{build_code_block_spans, CodeBlockSpan, MarkdownRenderOutput};
 
 /// A fresh `MarkdownRenderOutput` is empty on every buffer.
 #[test]
@@ -39,7 +37,10 @@ fn clear_empties_all_buffers() {
     assert!(!out.lines.is_empty());
     out.clear();
     assert!(out.lines.is_empty(), "clear must reset lines");
-    assert!(out.line_source_map.is_empty(), "clear must reset line_source_map");
+    assert!(
+        out.line_source_map.is_empty(),
+        "clear must reset line_source_map"
+    );
     assert!(out.code_blocks.is_empty(), "clear must reset code_blocks");
 }
 
@@ -130,7 +131,11 @@ fn build_code_block_spans_empty_body_and_no_metas() {
         }],
     );
     assert_eq!(spans.len(), 1);
-    assert_eq!(spans[0].output_line_range, 1..1, "empty range at the anchor");
+    assert_eq!(
+        spans[0].output_line_range,
+        1..1,
+        "empty range at the anchor"
+    );
     assert_eq!(spans[0].body, "");
 }
 
@@ -144,12 +149,15 @@ fn span_output_range_slices_rendered_lines() {
         Line::from(vec![Span::raw("X")]),
         Line::from(vec![Span::raw("```")]),
     ];
-    let slice = lines
-        .get(1..2)
-        .expect("output_line_range within bounds");
+    let slice = lines.get(1..2).expect("output_line_range within bounds");
     let joined: String = slice
         .iter()
-        .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect::<String>())
+        .map(|l| {
+            l.spans
+                .iter()
+                .map(|s| s.content.as_ref())
+                .collect::<String>()
+        })
         .collect::<Vec<_>>()
         .join("\n");
     assert_eq!(joined, "X");

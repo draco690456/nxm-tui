@@ -40,7 +40,12 @@ impl Message {
     /// assert!(msg.tool_call_id.is_none());
     /// ```
     pub fn new(role: Role, content: String) -> Self {
-        Self { role, content, tool_parts: Vec::new(), tool_call_id: None }
+        Self {
+            role,
+            content,
+            tool_parts: Vec::new(),
+            tool_call_id: None,
+        }
     }
 
     /// Create a message carrying tool parts (e.g. a tool call result) with no
@@ -57,7 +62,12 @@ impl Message {
     /// assert!(msg.content.is_empty());
     /// ```
     pub fn with_tool(role: Role, parts: Vec<ToolPart>) -> Self {
-        Self { role, content: String::new(), tool_parts: parts, tool_call_id: None }
+        Self {
+            role,
+            content: String::new(),
+            tool_parts: parts,
+            tool_call_id: None,
+        }
     }
 
     /// A `role: "tool"` result message carrying the assistant `tool_call_id`.

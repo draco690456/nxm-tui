@@ -81,19 +81,25 @@ impl Metrics {
 
     pub fn avg_response_time_ms(&self) -> u64 {
         let n = self.response_times_ms.len();
-        if n == 0 { return 0; }
+        if n == 0 {
+            return 0;
+        }
         self.response_times_ms.iter().sum::<u64>() / n as u64
     }
 
     pub fn avg_tokens_per_response(&self) -> u64 {
         let n = self.response_tokens.len();
-        if n == 0 { return 0; }
+        if n == 0 {
+            return 0;
+        }
         self.response_tokens.iter().sum::<u64>() / n as u64
     }
 
     pub fn tokens_per_second(&self) -> f64 {
         let total_ms: u64 = self.response_times_ms.iter().sum();
-        if total_ms == 0 { return 0.0; }
+        if total_ms == 0 {
+            return 0.0;
+        }
         let total_tok: u64 = self.response_tokens.iter().sum();
         (total_tok as f64) / (total_ms as f64 / 1000.0)
     }

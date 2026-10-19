@@ -70,35 +70,41 @@ pub fn render_sidebar(info: &SidebarInfo, area: Rect, buf: &mut Buffer) {
 /// Structure matches opencode sidebar: title, model, then workspace.
 fn sidebar_lines(info: &SidebarInfo) -> Vec<Line<'static>> {
     let mut lines = Vec::new();
-    
+
     // Title line: "OC • {title}" (mimics OpenCode's "OC" prefix)
     lines.push(Line::from(vec![
-        Span::styled(" OC ", Style::default().fg(Color::Cyan).bg(Color::Rgb(50, 50, 50))),
+        Span::styled(
+            " OC ",
+            Style::default().fg(Color::Cyan).bg(Color::Rgb(50, 50, 50)),
+        ),
         Span::styled("• ", Style::default().fg(Color::DarkGray)),
-        Span::styled(truncate_title(&info.title), Style::default().fg(Color::White)),
+        Span::styled(
+            truncate_title(&info.title),
+            Style::default().fg(Color::White),
+        ),
     ]));
-    
+
     // Model line (gray, smaller)
     lines.push(Line::from(Span::styled(
         format!(" {}", info.model),
         Style::default().fg(Color::Rgb(120, 120, 120)),
     )));
-    
+
     // Empty line for spacing
     lines.push(Line::from(""));
-    
+
     // Workspace line: "~/{dir} [{branch}]" or "~/{dir}" if no branch
     let workspace = if let Some(ref branch) = info.git_branch {
         format!("~/{}/{}", info.directory, branch)
     } else {
         format!("~/{}/", info.directory)
     };
-    
+
     lines.push(Line::from(Span::styled(
         workspace,
         Style::default().fg(Color::Rgb(100, 100, 100)),
     )));
-    
+
     lines
 }
 
@@ -114,17 +120,20 @@ fn truncate_title(title: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_truncate_title_short() {
         assert_eq!(truncate_title("short"), "short");
     }
-    
+
     #[test]
     fn test_truncate_title_long() {
-        assert_eq!(truncate_title("this is a very long title"), "this is a very lo...");
+        assert_eq!(
+            truncate_title("this is a very long title"),
+            "this is a very lo..."
+        );
     }
-    
+
     #[test]
     fn test_sidebar_info_default() {
         let info = SidebarInfo::default();

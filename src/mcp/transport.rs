@@ -63,14 +63,8 @@ impl StdioTransport {
             .spawn()
             .with_context(|| format!("failed to spawn MCP server `{command}`"))?;
 
-        let stdin = child
-            .stdin
-            .take()
-            .context("child stdin was not piped")?;
-        let stdout = child
-            .stdout
-            .take()
-            .context("child stdout was not piped")?;
+        let stdin = child.stdin.take().context("child stdin was not piped")?;
+        let stdout = child.stdout.take().context("child stdout was not piped")?;
 
         let (tx, incoming) = mpsc::unbounded_channel();
         tokio::spawn(read_loop(stdout, tx));

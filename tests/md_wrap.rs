@@ -19,11 +19,7 @@ fn wrap_long_unbreakable_line_respects_width() {
         wrapped.len()
     );
     for row in &wrapped {
-        assert!(
-            row.width() <= 40,
-            "row width {} exceeds 40",
-            row.width()
-        );
+        assert!(row.width() <= 40, "row width {} exceeds 40", row.width());
     }
 }
 
@@ -48,11 +44,7 @@ fn word_wrap_lines_wraps_every_input_line() {
     );
     let mut joined = String::new();
     for row in &wrapped {
-        assert!(
-            row.width() <= 40,
-            "row width {} exceeds 40",
-            row.width()
-        );
+        assert!(row.width() <= 40, "row width {} exceeds 40", row.width());
         for span in &row.spans {
             joined.push_str(span.content.as_ref());
         }
@@ -74,11 +66,7 @@ fn styles_are_preserved_after_wrap() {
     let mut plain_spans = 0;
     let mut joined = String::new();
     for row in &wrapped {
-        assert!(
-            row.width() <= 40,
-            "row width {} exceeds 40",
-            row.width()
-        );
+        assert!(row.width() <= 40, "row width {} exceeds 40", row.width());
         for span in &row.spans {
             joined.push_str(span.content.as_ref());
             if span.style.add_modifier.contains(Modifier::BOLD) {

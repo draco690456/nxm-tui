@@ -39,8 +39,14 @@ fn deserializes_spec_create_message_request() {
         serde_json::from_value(req.params.expect("has params")).expect("params parse");
     assert_eq!(params.messages.len(), 1);
     assert_eq!(params.messages[0].role, "user");
-    assert_eq!(params.messages[0].content.as_text(), "What is the capital of France?");
-    assert_eq!(params.system_prompt.as_deref(), Some("You are a helpful assistant."));
+    assert_eq!(
+        params.messages[0].content.as_text(),
+        "What is the capital of France?"
+    );
+    assert_eq!(
+        params.system_prompt.as_deref(),
+        Some("You are a helpful assistant.")
+    );
     assert_eq!(params.max_tokens, Some(100));
 
     let prefs = params.model_preferences.expect("has prefs");

@@ -10,22 +10,30 @@
 
 #![allow(dead_code, unused_imports)]
 
-
 use nxm_tui::app::{parse_command, Command, ProviderCommand};
 use nxm_tui::provider::{all_providers, find_provider, Provider};
 
 #[test]
 fn presets_use_official_ports() {
     let presets = Provider::presets();
-    let ollama = presets.iter().find(|p| p.name == "Ollama").expect("ollama preset");
+    let ollama = presets
+        .iter()
+        .find(|p| p.name == "Ollama")
+        .expect("ollama preset");
     // Regression: Ollama's official OpenAI-compatible port is 11434, not 11435.
     assert_eq!(ollama.base_url, "http://127.0.0.1:11434/v1");
     assert!(!ollama.requires_api_key);
 
-    let lm = presets.iter().find(|p| p.name == "LM Studio").expect("lm studio preset");
+    let lm = presets
+        .iter()
+        .find(|p| p.name == "LM Studio")
+        .expect("lm studio preset");
     assert_eq!(lm.base_url, "http://127.0.0.1:1234/v1");
 
-    let nvidia = presets.iter().find(|p| p.name == "NVIDIA").expect("nvidia preset");
+    let nvidia = presets
+        .iter()
+        .find(|p| p.name == "NVIDIA")
+        .expect("nvidia preset");
     assert_eq!(nvidia.base_url, "https://integrate.api.nvidia.com/v1");
     assert!(nvidia.requires_api_key);
     assert!(nvidia.is_cloud);
@@ -77,9 +85,18 @@ fn find_provider_is_case_insensitive() {
 
 #[test]
 fn parse_provider_list() {
-    assert_eq!(parse_command("/provider"), Command::Provider(ProviderCommand::List));
-    assert_eq!(parse_command("/provider list"), Command::Provider(ProviderCommand::List));
-    assert_eq!(parse_command("/p ls"), Command::Provider(ProviderCommand::List));
+    assert_eq!(
+        parse_command("/provider"),
+        Command::Provider(ProviderCommand::List)
+    );
+    assert_eq!(
+        parse_command("/provider list"),
+        Command::Provider(ProviderCommand::List)
+    );
+    assert_eq!(
+        parse_command("/p ls"),
+        Command::Provider(ProviderCommand::List)
+    );
 }
 
 #[test]
@@ -92,7 +109,10 @@ fn parse_provider_add() {
         })
     );
     // Missing url falls back to Normal (not a valid add).
-    assert!(matches!(parse_command("/provider add MyBox"), Command::Normal(_)));
+    assert!(matches!(
+        parse_command("/provider add MyBox"),
+        Command::Normal(_)
+    ));
 }
 
 #[test]

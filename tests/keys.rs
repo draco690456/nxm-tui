@@ -82,7 +82,10 @@ fn env_store_resolves_from_provider_env() {
     let p = provider("EnvFirstProvider1", "TEST_ENVFIRST_1");
 
     match resolve_key_with(&p, &EnvStore::new()) {
-        KeyResolution::Env { key, keychain_available } => {
+        KeyResolution::Env {
+            key,
+            keychain_available,
+        } => {
             assert_eq!(key, "env-key");
             // EnvStore is always "reachable": it was not found *unavailable*,
             // we simply never consult a keychain. Reported true.
@@ -101,5 +104,8 @@ fn env_store_missing_when_no_env_set() {
     std::env::remove_var("OPENAI_API_KEY");
     let p = provider("EnvFirstProvider2", "TEST_ENVFIRST_2");
 
-    assert_eq!(resolve_key_with(&p, &EnvStore::new()), KeyResolution::Missing);
+    assert_eq!(
+        resolve_key_with(&p, &EnvStore::new()),
+        KeyResolution::Missing
+    );
 }

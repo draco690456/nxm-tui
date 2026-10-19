@@ -91,8 +91,17 @@ fn finish_equals_one_shot_render_no_syntect() {
 
 fn one_shot_no_syntect(text: &str, style: MarkdownStyle) -> Vec<String> {
     let mut buffers = MarkdownBuffers::new();
-    let (output, _, _) =
-        render_markdown_ratatui_with_link_id(text, style, true, &mut buffers, None, None, 0, true, None);
+    let (output, _, _) = render_markdown_ratatui_with_link_id(
+        text,
+        style,
+        true,
+        &mut buffers,
+        None,
+        None,
+        0,
+        true,
+        None,
+    );
     lines_to_text(&output.lines)
 }
 
@@ -168,7 +177,10 @@ fn open_code_fence_mid_stream_no_panic() {
     let view = renderer.finish(syntect.as_ref());
 
     let got = lines_to_text(view.lines);
-    let want = one_shot("```rust\nfn main() {\n    println!(\"hi\");\n}\n```\n\nfatto.\n", style);
+    let want = one_shot(
+        "```rust\nfn main() {\n    println!(\"hi\");\n}\n```\n\nfatto.\n",
+        style,
+    );
     assert_eq!(got.len(), want.len(), "line count dopo chiusura fence");
     assert_eq!(got, want, "rendered text dopo chiusura fence");
 }

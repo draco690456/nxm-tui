@@ -7,7 +7,6 @@
 
 #![allow(dead_code, unused_imports)]
 
-
 use nxm_tui::app::{App, Message, Role};
 use nxm_tui::tool_overlay;
 use nxm_tui::tool_types::{ToolInvocation, ToolPart, ToolResult};
@@ -64,14 +63,17 @@ fn last_tool_exchange_finds_invocation_and_result() {
     let mut app = App::new();
     assert!(!app.show_tool);
     assert!(tool_overlay::last_tool_exchange(&app.messages).is_none());
-    app.messages.push(Message::new(Role::User, "read it".to_string()));
-    app.messages.push(invocation("call_1", "read_file", "{\"path\":\"/tmp/a\"}"));
+    app.messages
+        .push(Message::new(Role::User, "read it".to_string()));
+    app.messages
+        .push(invocation("call_1", "read_file", "{\"path\":\"/tmp/a\"}"));
     // Pending: invocation without result yet.
     let (inv, out) = tool_overlay::last_tool_exchange(&app.messages).expect("pending inv");
     assert_eq!(inv.name, "read_file");
     assert!(out.is_none());
     // Result arrives.
-    app.messages.push(Message::tool("call_1", "file contents".to_string()));
+    app.messages
+        .push(Message::tool("call_1", "file contents".to_string()));
     let (inv, out) = tool_overlay::last_tool_exchange(&app.messages).expect("resolved inv");
     assert_eq!(inv.id, "call_1");
     assert_eq!(out.as_deref(), Some("file contents"));
@@ -81,9 +83,12 @@ fn last_tool_exchange_finds_invocation_and_result() {
 fn last_tool_exchange_prefers_most_recent() {
     let mut app = App::new();
     app.messages.push(invocation("call_1", "read_file", "{}"));
-    app.messages.push(Message::tool("call_1", "first".to_string()));
-    app.messages.push(invocation("call_2", "web_search", "{\"q\":\"x\"}"));
-    app.messages.push(Message::tool("call_2", "second".to_string()));
+    app.messages
+        .push(Message::tool("call_1", "first".to_string()));
+    app.messages
+        .push(invocation("call_2", "web_search", "{\"q\":\"x\"}"));
+    app.messages
+        .push(Message::tool("call_2", "second".to_string()));
     let (inv, out) = tool_overlay::last_tool_exchange(&app.messages).expect("latest inv");
     assert_eq!(inv.name, "web_search");
     assert_eq!(out.as_deref(), Some("second"));

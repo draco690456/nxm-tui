@@ -17,13 +17,11 @@ use crate::app::App;
 /// Find the server binary path.
 pub fn find_server_binary() -> Result<String, String> {
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
-        let debug = PathBuf::from(&manifest_dir)
-            .join("../../target/debug/nexum-local-srv");
+        let debug = PathBuf::from(&manifest_dir).join("../../target/debug/nexum-local-srv");
         if debug.exists() {
             return Ok(debug.to_string_lossy().to_string());
         }
-        let release = PathBuf::from(&manifest_dir)
-            .join("../../target/release/nexum-local-srv");
+        let release = PathBuf::from(&manifest_dir).join("../../target/release/nexum-local-srv");
         if release.exists() {
             return Ok(release.to_string_lossy().to_string());
         }
@@ -67,7 +65,9 @@ pub fn stop_server_by_pid() -> Result<(), String> {
         return Err("No server running (stale PID)".into());
     }
 
-    let _ = std::process::Command::new("kill").args(["-15", &pid.to_string()]).status();
+    let _ = std::process::Command::new("kill")
+        .args(["-15", &pid.to_string()])
+        .status();
 
     for _ in 0..30 {
         std::thread::sleep(std::time::Duration::from_millis(100));
@@ -84,7 +84,9 @@ pub fn stop_server_by_pid() -> Result<(), String> {
         }
     }
 
-    let _ = std::process::Command::new("kill").args(["-9", &pid.to_string()]).status();
+    let _ = std::process::Command::new("kill")
+        .args(["-9", &pid.to_string()])
+        .status();
     std::thread::sleep(std::time::Duration::from_millis(200));
     let _ = std::fs::remove_file(&pid_file);
     Ok(())
@@ -97,7 +99,11 @@ pub fn server_running_by_pid() -> Option<u32> {
         .join(".nexum")
         .join("server.pid");
 
-    let pid: u32 = std::fs::read_to_string(&pid_file).ok()?.trim().parse().ok()?;
+    let pid: u32 = std::fs::read_to_string(&pid_file)
+        .ok()?
+        .trim()
+        .parse()
+        .ok()?;
 
     let alive = std::process::Command::new("kill")
         .args(["-0", &pid.to_string()])
@@ -145,7 +151,10 @@ impl App {
             .spawn()
             .map_err(|e| format!("Failed to start server: {e}"))?;
 
-        self.server_process = Some(ServerProcess { child: output, port });
+        self.server_process = Some(ServerProcess {
+            child: output,
+            port,
+        });
         self.endpoint = format!("http://127.0.0.1:{port}");
         self.server_name = "Nexum Local".into();
         self.state = crate::app::RunState::Connecting;
@@ -157,7 +166,9 @@ impl App {
     pub fn stop_server(&mut self) -> Result<(), String> {
         match self.server_process.as_mut() {
             Some(proc) => {
-                proc.child.kill().map_err(|e| format!("Failed to kill server: {e}"))?;
+                proc.child
+                    .kill()
+                    .map_err(|e| format!("Failed to kill server: {e}"))?;
                 proc.child.wait().ok();
                 self.server_process = None;
                 Ok(())

@@ -38,7 +38,10 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
     let spans = vec![
         Span::styled(" M", mode_style.bold()),
         Span::styled(format!(" {}", app.mode.label()), mode_style),
-        Span::styled(format!(" {n} msgs"), Style::default().fg(Color::Rgb(80, 80, 80))),
+        Span::styled(
+            format!(" {n} msgs"),
+            Style::default().fg(Color::Rgb(80, 80, 80)),
+        ),
         Span::raw(" "),
         Span::styled(
             format!("[{bar} {:.1}K/{max_k}K]", used as f64 / 1000.0),

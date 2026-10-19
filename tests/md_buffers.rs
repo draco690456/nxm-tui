@@ -2,7 +2,7 @@
 //! Copied from `xai-grok-markdown/src/buffers.rs` (Apache-2.0).
 
 use nxm_tui::md::buffers::{
-    CellJoin, CellSpan, MarkdownBuffers, StyledCell, unicode_display_width,
+    unicode_display_width, CellJoin, CellSpan, MarkdownBuffers, StyledCell,
 };
 use nxm_tui::md::buffers_table::TableState;
 use pulldown_cmark::Alignment;

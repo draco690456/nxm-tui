@@ -5,8 +5,10 @@
 
 use std::io;
 
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use tokio::sync::mpsc;
@@ -21,7 +23,7 @@ use nxm_tui::mcp::client::McpHandle;
 use nxm_tui::models::fetch_models;
 use nxm_tui::tool_types::{ApprovalRequest, ToolPart};
 use nxm_tui::ui::render;
-use nxm_tui::{app, agent, event, provider};
+use nxm_tui::{agent, app, event, provider};
 use zeroize::Zeroizing;
 
 fn main() -> io::Result<()> {
@@ -170,10 +172,14 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
             let mode = current_mode();
             let base_url_hint = app.models_fetch_pending.clone().unwrap_or_default();
             let providers = provider::all_providers(&cfg.providers);
-            let active_provider = providers.iter().find(|p| {
-                p.base_url == base_url_hint
-                    || p.base_url.trim_end_matches("/v1") == base_url_hint.trim_end_matches("/v1")
-            }).cloned();
+            let active_provider = providers
+                .iter()
+                .find(|p| {
+                    p.base_url == base_url_hint
+                        || p.base_url.trim_end_matches("/v1")
+                            == base_url_hint.trim_end_matches("/v1")
+                })
+                .cloned();
 
             // I2 gate (same rule as the agent spawn): prompt instead of
             // spawning only when the key is actually needed — the fetch
@@ -193,7 +199,11 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                 let api_key = if let Some(ref p) = active_provider {
                     if p.requires_api_key {
                         let provider = p.clone();
-                        match tokio::task::spawn_blocking(move || resolve_key_via(&provider, mode, pass)).await {
+                        match tokio::task::spawn_blocking(move || {
+                            resolve_key_via(&provider, mode, pass)
+                        })
+                        .await
+                        {
                             Ok(resolution) => resolution.into_key(),
                             Err(_) => None,
                         }
@@ -266,7 +276,8 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                 for role in roles {
                                     let role_name = role["role"].as_str().unwrap_or("");
                                     let model_id = role["model_id"].as_str().unwrap_or("");
-                                    let status = role["status"].as_str().unwrap_or("unknown").to_string();
+                                    let status =
+                                        role["status"].as_str().unwrap_or("unknown").to_string();
                                     match role_name {
                                         "router" => {
                                             app.model_router = app::ModelRoleInfo {
@@ -300,18 +311,27 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                 }
 
                 // Start inference
-                if app.state == RunState::Thinking && app.pending_message.is_some() && inference_task.is_none() {
+                if app.state == RunState::Thinking
+                    && app.pending_message.is_some()
+                    && inference_task.is_none()
+                {
                     let base = app.endpoint.clone();
 
                     // Resolve the active provider once (I2): used by the
                     // passphrase gate below and by the key resolution.
                     let providers = provider::all_providers(&cfg.providers);
-                    let active_provider = providers.iter().find(|p| {
-                        p.base_url == base || p.base_url.trim_end_matches("/v1") == base.trim_end_matches("/v1")
-                    }).cloned();
+                    let active_provider = providers
+                        .iter()
+                        .find(|p| {
+                            p.base_url == base
+                                || p.base_url.trim_end_matches("/v1")
+                                    == base.trim_end_matches("/v1")
+                        })
+                        .cloned();
                     let mode = current_mode();
-                    let passphrase_gate = active_provider.as_ref().is_some_and(|p| p.requires_api_key)
-                        && app.passphrase_missing(mode);
+                    let passphrase_gate =
+                        active_provider.as_ref().is_some_and(|p| p.requires_api_key)
+                            && app.passphrase_missing(mode);
 
                     if passphrase_gate {
                         // I2: prompt instead of spawning — pending_message is
@@ -323,7 +343,10 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         app.metrics.start_response();
                         app.metrics.session_user_msgs += 1;
                         let client = reqwest::Client::new();
-                        let model = cfg.model_name.clone().unwrap_or_else(|| "default".to_string());
+                        let model = cfg
+                            .model_name
+                            .clone()
+                            .unwrap_or_else(|| "default".to_string());
                         let initial_msgs = app.messages.clone();
                         let tx = part_tx.clone();
                         let approval = approval_tx.clone();
@@ -336,10 +359,18 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         let api_key = if let Some(ref p) = active_provider {
                             if p.requires_api_key {
                                 let provider = p.clone();
-                                match tokio::task::spawn_blocking(move || resolve_key_via(&provider, mode, pass)).await {
+                                match tokio::task::spawn_blocking(move || {
+                                    resolve_key_via(&provider, mode, pass)
+                                })
+                                .await
+                                {
                                     Ok(resolution) => {
                                         // One-time warning if keychain unavailable and key from env
-                                        if let KeyResolution::Env { keychain_available: false, .. } = &resolution {
+                                        if let KeyResolution::Env {
+                                            keychain_available: false,
+                                            ..
+                                        } = &resolution
+                                        {
                                             app.set_status("keychain non disponibile — key da env (non persistente)".to_string());
                                         }
                                         resolution.into_key()
@@ -355,8 +386,13 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
 
                         inference_task = Some(tokio::spawn(async move {
                             let mut agent = agent::Agent::new(
-                                &client, &base, &model, api_key, initial_msgs,
-                                Some(approval), tool_registry,
+                                &client,
+                                &base,
+                                &model,
+                                api_key,
+                                initial_msgs,
+                                Some(approval),
+                                tool_registry,
                             );
                             agent.run(&tx).await.unwrap_or_else(|e| {
                                 tracing::error!("agent error: {e}");
@@ -397,7 +433,8 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                 ));
                             }
                             ToolPart::ToolResult(res) => {
-                                app.messages.push(Message::tool(&res.call_id, res.output.clone()));
+                                app.messages
+                                    .push(Message::tool(&res.call_id, res.output.clone()));
                             }
                             ToolPart::Error(e) => app.set_status(e),
                         }
@@ -473,9 +510,15 @@ async fn detect_endpoint(cfg: &TuiConfig) -> Option<(String, String)> {
             continue;
         }
         // Probe the base as-is and with a /v1 suffix (bare Nexum host vs OpenAI dialect).
-        let candidates = [p.base_url.clone(), format!("{}/v1", p.base_url.trim_end_matches("/v1"))];
+        let candidates = [
+            p.base_url.clone(),
+            format!("{}/v1", p.base_url.trim_end_matches("/v1")),
+        ];
         for base in candidates {
-            let resp = client.get(format!("{}/v1/models", base.trim_end_matches("/v1"))).send().await;
+            let resp = client
+                .get(format!("{}/v1/models", base.trim_end_matches("/v1")))
+                .send()
+                .await;
             if resp.is_ok() {
                 return Some((p.base_url.clone(), p.name.clone()));
             }
@@ -488,7 +531,9 @@ async fn detect_endpoint(cfg: &TuiConfig) -> Option<(String, String)> {
 fn server_name_from_url(url: &str, cfg: &TuiConfig) -> String {
     provider::all_providers(&cfg.providers)
         .into_iter()
-        .find(|p| p.base_url == url || p.base_url.trim_end_matches("/v1") == url.trim_end_matches("/v1"))
+        .find(|p| {
+            p.base_url == url || p.base_url.trim_end_matches("/v1") == url.trim_end_matches("/v1")
+        })
         .map(|p| p.name)
         .unwrap_or_else(|| "Custom Server".to_string())
 }

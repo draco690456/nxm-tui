@@ -109,7 +109,10 @@ impl Provider {
 pub fn all_providers(custom: &[Provider]) -> Vec<Provider> {
     let mut list = Provider::presets();
     for c in custom {
-        if let Some(existing) = list.iter_mut().find(|p| p.name.eq_ignore_ascii_case(&c.name)) {
+        if let Some(existing) = list
+            .iter_mut()
+            .find(|p| p.name.eq_ignore_ascii_case(&c.name))
+        {
             *existing = c.clone();
         } else {
             list.push(c.clone());

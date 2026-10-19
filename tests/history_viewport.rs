@@ -7,7 +7,6 @@
 
 #![allow(dead_code, unused_imports)]
 
-
 use nxm_tui::app::App;
 use nxm_tui::markdown;
 
@@ -70,7 +69,10 @@ fn markdown_code_fence_with_emoji_does_not_panic() {
     let lines = markdown::render_markdown(content, 20, "   ");
     assert!(!lines.is_empty());
     let text = format!("{lines:?}");
-    assert!(text.contains('…'), "long emoji line must be truncated, got: {text}");
+    assert!(
+        text.contains('…'),
+        "long emoji line must be truncated, got: {text}"
+    );
 }
 
 #[test]

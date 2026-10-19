@@ -94,7 +94,10 @@ impl PromptState {
         if col > 0 {
             // Delete word before cursor
             let before_cursor = &self.lines[line][..col];
-            let word_end = before_cursor.rfind(|c: char| c.is_whitespace()).map(|i| i + 1).unwrap_or(0);
+            let word_end = before_cursor
+                .rfind(|c: char| c.is_whitespace())
+                .map(|i| i + 1)
+                .unwrap_or(0);
             self.lines[line].replace_range(word_end..col, "");
             self.cursor_col = word_end;
         } else if line > 0 {
@@ -112,7 +115,7 @@ impl PromptState {
         let line = self.cursor_line.min(self.lines.len() - 1);
         let col = self.cursor_col.min(self.lines[line].len());
         let current_line = &self.lines[line];
-        
+
         let new_line = current_line[col..].to_string();
         self.lines[line].truncate(col);
         self.lines.insert(line + 1, new_line);

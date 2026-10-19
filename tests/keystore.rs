@@ -93,7 +93,9 @@ fn temp_keystore_path(tag: &str) -> std::path::PathBuf {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_nanos() as u64)
         .unwrap_or(0);
-    std::env::temp_dir().join(format!("nxm_tui_keystore_{tag}_{id}")).join("keys.enc")
+    std::env::temp_dir()
+        .join(format!("nxm_tui_keystore_{tag}_{id}"))
+        .join("keys.enc")
 }
 
 // ---- 1. MockKeyStore contract ----
@@ -103,7 +105,10 @@ fn mock_roundtrip_set_get_delete() {
     let store = MockKeyStore::new();
     assert_eq!(store.get("P").unwrap(), None);
     store.set("P", "secret").unwrap();
-    assert_eq!(store.get("P").unwrap().map(|z| (*z).clone()), Some("secret".to_string()));
+    assert_eq!(
+        store.get("P").unwrap().map(|z| (*z).clone()),
+        Some("secret".to_string())
+    );
     store.delete("P").unwrap();
     assert_eq!(store.get("P").unwrap(), None);
 }
@@ -238,7 +243,10 @@ fn store_empty_falls_back_to_provider_env() {
     let p = provider("StoreProvider2", "TEST_STORE_2");
 
     match resolve_key_with(&p, &store) {
-        KeyResolution::Env { key, keychain_available } => {
+        KeyResolution::Env {
+            key,
+            keychain_available,
+        } => {
             assert_eq!(key, "env-key");
             assert!(keychain_available, "store was reachable");
         }
@@ -260,7 +268,10 @@ fn store_unavailable_falls_back_to_env() {
     let p = provider("StoreProvider3", "TEST_STORE_3");
 
     match resolve_key_with(&p, &store) {
-        KeyResolution::Env { key, keychain_available } => {
+        KeyResolution::Env {
+            key,
+            keychain_available,
+        } => {
             assert_eq!(key, "env-key");
             assert!(!keychain_available, "store was unavailable");
         }
@@ -282,7 +293,10 @@ fn store_error_falls_back_to_env() {
     let p = provider("StoreProvider4", "TEST_STORE_4");
 
     match resolve_key_with(&p, &store) {
-        KeyResolution::Env { key, keychain_available } => {
+        KeyResolution::Env {
+            key,
+            keychain_available,
+        } => {
             assert_eq!(key, "env-key");
             assert!(!keychain_available);
         }

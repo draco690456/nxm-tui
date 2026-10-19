@@ -57,8 +57,7 @@ fn parse_no_syntect_no_panic() {
     let mut buffers = MarkdownBuffers::new();
     let style = MarkdownStyle::default();
 
-    let parsed =
-        MarkdownParser::new("hello **world**", style, &mut buffers, None).parse();
+    let parsed = MarkdownParser::new("hello **world**", style, &mut buffers, None).parse();
 
     assert_eq!(parsed.text, "hello **world**");
     assert_eq!(parsed.next_link_id, 0);
@@ -70,8 +69,7 @@ fn collapse_soft_breaks_false() {
     let mut buffers = MarkdownBuffers::new();
     let style = MarkdownStyle::default();
 
-    let parser = MarkdownParser::new("a\nb", style, &mut buffers, None)
-        .collapse_soft_breaks(false);
+    let parser = MarkdownParser::new("a\nb", style, &mut buffers, None).collapse_soft_breaks(false);
 
     // Non panica e restituisce Self
     let _ = parser.parse();
@@ -83,8 +81,8 @@ fn max_table_width_some() {
     let mut buffers = MarkdownBuffers::new();
     let style = MarkdownStyle::default();
 
-    let parser = MarkdownParser::new("a|b\n-|-\n1|2", style, &mut buffers, None)
-        .max_table_width(Some(80));
+    let parser =
+        MarkdownParser::new("a|b\n-|-\n1|2", style, &mut buffers, None).max_table_width(Some(80));
 
     let _ = parser.parse();
 }
@@ -95,8 +93,8 @@ fn max_table_width_none() {
     let mut buffers = MarkdownBuffers::new();
     let style = MarkdownStyle::default();
 
-    let parser = MarkdownParser::new("a|b\n-|-\n1|2", style, &mut buffers, None)
-        .max_table_width(None);
+    let parser =
+        MarkdownParser::new("a|b\n-|-\n1|2", style, &mut buffers, None).max_table_width(None);
 
     let _ = parser.parse();
 }

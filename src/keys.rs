@@ -34,7 +34,10 @@ pub enum KeyResolution {
     /// Key found in environment variable. `keychain_available` = whether the
     /// keychain was reachable at all (false on NoDefaultStore / PlatformFailure /
     /// NoStorageAccess).
-    Env { key: String, keychain_available: bool },
+    Env {
+        key: String,
+        keychain_available: bool,
+    },
     /// No key found anywhere.
     Missing,
 }
@@ -65,7 +68,10 @@ impl KeyResolution {
     /// Env var name if source is Env, for one-time warning.
     pub fn env_var(&self) -> Option<&str> {
         match self {
-            KeyResolution::Env { key: _, keychain_available: _ } => None, // would need to track which env
+            KeyResolution::Env {
+                key: _,
+                keychain_available: _,
+            } => None, // would need to track which env
             _ => None,
         }
     }

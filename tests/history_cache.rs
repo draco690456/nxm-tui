@@ -40,13 +40,16 @@ fn screen_text(app: &mut App, width: u16) -> String {
 /// and tool output.
 fn sample_app() -> App {
     let mut app = App::new();
-    app.messages
-        .push(Message::new(Role::User, "hello **world** this is a question".into()));
+    app.messages.push(Message::new(
+        Role::User,
+        "hello **world** this is a question".into(),
+    ));
     app.messages.push(Message::new(
         Role::Assistant,
         "Answer with `code` inline.\n\n```rust\nfn main() {}\n```".into(),
     ));
-    app.messages.push(Message::new(Role::System, "server ready".into()));
+    app.messages
+        .push(Message::new(Role::System, "server ready".into()));
     app.messages
         .push(Message::tool("call-1", "tool output line".into()));
     app
@@ -80,8 +83,7 @@ fn streaming_token_invalidates_cache() {
 
 #[test]
 fn resize_rerenders_at_new_width() {
-    let long =
-        "aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll".to_string();
+    let long = "aaaa bbbb cccc dddd eeee ffff gggg hhhh iiii jjjj kkkk llll".to_string();
 
     // Warm the cache at width 60, then "resize" down to 20.
     let mut warm = App::new();

@@ -16,7 +16,11 @@ use crate::markdown_layout::{truncate_to_width, wrap};
 /// Legacy renderer: word-wrap prose to `max_width` display columns (CJK/emoji
 /// count as two, malformed width as zero), box code fences inside the same
 /// budget, and prepend `prefix` to every line.
-pub(crate) fn render_markdown_legacy(content: &str, max_width: usize, prefix: &str) -> Vec<Line<'static>> {
+pub(crate) fn render_markdown_legacy(
+    content: &str,
+    max_width: usize,
+    prefix: &str,
+) -> Vec<Line<'static>> {
     let mut lines: Vec<Line<'static>> = Vec::new();
     let segments = split_blocks(content);
 
@@ -35,13 +39,12 @@ pub(crate) fn render_markdown_legacy(content: &str, max_width: usize, prefix: &s
                 } else {
                     format!("{prefix}┌─ {lang} ")
                 };
-                lines.push(Line::from(Span::styled(
-                    header,
-                    code_border_style(),
-                )));
+                lines.push(Line::from(Span::styled(header, code_border_style())));
                 let inner_w = max_width.saturating_sub(prefix.width() + 3);
                 let known_lang = !lang.is_empty()
-                    && crate::highlight::syntax_set().find_syntax_by_token(&lang).is_some();
+                    && crate::highlight::syntax_set()
+                        .find_syntax_by_token(&lang)
+                        .is_some();
                 let single_style = highlight_style(&lang, &text);
                 let highlighted = highlight_code(&text, &lang);
                 for line_spans in highlighted {
@@ -96,7 +99,10 @@ fn split_blocks(content: &str) -> Vec<Segment> {
         let end = after_fence.find("```").unwrap_or(after_fence.len());
         let code_block = &after_fence[..end];
         let (lang, code) = if let Some(nl) = code_block.find('\n') {
-            (code_block[..nl].trim().to_string(), code_block[nl + 1..].to_string())
+            (
+                code_block[..nl].trim().to_string(),
+                code_block[nl + 1..].to_string(),
+            )
         } else {
             (String::new(), code_block.to_string())
         };
@@ -123,7 +129,9 @@ fn parse_inline(text: &str) -> Vec<Span<'static>> {
                 spans.push(Span::styled(inner.to_string(), bold_style()));
                 let advance = i + 2 + end + 2;
                 while let Some(&(pos, _)) = chars.peek() {
-                    if pos >= advance { break; }
+                    if pos >= advance {
+                        break;
+                    }
                     chars.next();
                 }
                 continue;
@@ -136,7 +144,9 @@ fn parse_inline(text: &str) -> Vec<Span<'static>> {
                 spans.push(Span::styled(inner.to_string(), code_style()));
                 let advance = i + 1 + end + 1;
                 while let Some(&(pos, _)) = chars.peek() {
-                    if pos >= advance { break; }
+                    if pos >= advance {
+                        break;
+                    }
                     chars.next();
                 }
                 continue;
@@ -149,7 +159,9 @@ fn parse_inline(text: &str) -> Vec<Span<'static>> {
                 spans.push(Span::styled(inner.to_string(), italic_style()));
                 let advance = i + 1 + end + 1;
                 while let Some(&(pos, _)) = chars.peek() {
-                    if pos >= advance { break; }
+                    if pos >= advance {
+                        break;
+                    }
                     chars.next();
                 }
                 continue;
@@ -168,11 +180,15 @@ fn parse_inline(text: &str) -> Vec<Span<'static>> {
 }
 
 fn bold_style() -> Style {
-    Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+    Style::default()
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD)
 }
 
 fn italic_style() -> Style {
-    Style::default().fg(Color::Rgb(180, 180, 220)).add_modifier(Modifier::ITALIC)
+    Style::default()
+        .fg(Color::Rgb(180, 180, 220))
+        .add_modifier(Modifier::ITALIC)
 }
 
 fn code_style() -> Style {

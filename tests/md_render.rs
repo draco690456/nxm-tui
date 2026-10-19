@@ -24,7 +24,12 @@ fn render(src: &str) -> MarkdownRenderOutput {
 fn lines_text(lines: &[Line<'static>]) -> String {
     lines
         .iter()
-        .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect::<String>())
+        .map(|l| {
+            l.spans
+                .iter()
+                .map(|s| s.content.as_ref())
+                .collect::<String>()
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }

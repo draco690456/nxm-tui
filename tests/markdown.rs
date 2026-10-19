@@ -113,5 +113,8 @@ fn code_fence_line_wider_than_pane_is_truncated_to_cell_width() {
         .find(|line| line.contains('│'))
         .expect("code fence must render a body line");
     assert!(body.contains('…'), "truncation marker missing: {body:?}");
-    assert!(body.width() <= 20, "body line {body:?} exceeds pane width 20");
+    assert!(
+        body.width() <= 20,
+        "body line {body:?} exceeds pane width 20"
+    );
 }

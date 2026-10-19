@@ -34,10 +34,7 @@ fn line_matches_case_insensitive() {
 
 #[test]
 fn line_matches_no_matches() {
-    let lines = vec![
-        "apple".to_string(),
-        "banana".to_string(),
-    ];
+    let lines = vec!["apple".to_string(), "banana".to_string()];
     let matcher = TextMatcher::new("orange", QueryKind::Substring);
     let matches = line_matches(&lines, &matcher);
     assert!(matches.is_empty());
@@ -65,9 +62,7 @@ fn line_matches_regex() {
 
 #[test]
 fn line_matches_bad_regex_no_panic() {
-    let lines = vec![
-        "test".to_string(),
-    ];
+    let lines = vec!["test".to_string()];
     let matcher = TextMatcher::new("[invalid", QueryKind::Regex);
     assert!(matcher.is_error());
     let matches = line_matches(&lines, &matcher);
@@ -122,9 +117,10 @@ fn highlight_line_basic() {
     let highlighted = highlight_line(&line, &matcher);
 
     // Should contain "world" with yellow background
-    let has_highlight = highlighted.spans.iter().any(|s| {
-        s.content.as_ref() == "world" && s.style.bg == Some(Color::Yellow)
-    });
+    let has_highlight = highlighted
+        .spans
+        .iter()
+        .any(|s| s.content.as_ref() == "world" && s.style.bg == Some(Color::Yellow));
     assert!(has_highlight, "Expected highlighted span with yellow bg");
 }
 
@@ -149,9 +145,10 @@ fn highlight_line_multiple_spans() {
     let highlighted = highlight_line(&line, &matcher);
 
     // Should have highlighted "world"
-    let has_highlight = highlighted.spans.iter().any(|s| {
-        s.content.as_ref() == "world" && s.style.bg == Some(Color::Yellow)
-    });
+    let has_highlight = highlighted
+        .spans
+        .iter()
+        .any(|s| s.content.as_ref() == "world" && s.style.bg == Some(Color::Yellow));
     assert!(has_highlight);
 }
 

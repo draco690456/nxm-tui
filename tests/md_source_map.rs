@@ -9,7 +9,11 @@ use nxm_tui::md::source_map::SourceMap;
 fn add_then_to_source_maps_back() {
     let mut map = SourceMap::new();
     map.add(0, 5..10);
-    assert_eq!(map.to_source(0..5), Some(5..10), "exact segment must map 1:1");
+    assert_eq!(
+        map.to_source(0..5),
+        Some(5..10),
+        "exact segment must map 1:1"
+    );
 }
 
 /// `to_source` returns `None` for ranges outside any mapped segment.

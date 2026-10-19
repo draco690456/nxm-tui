@@ -13,10 +13,19 @@ fn parse_produces_highlights_for_heading_and_bold() {
     let style = MarkdownStyle::default();
     let syntect = Syntect::new().expect("syntect defaults");
 
-    let parsed = MarkdownParser::new("# Heading\n\ntesto **bold**", style, &mut buffers, Some(&syntect)).parse();
+    let parsed = MarkdownParser::new(
+        "# Heading\n\ntesto **bold**",
+        style,
+        &mut buffers,
+        Some(&syntect),
+    )
+    .parse();
 
     assert_eq!(parsed.text, "# Heading\n\ntesto **bold**");
-    assert!(!parsed.buffers.highlights.is_empty(), "expected highlights for heading and bold text");
+    assert!(
+        !parsed.buffers.highlights.is_empty(),
+        "expected highlights for heading and bold text"
+    );
 }
 
 /// Inline code `` `code` `` produce uno span con stile inline-code.
@@ -29,7 +38,10 @@ fn inline_code_produces_span_with_style() {
     let parsed = MarkdownParser::new("`code`", style, &mut buffers, Some(&syntect)).parse();
 
     assert_eq!(parsed.text, "`code`");
-    assert!(!parsed.buffers.highlights.is_empty(), "expected highlights for inline code");
+    assert!(
+        !parsed.buffers.highlights.is_empty(),
+        "expected highlights for inline code"
+    );
 }
 
 /// Strikethrough `~~x~~` è gestito senza panico.
@@ -42,7 +54,10 @@ fn strikethrough_is_handled() {
     let parsed = MarkdownParser::new("~~x~~", style, &mut buffers, Some(&syntect)).parse();
 
     assert_eq!(parsed.text, "~~x~~");
-    assert!(!parsed.buffers.highlights.is_empty(), "expected highlights for strikethrough");
+    assert!(
+        !parsed.buffers.highlights.is_empty(),
+        "expected highlights for strikethrough"
+    );
 }
 
 /// Ramo math con latex stub: `$x$` non panica e non rompe.

@@ -23,7 +23,10 @@ fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyRes
         if let Ok(key) = env::var(env_var) {
             if !key.is_empty() {
                 info!(target: "nexum::keys", provider = %provider.name, source = "env", env_var = %env_var, "key resolved");
-                return KeyResolution::Env { key, keychain_available };
+                return KeyResolution::Env {
+                    key,
+                    keychain_available,
+                };
             }
         }
     }
@@ -32,7 +35,10 @@ fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyRes
     if let Ok(key) = env::var("NEXUM_API_KEY") {
         if !key.is_empty() {
             info!(target: "nexum::keys", provider = %provider.name, source = "env", env_var = "NEXUM_API_KEY", "key resolved");
-            return KeyResolution::Env { key, keychain_available };
+            return KeyResolution::Env {
+                key,
+                keychain_available,
+            };
         }
     }
 
@@ -40,7 +46,10 @@ fn resolve_env_fallback(provider: &Provider, keychain_available: bool) -> KeyRes
     if let Ok(key) = env::var("OPENAI_API_KEY") {
         if !key.is_empty() {
             info!(target: "nexum::keys", provider = %provider.name, source = "env", env_var = "OPENAI_API_KEY", "key resolved");
-            return KeyResolution::Env { key, keychain_available };
+            return KeyResolution::Env {
+                key,
+                keychain_available,
+            };
         }
     }
 

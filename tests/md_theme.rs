@@ -26,10 +26,7 @@ fn named_colors_map_concretely() {
         to_anstyle(RatColor::Gray),
         Some(Color::Ansi(AnsiColor::White))
     );
-    assert_eq!(
-        to_anstyle(RatColor::Red),
-        Some(Color::Ansi(AnsiColor::Red))
-    );
+    assert_eq!(to_anstyle(RatColor::Red), Some(Color::Ansi(AnsiColor::Red)));
 }
 
 /// The fixed tokyonight theme exposes the expected concrete fields.

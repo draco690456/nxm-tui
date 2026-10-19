@@ -141,10 +141,7 @@ pub fn highlight_line(line: &Line<'_>, matcher: &TextMatcher) -> Line<'static> {
             // Non-matching part before the match
             if mstart > last_end {
                 let before = &full_text[last_end..mstart];
-                sub_spans.push(Span::styled(
-                    before.to_string(),
-                    span.style,
-                ));
+                sub_spans.push(Span::styled(before.to_string(), span.style));
             }
 
             // Matching part
@@ -153,9 +150,7 @@ pub fn highlight_line(line: &Line<'_>, matcher: &TextMatcher) -> Line<'static> {
             let matched = &full_text[match_start..match_end];
             sub_spans.push(Span::styled(
                 matched.to_string(),
-                Style::default()
-                    .fg(Color::Black)
-                    .bg(Color::Yellow),
+                Style::default().fg(Color::Black).bg(Color::Yellow),
             ));
 
             last_end = match_end;
@@ -164,10 +159,7 @@ pub fn highlight_line(line: &Line<'_>, matcher: &TextMatcher) -> Line<'static> {
         // Non-matching part after the last match
         if last_end < span_end {
             let after = &full_text[last_end..span_end];
-            sub_spans.push(Span::styled(
-                after.to_string(),
-                span.style,
-            ));
+            sub_spans.push(Span::styled(after.to_string(), span.style));
         }
 
         if sub_spans.is_empty() {

@@ -37,7 +37,12 @@ fn provider(name: &str, env_var: &str) -> Provider {
 
 #[test]
 fn factory_maps_every_mode_to_its_backend_kind() {
-    assert_eq!(store_for(KeySourceMode::EnvFirst, None).expect("env store").kind(), "env");
+    assert_eq!(
+        store_for(KeySourceMode::EnvFirst, None)
+            .expect("env store")
+            .kind(),
+        "env"
+    );
     assert_eq!(
         store_for(KeySourceMode::KeychainFirst, None)
             .expect("keychain store")
@@ -65,7 +70,10 @@ fn factory_maps_every_mode_to_its_backend_kind() {
 fn factory_encrypted_file_without_passphrase_is_clean_error() {
     match store_for(KeySourceMode::EncryptedFile, None) {
         Err(KeyStoreError::Unavailable(msg)) => {
-            assert!(msg.contains("passphrase"), "message must name the cause: {msg}")
+            assert!(
+                msg.contains("passphrase"),
+                "message must name the cause: {msg}"
+            )
         }
         Err(other) => panic!("expected Unavailable, got {other}"),
         Ok(_) => panic!("expected Err when the passphrase is missing"),
@@ -122,7 +130,10 @@ fn resolve_key_via_without_passphrase_falls_back_to_env() {
     let p = provider("FactoryProvider2", "FACTORY_ENV_2");
 
     match resolve_key_via(&p, KeySourceMode::EncryptedFile, None) {
-        KeyResolution::Env { key, keychain_available } => {
+        KeyResolution::Env {
+            key,
+            keychain_available,
+        } => {
             assert_eq!(key, "env-key");
             assert!(!keychain_available, "factory failed → store unreachable");
         }

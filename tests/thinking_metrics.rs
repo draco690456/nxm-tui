@@ -8,7 +8,6 @@
 
 #![allow(dead_code, unused_imports)]
 
-
 use nxm_tui::app::{App, Role};
 
 #[test]
@@ -80,11 +79,7 @@ fn apply_token_handles_single_token_open_and_close() {
     let mut app = App::new();
     app.push_token("before<thinking>hidden</thinking>after");
     assert!(app.thinking_content.contains("hidden"));
-    let combined: String = app
-        .messages
-        .iter()
-        .map(|m| m.content.clone())
-        .collect();
+    let combined: String = app.messages.iter().map(|m| m.content.clone()).collect();
     assert!(combined.contains("before"));
     assert!(combined.contains("after"));
     assert!(!combined.contains("hidden"));

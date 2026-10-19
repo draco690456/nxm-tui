@@ -12,12 +12,14 @@ use nxm_tui::highlight::highlight_code;
 #[test]
 fn rust_snippet_yields_multiple_styles_per_line() {
     let lines = highlight_code("fn main() {}", "rust");
-    assert!(!lines.is_empty(), "rust snippet must produce at least one line");
+    assert!(
+        !lines.is_empty(),
+        "rust snippet must produce at least one line"
+    );
 
-    let has_multi = lines.iter().any(|line| {
-        line.len() >= 2
-            && line.windows(2).any(|window| window[0].0 != window[1].0)
-    });
+    let has_multi = lines
+        .iter()
+        .any(|line| line.len() >= 2 && line.windows(2).any(|window| window[0].0 != window[1].0));
     assert!(
         has_multi,
         "expected at least one line with >=2 distinct styles (keyword vs ident), got: {lines:?}"
@@ -98,10 +100,18 @@ fn highlighted_row_count_matches_fallback() {
 fn fallback_drops_trailing_newline_keeps_interior_blanks() {
     // Trailing newline → no extra empty row.
     let trailing = highlight_code("alpha\n", "zzz-unknown");
-    assert_eq!(trailing.len(), 1, "trailing newline must not add a row: {trailing:?}");
+    assert_eq!(
+        trailing.len(),
+        1,
+        "trailing newline must not add a row: {trailing:?}"
+    );
 
     // Interior blank line is significant and kept.
     let interior = highlight_code("a\n\nb", "zzz-unknown");
-    assert_eq!(interior.len(), 3, "interior blank line must be kept: {interior:?}");
+    assert_eq!(
+        interior.len(),
+        3,
+        "interior blank line must be kept: {interior:?}"
+    );
     assert_eq!(interior[1][0].1, "", "middle row is the blank line");
 }

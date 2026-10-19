@@ -33,10 +33,15 @@ use crate::TARGET;
 /// assert!(!is_blocked_addr(IpAddr::from_str("93.184.216.34").unwrap())); // example.org
 /// ```
 pub fn is_blocked_addr(ip: IpAddr) -> bool {
-    match ip {
+    tracing::debug!(target: crate::TARGET, "is_blocked_addr check ip={}", ip);
+    let blocked = match ip {
         IpAddr::V4(ipv4) => is_blocked_ipv4(ipv4),
         IpAddr::V6(ipv6) => is_blocked_ipv6(ipv6),
+    };
+    if blocked {
+        tracing::debug!(target: crate::TARGET, "is_blocked_addr: BLOCKED ip={}", ip);
     }
+    blocked
 }
 
 fn is_blocked_ipv4(ip: Ipv4Addr) -> bool {
@@ -44,7 +49,7 @@ fn is_blocked_ipv4(ip: Ipv4Addr) -> bool {
     if ip.is_loopback() {
         return true;
     }
-    // Link-local: 169.254.0.0/16
+    // Link-local: 169.254.0.0/16 (includes metadata endpoint 169.254.169.254)
     if ip.is_link_local() {
         return true;
     }
@@ -54,10 +59,6 @@ fn is_blocked_ipv4(ip: Ipv4Addr) -> bool {
     }
     // Unspecified: 0.0.0.0
     if ip.is_unspecified() {
-        return true;
-    }
-    // Metadata endpoint: 169.254.169.254
-    if ip == Ipv4Addr::new(169, 254, 169, 254) {
         return true;
     }
     false
@@ -84,14 +85,35 @@ fn is_blocked_ipv6(ip: Ipv6Addr) -> bool {
 }
 
 /// Check if a URL scheme is allowed (only http/https).
+///
+/// ```
+/// use reqwest::Url;
+/// use nxm_tui_tools::is_allowed_scheme;
+///
+/// assert!(is_allowed_scheme(&Url::parse("http://example.com").unwrap()));
+/// assert!(is_allowed_scheme(&Url::parse("https://example.com").unwrap()));
+/// assert!(!is_allowed_scheme(&Url::parse("ftp://example.com").unwrap()));
+/// assert!(!is_allowed_scheme(&Url::parse("file:///etc/passwd").unwrap()));
+/// ```
 pub fn is_allowed_scheme(url: &Url) -> bool {
-    matches!(url.scheme(), "http" | "https")
+    let allowed = matches!(url.scheme(), "http" | "https");
+    tracing::debug!(target: crate::TARGET, "is_allowed_scheme scheme={} allowed={}", url.scheme(), allowed);
+    allowed
 }
 
 /// Resolve a hostname to IP addresses and check if any is blocked.
 ///
 /// Returns `Ok(())` if all resolved addresses are allowed.
 /// Returns `Err` if resolution fails or any address is blocked.
+///
+/// ```
+/// use nxm_tui_tools::validate_host;
+///
+/// // Public host should pass (requires network DNS)
+/// // validate_host("example.com").expect("public host allowed");
+/// // Private host should fail
+/// // validate_host("localhost").expect_err("loopback blocked");
+/// ```
 pub fn validate_host(host: &str) -> Result<()> {
     let addrs: Vec<SocketAddr> = (host, 0)
         .to_socket_addrs()
@@ -116,6 +138,15 @@ pub fn validate_host(host: &str) -> Result<()> {
 /// Validate a URL for SSRF safety: scheme + host resolution.
 ///
 /// Returns the validated URL if allowed, or an error describing the block.
+///
+/// ```
+/// use nxm_tui_tools::validate_url;
+///
+/// assert!(validate_url("http://example.com").is_ok());
+/// assert!(validate_url("https://example.com").is_ok());
+/// assert!(validate_url("ftp://example.com").is_err());
+/// assert!(validate_url("file:///etc/passwd").is_err());
+/// ```
 pub fn validate_url(url_str: &str) -> Result<Url> {
     let url = Url::parse(url_str).context("parse URL")?;
     if !is_allowed_scheme(&url) {
@@ -139,20 +170,28 @@ const MAX_REDIRECTS: usize = 10;
 ///
 /// Uses a custom redirect policy that validates each hop's host.
 /// The initial URL is also validated before the first request.
-/// If `NEXUM_WEBFETCH_ALLOW_LOCAL=1`, the initial URL validation is skipped
-/// but redirect targets are still validated.
+/// If `NEXUM_WEBFETCH_ALLOW_LOCAL=1`, the guard is completely disabled
+/// (for local development only).
+///
+/// ```
+/// use nxm_tui_tools::fetch_with_ssrf_guard;
+///
+/// // Public URL should work (requires network)
+/// // let resp = fetch_with_ssrf_guard("http://example.com").expect("public fetch");
+/// // assert!(resp.status().is_success());
+/// // Loopback should be blocked without allow-local
+/// // let res = fetch_with_ssrf_guard("http://127.0.0.1:9999");
+/// // assert!(res.is_err());
+/// ```
 pub fn fetch_with_ssrf_guard(url_str: &str) -> Result<reqwest::blocking::Response> {
-    let allow_local = std::env::var("NEXUM_WEBFETCH_ALLOW_LOCAL").is_ok();
-    if allow_local {
-        info!(target: TARGET, "SSRF guard: initial URL validation skipped via NEXUM_WEBFETCH_ALLOW_LOCAL");
+    // Check allow-list env var for dev — completely disables the guard
+    if std::env::var("NEXUM_WEBFETCH_ALLOW_LOCAL").is_ok() {
+        info!(target: TARGET, "SSRF guard completely disabled via NEXUM_WEBFETCH_ALLOW_LOCAL");
+        return Ok(reqwest::blocking::get(url_str)?);
     }
 
-    // Validate initial URL (unless allow_local)
-    let mut url = if allow_local {
-        Url::parse(url_str).context("parse URL")?
-    } else {
-        validate_url(url_str).context("initial URL validation")?
-    };
+    // Validate initial URL
+    let mut url = validate_url(url_str).context("initial URL validation")?;
 
     let client = reqwest::blocking::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
@@ -179,7 +218,7 @@ pub fn fetch_with_ssrf_guard(url_str: &str) -> Result<reqwest::blocking::Respons
         // Resolve relative redirect
         url = url.join(location).context("resolve redirect URL")?;
 
-        // Validate redirect target (always, even with allow_local)
+        // Validate redirect target
         validate_url(url.as_str())
             .with_context(|| format!("redirect to `{}` blocked by SSRF guard", url))?;
     }

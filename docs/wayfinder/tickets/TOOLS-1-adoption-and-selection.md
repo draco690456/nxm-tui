@@ -58,6 +58,23 @@ MT-1→MT-3 (ToolKind + keywords + `select(task)` + `manifest_for` + fail-open)
 restano **aperti**: sono la selezione *automatica* per-task, complementare al
 toggle manuale già in main. Ticket a sé quando serve.
 
+### 🔧 Decisioni di design (utente, 2026-10-20) — guidano MT-1→MT-3
+
+- **Set finale inviato al modello = UNIONE** `automatica ∪ manuale` (non intersezione).
+- **Manuale** = selezione esplicita dall'overlay, **su richiesta utente**; il default
+  cambia da "tutti on" a **insieme vuoto** (l'utente *aggiunge*, non *toglie*).
+- **Automatica `select(task)`** = **Core sempre** + tool il cui `keywords()` matcha il
+  task (case-insensitive).
+- **Fail-safe** (0 keyword match) = **solo i Core**, NON "tutti" (rettifica il "fail-open
+  = tutti" del design originale): senza una visualizzazione dei tool auto-scelti, meglio
+  un set minimo che non riesponga write/rete su ogni task generico.
+- **Core** = `read_file` + `list_resources` (lettura/navigazione; nessun write, nessuna
+  rete). `grep`=Search, `search_replace`=Edit, `web_fetch`/`web_search`=Web.
+- **Delega in 3 micro-task**: MT-1 (ToolKind + kind/keywords, no behavior change,
+  `prompts/33-*`), MT-2 (`select`/`manifest_for` + unione + fail-safe), MT-3 (aggancio
+  `agent.rs::stream_turn`, task = ultimo messaggio user). Feature branch unico
+  `feat/tools-select-mechanism`.
+
 ## Parte B — Inventario tool grok-build (per decidere le priorità)
 
 Fonte: `crates/codegen/xai-grok-tools/src/implementations/grok_build/`.

@@ -289,6 +289,10 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
             app.show_tools = false;
             return;
         }
+        if app.show_todo {
+            app.show_todo = false;
+            return;
+        }
         if app.show_approval {
             app.show_approval = false;
             return;
@@ -401,6 +405,21 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                     app.show_context = false;
                     app.show_thinking = false;
                     app.show_tool = false;
+                }
+                return;
+            }
+            KeyCode::Char('d') => {
+                // Todo overlay (MT-3, read-only). Ctrl+D is free (not used
+                // by any other overlay/action).
+                app.show_todo = !app.show_todo;
+                if app.show_todo {
+                    app.show_help = false;
+                    app.show_sessions = false;
+                    app.show_metrics = false;
+                    app.show_context = false;
+                    app.show_thinking = false;
+                    app.show_tool = false;
+                    app.show_tools = false;
                 }
                 return;
             }

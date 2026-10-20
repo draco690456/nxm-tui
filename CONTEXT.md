@@ -302,3 +302,20 @@ an interactive chat interface in the terminal.
   tests are unaffected.
 - Branch `work/38-todo-mt2` on `feat/tools-todo`; to consolidate with
   `--ff-only` after external review. No commit on `main`/`develop`.
+
+## MT-3 — todo overlay (TUI, read-only)
+
+- `src/todo_overlay.rs` (new): `render_todo(f, app)` renders `App.todo_handle`
+  as `[x]`/`[ ]` checklist with "Todo" title; empty list shows "(no todos)";
+  poisoned mutex shows error placeholder instead of panicking.
+- `src/lib.rs`: `pub mod todo_overlay;`.
+- `src/app.rs`: added `pub show_todo: bool` (default `false`).
+- `src/ui.rs`: `render()` draws `render_todo` when `app.show_todo` is true.
+- `src/handler.rs`: Ctrl+D toggles the todo overlay; Esc closes it (Ctrl+D
+  is free — not used by any other overlay/action).
+- Test: `tests/todo_overlay.rs` (4 tests, R1..R3 + bonus), `tests/todo_overlay_keys.rs`
+  (3 tests, R4 + R5).
+- NOT touched: `agent.rs`, `nxm-tui-tools`, `src/md/`, `TodoList`/`Todo`
+  (MT-1/MT-2); no new dependency; no UI mutation in this MT.
+- Branch `work/39-todo-mt3` on `feat/tools-todo`; to consolidate with
+  `--ff-only` after external review. No commit on `main`/`develop`.

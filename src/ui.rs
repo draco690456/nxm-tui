@@ -39,6 +39,10 @@ pub fn render(f: &mut Frame, app: &mut App) {
             if app.show_tools {
                 crate::tools_overlay::render_tools(f, app);
             }
+            // Todo overlay (MT-3, read-only) — under the approval modal.
+            if app.show_todo {
+                crate::todo_overlay::render_todo(f, app);
+            }
             if app.show_approval {
                 crate::tool_overlay::render_approval(f, app);
             }

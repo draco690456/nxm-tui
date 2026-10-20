@@ -1,6 +1,36 @@
 # Changelog
 # 2026-10-21
 
+## feat(todo): add todo overlay (TUI, read-only) (MT-3)
+
+Read-only todo overlay for the agent's todo list. Shows `App.todo_handle`
+(the shared `Arc<Mutex<TodoList>>` populated by the `todo` tool in MT-2) as
+a `[x]`/`[ ]` checklist. No UI mutation in this MT — the agent mutates todos
+via the tool; the TUI only observes.
+- `src/todo_overlay.rs` (new): `render_todo(f, app)` renders the todo list
+  with `[x]`/`[ ]` markers and a "Todo" title; empty list shows
+  "(no todos)" placeholder; poisoned mutex shows an error placeholder
+  instead of panicking. `handle_todo_key` swallows all keys while modal.
+- `src/lib.rs`: `pub mod todo_overlay;`.
+- `src/app.rs`: added `pub show_todo: bool` (default `false`) to `App`.
+- `src/ui.rs`: `render()` draws `render_todo` when `app.show_todo` is true.
+- `src/handler.rs`: Ctrl+D toggles the todo overlay; Esc closes it (Ctrl+D
+  is free — not used by any other overlay/action).
+- Test: `tests/todo_overlay.rs` (4 tests: `todo_overlay_hidden_by_default`
+  R1, `todo_overlay_renders_items` R2, `todo_overlay_empty_placeholder` R3,
+  `todo_overlay_poisoned_mutex_does_not_panic` bonus),
+  `tests/todo_overlay_keys.rs` (3 tests: `todo_overlay_toggle_key` R4,
+  `todo_overlay_toggle_key_idempotent` R4, `todo_overlay_no_key_conflict`
+  R5).
+- NOT touched: `agent.rs`, `nxm-tui-tools`, `src/md/`, `TodoList`/`Todo`
+  (MT-1/MT-2); no new dependency.
+- Gate: `cargo test --test todo_overlay` 4/4; `cargo test --test
+  todo_overlay_keys` 3/3; `cargo test --workspace` green; `cargo clippy
+  --all-targets` 0 new warnings; `cargo fmt` on touched files ok.
+- Branch `work/39-todo-mt3` on `feat/tools-todo`; to consolidate with
+  `--ff-only` after external review. No commit on `main`/`develop`.
+
+
 ## feat(todo): add todo tool mutating shared TodoList (MT-2)
 
 Expose a `todo` tool that mutates the shared `Arc<Mutex<TodoList>>` state

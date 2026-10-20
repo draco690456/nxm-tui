@@ -297,6 +297,8 @@ pub struct App {
     pub show_approval: bool,
     /// Tool selection overlay (T1) open state.
     pub show_tools: bool,
+    /// Todo overlay (MT-3) open state — read-only view of the shared todo list.
+    pub show_todo: bool,
     /// Cursor over [`tool_registry`](App::tool_registry)'s names in the
     /// Tools overlay (index into `tool_names()`).
     pub tools_cursor: usize,
@@ -403,6 +405,7 @@ impl App {
             show_approval: false,
             show_tools: false,
             tools_cursor: 0,
+            show_todo: false,
             tool_registry: {
                 let mut reg = default_registry();
                 reg.register(Todo {

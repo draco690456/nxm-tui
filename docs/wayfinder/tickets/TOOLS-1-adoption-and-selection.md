@@ -97,6 +97,13 @@ adattata sarà MOLTO più piccola per molti). nxm-tui HA GIÀ: `read_file`,
 | `todo` | 1005 | Todo-list dell'agente |
 | `update_goal` | 503 | Aggiorna il goal corrente |
 | `enter_plan_mode` / `exit_plan_mode` | 711 / 409 | Modalità pianificazione |
+
+> **🚧 `todo` IN CORSO (2026-10-20)** — design (utente): stato della todo-list in `App`,
+> **esposto nella TUI**. `trait Tool` resta stateless; lo stato è `Arc<Mutex<TodoList>>`
+> condiviso Agent↔App (stesso pattern di `tool_registry`). Delega in 3 micro-task su
+> `feat/tools-todo`: MT-1 (`src/todo.rs`: `TodoItem`/`TodoList` + stato condiviso + logica,
+> `prompts/37-*`), MT-2 (tool `todo` nel Registry + dispatch nell'Agent che muta lo stato e
+> ritorna `render()` al modello), MT-3 (overlay TUI della lista).
 | `task` | 3654 | Spawn di sub-task/sub-agenti |
 | `task_output` / `kill_task` / `scheduler` / `monitor` | 2852 / 824 / 19 / 4 | Gestione task asincroni |
 | `send_subagent_message` | 304 | Comunicazione tra sub-agenti |

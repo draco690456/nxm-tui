@@ -36,12 +36,13 @@ fn default_registry_body_lists_every_tool() {
     let client = Client::new();
     let agent = agent_over(default_registry(), &client);
     let names = tool_names(&agent.request_body());
-    assert_eq!(names.len(), 5);
+    assert_eq!(names.len(), 6);
     assert!(names.iter().any(|n| n == "read_file"));
     assert!(names.iter().any(|n| n == "list_resources"));
     assert!(names.iter().any(|n| n == "web_search"));
     assert!(names.iter().any(|n| n == "web_fetch"));
     assert!(names.iter().any(|n| n == "grep"));
+    assert!(names.iter().any(|n| n == "search_replace"));
 }
 
 #[test]

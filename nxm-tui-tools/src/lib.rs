@@ -16,9 +16,11 @@ use tracing::info;
 
 mod builtins;
 mod grep;
+mod search_replace;
 mod ssrf;
 pub use builtins::{ListResources, ReadFile, WebFetch, WebSearch};
 pub use grep::Grep;
+pub use search_replace::SearchReplace;
 pub use ssrf::{
     fetch_with_ssrf_guard, is_allowed_scheme, is_blocked_addr, validate_host, validate_url,
 };
@@ -232,5 +234,6 @@ pub fn default_registry() -> Registry {
     reg.register(WebSearch::default());
     reg.register(WebFetch);
     reg.register(Grep);
+    reg.register(SearchReplace);
     reg
 }

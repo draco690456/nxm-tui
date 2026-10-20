@@ -102,7 +102,7 @@ impl<'a> Agent<'a> {
     /// let client = Client::new();
     /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry());
     /// let body = agent.request_body();
-    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(5));
+    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(6));
     /// ```
     pub fn request_body(&self) -> Value {
         let tools = self.registry.manifest_selected();

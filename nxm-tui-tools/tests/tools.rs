@@ -49,7 +49,8 @@ fn manifest_exposes_the_mvp_tool_set() {
             "list_resources",
             "web_search",
             "web_fetch",
-            "grep"
+            "grep",
+            "search_replace"
         ]
     );
 }

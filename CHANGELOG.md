@@ -1,5 +1,36 @@
 # Changelog
 
+# 2026-10-21
+
+## feat(tools): add search_replace tool (exact unique find→replace)
+
+Nuovo tool nativo `search_replace` in `nxm-tui-tools`: dato `path`, `old`,
+`new`, sostituisce l'occorrenza **esatta e univoca** di `old` con `new` e
+riscrive il file in modo **atomico** (tmp + rename same-dir). Registrato in
+`default_registry()` (abilitato di default).
+- `nxm-tui-tools/src/search_replace.rs` (nuovo, ~110 righe ≤ 300 cap):
+  `SearchReplace` tool con schema `path`+`old`+`new` required (tutte string);
+  exact-string (NON regex); `old` vuoto → errore; `old == new` → errore "no change";
+  `old` 0 volte → `ToolResult::err("not found")`, nessuna scrittura;
+  `old` >1 volta → `ToolResult::err("ambiguous: N matches")`, nessuna scrittura;
+  `old` esattamente 1 volta → sostituzione + write atomico (temp file nella
+  stessa directory + `std::fs::rename`); logging `tracing` su `run` (target
+  `nexum::tools::runtime`); doc `///` con esempio doctest.
+- `nxm-tui-tools/src/lib.rs`: `mod search_replace`, re-export `SearchReplace`,
+  registrazione in `default_registry()`.
+- Test: `nxm-tui-tools/tests/search_replace.rs` (8 test: `sr_schema`,
+  `sr_missing_args` (3 casi), `sr_unique_replace`, `sr_no_match_no_write`,
+  `sr_ambiguous_no_write`, `sr_empty_old`, `sr_no_temp_left`,
+  `sr_in_default_registry`); `tempfile` per alberi temporanei, verifica
+  contenuto riletto da disco, assenza file temporanei orfani.
+- `nxm-tui-tools/tests/tools.rs`, `tests/selection.rs`, `tests/agent_request.rs`,
+  `src/agent.rs`: conteggio manifest aggiornato a 6 tool + doctest.
+- Gate: `cargo test -p nxm-tui-tools --test search_replace` 8/8; `cargo test --workspace`
+  verde; `cargo clippy --all-targets` 0 nuovi warning (5 pre-esistenti);
+  `cargo fmt -- --check` 0 diff sui file toccati.
+- Branch `work/31-tools-search-replace` su `feat/tools-search-replace`; nessun commit
+  su `main`/`develop`.
+
 # 2026-10-20
 
 ## feat(tools): web_fetch SSRF guard (block private/loopback/metadata + redirects)

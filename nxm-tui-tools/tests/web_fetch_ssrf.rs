@@ -2,8 +2,8 @@
 //!
 //! Tests the address classification and redirect protection.
 //! Uses pure IpAddr checks where possible; integration tests use
-//! TcpListener. Tests that modify NEXUM_WEBFETCH_ALLOW_LOCAL run
-//! sequentially via `#[serial]` (using serial_test crate) to avoid
+//! TcpListener. Tests that touch NEXUM_WEBFETCH_ALLOW_LOCAL run
+//! sequentially via `#[serial]` (serial_test crate) to avoid
 //! race conditions with parallel test execution.
 
 use std::io::{Read, Write};
@@ -13,6 +13,7 @@ use std::thread;
 
 use nxm_tui_tools::{default_registry, is_blocked_addr, validate_url};
 use serde_json::json;
+use serial_test::serial;
 
 /// Helper to run a test with NEXUM_WEBFETCH_ALLOW_LOCAL=1 safely.
 /// Uses a closure to ensure the env var is cleaned up even on panic.
@@ -67,6 +68,7 @@ fn ssrf_blocks_private() {
     assert!(is_blocked_addr(IpAddr::from_str("fd00::1").unwrap()));
 }
 
+#[serial]
 #[test]
 fn ssrf_blocks_non_http_scheme() {
     let reg = default_registry();
@@ -114,6 +116,7 @@ fn ssrf_blocks_redirect_to_loopback() {
     // but the unit test above covers the core redirect validation logic.
 }
 
+#[serial]
 #[test]
 fn ssrf_allow_local_env() {
     // With NEXUM_WEBFETCH_ALLOW_LOCAL=1, loopback should work
@@ -274,6 +277,7 @@ fn ssrf_mapped_fix_keeps_public_v6() {
 // End-to-end tests: web_fetch run() returns ToolResult::err for blocked URLs
 // ========================================================================
 
+#[serial]
 #[test]
 fn ssrf_web_fetch_loopback_blocked() {
     // R1: fetch to loopback should return ToolResult::err (not panic, not Ok)
@@ -291,6 +295,7 @@ fn ssrf_web_fetch_loopback_blocked() {
     );
 }
 
+#[serial]
 #[test]
 fn ssrf_web_fetch_metadata_blocked() {
     // R2: fetch to metadata endpoint should return ToolResult::err
@@ -309,6 +314,7 @@ fn ssrf_web_fetch_metadata_blocked() {
     );
 }
 
+#[serial]
 #[test]
 fn ssrf_web_fetch_private_ip_blocked() {
     // R3: fetch to private IP should return ToolResult::err
@@ -325,6 +331,7 @@ fn ssrf_web_fetch_private_ip_blocked() {
     );
 }
 
+#[serial]
 #[test]
 fn ssrf_web_fetch_non_http_scheme_blocked() {
     // R4: fetch with non-http scheme should return ToolResult::err
@@ -339,6 +346,7 @@ fn ssrf_web_fetch_non_http_scheme_blocked() {
     );
 }
 
+#[serial]
 #[test]
 fn ssrf_web_fetch_allow_local_bypasses_guard() {
     // R6: with allow-local, loopback fetch should succeed (end-to-end)

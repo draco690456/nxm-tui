@@ -33,6 +33,30 @@ riscrive il file in modo **atomico** (tmp + rename same-dir). Registrato in
 
 # 2026-10-20
 
+## test(tools): serialize SSRF env-var tests to fix flakiness and 30s timeout
+
+La suite `nxm-tui-tools/tests/web_fetch_ssrf.rs` impiegava ~30s invece di
+~0.03s: i test girano in parallelo e `with_allow_local` (set/remove di
+`NEXUM_WEBFETCH_ALLOW_LOCAL`, variabile globale di processo) poteva
+contaminare un test di blocco in esecuzione contemporanea → guardia SSRF
+saltata → fetch reale a indirizzo bloccato → timeout TCP ~30s. Il
+doc-comment del file citava già `#[serial]`/`serial_test` ma la dipendenza
+non c'era: il commento mentiva.
+- `nxm-tui-tools/Cargo.toml`: dev-dependency `serial_test = "3"` (solo test,
+  non entra nel binario distribuito).
+- `nxm-tui-tools/tests/web_fetch_ssrf.rs`: `#[serial]` (gruppo default) su
+  tutti e 7 i test che toccano la env var — sia quelli che la impostano via
+  `with_allow_local` (`ssrf_allow_local_env`,
+  `ssrf_web_fetch_allow_local_bypasses_guard`) sia quelli di blocco che
+  passano da `WebFetch::run` → `fetch_with_ssrf_guard` (che la legge:
+  `ssrf_blocks_non_http_scheme`, `ssrf_web_fetch_loopback_blocked`,
+  `ssrf_web_fetch_metadata_blocked`, `ssrf_web_fetch_private_ip_blocked`,
+  `ssrf_web_fetch_non_http_scheme_blocked`). I test puri su
+  `is_blocked_addr`/`validate_url` restano paralleli. Nessun cambio di
+  nomi/asserzioni/semantica; nessun tocco al codice di produzione.
+- Misurato: prima 30.0s (timeout da contaminazione), dopo 0.05s; 3
+  esecuzioni consecutive verdi.
+
 ## feat(tools): web_fetch SSRF guard (block private/loopback/metadata + redirects)
 
 Aggiunta guardia SSRF a `WebFetch` (`nxm-tui-tools/src/builtins.rs`):

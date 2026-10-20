@@ -93,9 +93,11 @@ pub trait Tool: Send + Sync {
 
 /// Registry of available tools + OpenAI manifest builder.
 ///
-/// Holds the T1 in-memory selection: every registered tool is **enabled** by
-/// default, and [`manifest_selected`](Registry::manifest_selected) is the
-/// model-visible subset. Selection is orthogonal to approval gating — a
+/// Holds the T1 in-memory selection: the **manual** `enabled` set starts
+/// empty (MT-3), and a tool reaches the model only via
+/// [`manifest_for`](Registry::manifest_for) — the automatic per-task
+/// selection ([`ToolKind::Core`] + keyword match) union the tools the user
+/// explicitly enabled. Selection is orthogonal to approval gating — a
 /// selected tool can still be gated in `tool_types::needs_approval`.
 #[derive(Clone)]
 pub struct Registry {
@@ -120,8 +122,9 @@ impl Registry {
 
     pub fn register<T: Tool + 'static>(&mut self, tool: T) {
         info!(target: TARGET, "register tool `{name}`", name = tool.name());
-        // Invariant: registering a tool always (re-)enables it.
-        self.enabled.insert(tool.name().to_string());
+        // MT-3: registration no longer auto-enables. The manual `enabled` set
+        // starts empty; visibility comes from `select(task)` (Core + keyword)
+        // plus what the user explicitly enables via the overlay.
         self.tools.push(Arc::new(tool));
     }
 
@@ -143,12 +146,14 @@ impl Registry {
         }
     }
 
-    /// Whether a tool is part of the model-visible selection.
+    /// Whether a tool is part of the model-visible selection (manual
+    /// `enabled` set; MT-3 starts empty — nothing is enabled by default).
     ///
     /// ```
     /// use nxm_tui_tools::default_registry;
     ///
-    /// assert!(default_registry().is_enabled("read_file"));
+    /// // Default: nothing manually enabled.
+    /// assert!(!default_registry().is_enabled("read_file"));
     /// ```
     pub fn is_enabled(&self, name: &str) -> bool {
         self.enabled.contains(name)

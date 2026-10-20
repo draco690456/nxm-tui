@@ -2,6 +2,19 @@
 # 2026-10-21
 
 
+## feat(tools): activate per-task tool selection — manifest_for wired, manual set empty by default (MT-3)
+
+Switch atomico: attiva la selezione automatica per-task end-to-end (Opzione X).
+- `nxm-tui-tools/src/lib.rs`: `register()` non abilita più automaticamente; il set manuale `enabled` parte vuoto. Doc-comment aggiornati (niente più "enabled by default").
+- `src/agent.rs`: `request_body()` usa `registry.manifest_for(&task)` con `task` = ultimo messaggio `Role::User` del transcript (stringa vuota → fail-safe = soli Core). Doc-comment/doctest aggiornati (ora 2 tool = Core con transcript vuoto). Logging `tracing::info!` (target `nexum::agent::request`) su tool inviati e task.
+- `src/tools_overlay.rs` / `src/handler.rs`: meccanismo invariato (`is_enabled`/`set_enabled`/`enable_all`/`disable_all`), ora di default tutti `[ ]` (l'utente *aggiunge* via overlay); nessun cambio di codice UI necessario oltre ai test.
+- Test aggiornati alla nuova semantica: `nxm-tui-tools/tests/selection.rs` (`default_manual_set_is_empty`, `registering_a_tool_no_longer_auto_enables_it`, `manifest_for_default_registry_is_fail_safe_core_only` + i `set_enabled_*` riscritti), `grep`/`web_fetch`/`search_replace` `*_in_default_registry` (verifica via `tool_names()`), `tests/agent_request.rs` (`request_body_failsafe_core_only`, `request_body_uses_per_task_selection`, `request_body_includes_manual_addition`), `tests/tools_overlay_keys.rs` + `tests/tools_overlay.rs` (default `[ ]`, toggle che aggiunge).
+- `manifest_selected()` mantenuto (ancora usato dai test); `agent.rs` non lo chiama più.
+- NON toccate: `select`/`manifest_for` (MT-2), `manifest()`, default di `register()` oltre al cambio `enabled`, `src/md/`, nessuna nuova dipendenza.
+- Gate: `cargo test -p nxm-tui-tools` verde; `cargo test --workspace` verde; `cargo clippy --all-targets` 0 nuovi warning; `cargo fmt -p nxm-tui-tools -- --check` + file nxm-tui toccati formattati.
+- Branch `work/35-select-mt3` su `feat/tools-select-mechanism`; nessun commit su `main`/`develop`.
+
+
 ## feat(tools): add Registry::select + manifest_for per-task selection (MT-2)
 
 Selezione automatica per-task in `nxm-tui-tools` come logica pura e testabile,

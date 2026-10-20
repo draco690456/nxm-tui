@@ -43,18 +43,29 @@ fn space_toggles_the_tool_under_cursor() {
     let mut app = App::new();
     handle_key(&mut app, ctrl('e'));
     let name = app.tool_registry.tool_names()[app.tools_cursor].to_string();
-    assert!(app.tool_registry.is_enabled(&name), "enabled by default");
+    assert!(!app.tool_registry.is_enabled(&name), "disabled by default");
 
     handle_key(&mut app, key(KeyCode::Char(' ')));
-    assert!(!app.tool_registry.is_enabled(&name), "Space disables it");
+    assert!(app.tool_registry.is_enabled(&name), "Space enables it");
     handle_key(&mut app, key(KeyCode::Char(' ')));
-    assert!(app.tool_registry.is_enabled(&name), "Space re-enables it");
+    assert!(
+        !app.tool_registry.is_enabled(&name),
+        "Space disables it again"
+    );
 }
 
 #[test]
 fn a_and_n_bulk_enable_and_disable() {
     let mut app = App::new();
     handle_key(&mut app, ctrl('e'));
+
+    // MT-3: default manual set is empty.
+    let none_enabled = app
+        .tool_registry
+        .tool_names()
+        .iter()
+        .all(|n| !app.tool_registry.is_enabled(n));
+    assert!(none_enabled, "default: no tool manually enabled");
 
     handle_key(&mut app, key(KeyCode::Char('n')));
     let any_enabled = app
@@ -97,14 +108,16 @@ fn overlay_swallows_keys_that_are_not_shortcuts() {
 }
 
 #[test]
-fn toggling_selection_filters_the_agent_request_body() {
-    // End-to-end seam: overlay toggle -> App registry -> agent snapshot body.
+fn overlay_disable_all_keeps_core_in_body() {
+    // End-to-end seam: overlay disable-all -> App registry -> agent snapshot body.
+    // With the MT-3 empty default, disable-all leaves only the automatic
+    // fail-safe (Core) in the body when there is no user task.
     use nxm_tui::agent::Agent;
     use reqwest::Client;
 
     let mut app = App::new();
     handle_key(&mut app, ctrl('e'));
-    handle_key(&mut app, key(KeyCode::Char('n'))); // disable all
+    handle_key(&mut app, key(KeyCode::Char('n'))); // disable all (manual set)
 
     let client = Client::new();
     let agent = Agent::new(
@@ -117,9 +130,11 @@ fn toggling_selection_filters_the_agent_request_body() {
         app.tool_registry.clone(),
     );
     let body = agent.request_body();
-    assert!(
-        body["tools"].as_array().map(|a| a.len()) == Some(0),
-        "disabled tools absent from body, got {}",
-        body["tools"]
-    );
+    let names: Vec<&str> = body["tools"]
+        .as_array()
+        .expect("tools array")
+        .iter()
+        .filter_map(|t| t["function"]["name"].as_str())
+        .collect();
+    assert_eq!(names, vec!["read_file", "list_resources"]);
 }

@@ -79,6 +79,6 @@ fn web_fetch_http_error() {
 #[test]
 fn web_fetch_in_default_registry() {
     let reg = default_registry();
-    assert!(reg.is_enabled("web_fetch"));
+    // MT-3: registration no longer auto-enables; verify registration only.
     assert!(reg.tool_names().contains(&"web_fetch"));
 }

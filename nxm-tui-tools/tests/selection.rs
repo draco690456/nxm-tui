@@ -1,55 +1,66 @@
-//! Selection tests for `Registry` (T1): in-memory `enabled` state + the
-//! filtered `manifest_selected()` the agent sends to the model.
+//! Selection tests for `Registry` (T1 + MT-3): in-memory `enabled` state +
+//! the filtered `manifest_selected()` the agent sends to the model.
 //!
-//! Contract: every registered tool is enabled by default (behaviour unchanged
-//! until the user disables one); `manifest()` stays the full compat manifest;
-//! `manifest_selected()` is the model-visible subset.
+//! Contract (MT-3): the manual `enabled` set starts empty — registration no
+//! longer auto-enables. `manifest()` stays the full compat manifest;
+//! `manifest_selected()` reflects the empty manual set by default.
 
 use nxm_tui_tools::{default_registry, Registry};
 
 #[test]
-fn registry_defaults_all_tools_enabled() {
+fn default_manual_set_is_empty() {
+    // R1: manual `enabled` set starts empty; tools are still registered.
     let reg = default_registry();
     let names = reg.tool_names();
     assert!(!names.is_empty(), "default registry has tools");
     for name in names {
-        assert!(reg.is_enabled(name), "`{name}` enabled by default");
+        assert!(
+            !reg.is_enabled(name),
+            "`{name}` not manually enabled by default"
+        );
     }
-    // Default selection == full manifest (no behaviour change until toggled).
-    assert_eq!(reg.manifest_selected(), reg.manifest());
+    // manifest_selected() reflects the empty manual set.
+    assert!(reg.manifest_selected().is_empty());
+    // manifest() (full compat manifest) is untouched.
+    assert_eq!(reg.manifest().len(), 6);
 }
 
 #[test]
-fn set_enabled_false_excludes_tool_from_selected_manifest() {
-    let mut reg = default_registry();
-    reg.set_enabled("web_search", false);
+fn registering_a_tool_no_longer_auto_enables_it() {
+    // MT-3: register() does not insert into the manual `enabled` set.
+    let mut reg = Registry::new();
+    reg.register(nxm_tui_tools::ReadFile);
+    assert!(
+        !reg.is_enabled("read_file"),
+        "registration no longer auto-enables"
+    );
+    reg.register(nxm_tui_tools::ListResources);
+    assert!(!reg.is_enabled("list_resources"));
+}
 
-    assert!(!reg.is_enabled("web_search"));
-    let selected: Vec<String> = reg
-        .manifest_selected()
-        .iter()
-        .map(|v| {
-            v["function"]["name"]
-                .as_str()
-                .unwrap_or_default()
-                .to_string()
-        })
-        .collect();
-    assert!(!selected.contains(&"web_search".to_string()));
-    assert!(selected.contains(&"read_file".to_string()));
-    assert!(selected.contains(&"list_resources".to_string()));
+#[test]
+fn set_enabled_false_empties_manual_selected_manifest() {
+    // MT-3: default manual set is empty — enable first, then disable.
+    // `manifest_selected()` reflects only the manual set, so it empties.
+    let mut reg = default_registry();
+    reg.set_enabled("read_file", true);
+    reg.set_enabled("read_file", false);
+
+    assert!(!reg.is_enabled("read_file"));
+    assert!(reg.manifest_selected().is_empty());
     // Compat: the unfiltered manifest still lists everything.
     assert_eq!(reg.manifest().len(), 6);
 }
 
 #[test]
 fn set_enabled_true_re_enables_a_disabled_tool() {
+    // MT-3: default manual set is empty — enable, then re-enable is a no-op.
     let mut reg = default_registry();
-    reg.set_enabled("read_file", false);
-    assert!(!reg.is_enabled("read_file"));
     reg.set_enabled("read_file", true);
     assert!(reg.is_enabled("read_file"));
-    assert_eq!(reg.manifest_selected(), reg.manifest());
+    reg.set_enabled("read_file", true);
+    assert!(reg.is_enabled("read_file"));
+    assert_eq!(reg.manifest_selected().len(), 1);
 }
 
 #[test]
@@ -80,21 +91,9 @@ fn tool_names_lists_registered_tools_in_registration_order() {
     assert_eq!(reg.tool_names(), vec!["read_file", "list_resources"]);
 }
 
-#[test]
-fn registering_a_new_tool_defaults_it_to_enabled() {
-    let mut reg = Registry::new();
-    reg.register(nxm_tui_tools::ReadFile);
-    reg.set_enabled("read_file", false);
-    // A tool registered after a disable_all (or individually disabled set)
-    // still comes up enabled: registration always inserts the name.
-    reg.register(nxm_tui_tools::ListResources);
-    assert!(reg.is_enabled("list_resources"));
-}
-
 // === MT-2: automatic per-task selection (`select` / `manifest_for`) ===
-// The manual (enabled) set is zeroed with `disable_all()` so the automatic
-// part is isolated — until MT-3 flips the default, `manifest_for` on a
-// default registry still returns everything (all enabled).
+// The manual (enabled) set starts empty (MT-3), so `disable_all()` is a
+// no-op here; targeted `set_enabled(...)` calls isolate the automatic part.
 
 #[test]
 fn select_always_includes_core() {
@@ -185,24 +184,15 @@ fn manifest_for_dedup_and_order() {
 }
 
 #[test]
-fn manifest_for_default_registry_returns_all_until_mt3() {
-    // Until MT-3 flips the default, every tool is enabled, so manifest_for
-    // returns the full set regardless of the task (no behavior change yet).
+fn manifest_for_default_registry_is_fail_safe_core_only() {
+    // MT-3: manual set starts empty, so manifest_for on a default registry
+    // reflects only the automatic selection — fail-safe = Core only when no
+    // keyword matches.
     let reg = default_registry();
     let man = reg.manifest_for("hello how are you");
     let names: Vec<&str> = man
         .iter()
         .filter_map(|v| v["function"]["name"].as_str())
         .collect();
-    assert_eq!(
-        names,
-        vec![
-            "read_file",
-            "list_resources",
-            "web_search",
-            "web_fetch",
-            "grep",
-            "search_replace"
-        ]
-    );
+    assert_eq!(names, vec!["read_file", "list_resources"]);
 }

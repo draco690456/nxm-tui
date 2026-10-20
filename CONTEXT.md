@@ -258,3 +258,12 @@ an interactive chat interface in the terminal.
   l'automatica con `disable_all()` + `set_enabled(...)` mirati.
 - Branch `work/34-select-mt2` su `feat/tools-select-mechanism`; da consolidare
   con `--ff-only` dopo review esterna. Nessun commit su `main`/`develop`.
+
+## MT-3 — switch atomico: default manuale vuoto + `manifest_for` in `agent.rs`
+
+- `nxm-tui-tools/src/lib.rs`: `register()` non abilita più automaticamente; set manuale `enabled` parte vuoto. Doc-comment aggiornati.
+- `src/agent.rs`: `request_body()` usa `registry.manifest_for(&task)` dove `task` = ultimo messaggio `Role::User` del transcript (stringa vuota → fail-safe soli Core). Logging `tracing::info!` (target `nexum::agent::request`). Doc/doctest aggiornati (2 tool = Core con transcript vuoto).
+- `src/tools_overlay.rs` / `src/handler.rs`: meccanismo invariato, default tutti `[ ]` (utente *aggiunge* via overlay). Nessun cambio di codice UI necessario.
+- Test aggiornati: `selection.rs` (default vuoto, registration non abilita), `grep`/`web_fetch`/`search_replace` `*_in_default_registry` (via `tool_names()`), `agent_request.rs` (R3: failsafe core-only + per-task selection; R4: manual addition), `tools_overlay_keys.rs` + `tools_overlay.rs` (default `[ ]`).
+- `manifest_selected()` mantenuto (usato dai test); `agent.rs` non lo chiama più.
+- Branch `work/35-select-mt3` su `feat/tools-select-mechanism`; da consolidare con `--ff-only` dopo review esterna. Nessun commit su `main`/`develop`.

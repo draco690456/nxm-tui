@@ -91,22 +91,39 @@ impl<'a> Agent<'a> {
     /// extracted from [`run`](Agent::run) so tests can assert the `tools`
     /// payload without a server.
     ///
-    /// `tools` is `registry.manifest_selected()`: only the tools the user
-    /// left active in the Tools overlay reach the model (T1 selection).
+    /// `tools` is `registry.manifest_for(task)`: the automatic per-task
+    /// selection (Core tools + keyword match) union the tools the user
+    /// explicitly enabled in the overlay (MT-3). `task` is the content of
+    /// the last [`Role::User`] message in the transcript; when there is
+    /// none, `select` fails-safes to Core only.
     ///
     /// ```
     /// use nxm_tui::agent::Agent;
+    /// use nxm_tui::app::{Message, Role};
     /// use nxm_tui_tools::default_registry;
     /// use reqwest::Client;
     ///
     /// let client = Client::new();
     /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry());
     /// let body = agent.request_body();
-    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(6));
+    /// // No user message → fail-safe: Core tools only.
+    /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(2));
     /// ```
     pub fn request_body(&self) -> Value {
-        let tools = self.registry.manifest_selected();
-        tracing::debug!(target: "nexum::agent::request", tool_count = tools.len(), "request body built");
+        let task = self
+            .transcript
+            .iter()
+            .rev()
+            .find(|m| m.role == Role::User)
+            .map(|m| m.content.as_str())
+            .unwrap_or("");
+        let tools = self.registry.manifest_for(task);
+        tracing::info!(
+            target: "nexum::agent::request",
+            tool_count = tools.len(),
+            task = %task,
+            "request body built (per-task selection)"
+        );
         serde_json::json!({
             "model": self.model,
             "messages": serialize_messages(&self.transcript),

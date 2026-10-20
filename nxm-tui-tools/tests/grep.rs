@@ -88,6 +88,6 @@ fn grep_directory_excludes() {
 #[test]
 fn grep_in_default_registry() {
     let reg = default_registry();
-    assert!(reg.is_enabled("grep"));
+    // MT-3: registration no longer auto-enables; verify registration only.
     assert!(reg.tool_names().contains(&"grep"));
 }

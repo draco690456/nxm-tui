@@ -29,38 +29,38 @@ fn screen_text(app: &App) -> String {
 }
 
 #[test]
-fn tools_overlay_marks_all_registered_tools_active_by_default() {
+fn tools_overlay_marks_all_registered_tools_inactive_by_default() {
     let app = App::new();
     let text = screen_text(&app);
     assert!(text.contains("Tools"), "overlay title present");
-    // Every default tool is enabled at startup, so each shows [x].
-    assert!(text.contains("[x]"), "active marker: {text}");
+    // MT-3: default manual set is empty, so each shows [ ].
+    assert!(text.contains("[ ]"), "inactive marker: {text}");
     assert!(text.contains("read_file"), "read_file listed");
     assert!(text.contains("list_resources"), "list_resources listed");
     assert!(text.contains("web_search"), "web_search listed");
 }
 
 #[test]
-fn tools_overlay_marks_a_disabled_tool_inactive() {
+fn tools_overlay_marks_an_enabled_tool_active() {
     let mut app = App::new();
-    app.tool_registry.set_enabled("web_search", false);
+    // MT-3: default is empty; explicitly enable web_search.
+    app.tool_registry.set_enabled("web_search", true);
     let text = screen_text(&app);
-    // web_search is off: its row shows [ ] while the others stay [x].
     let web_row = text
         .lines()
         .find(|l| l.contains("web_search"))
         .expect("web_search row present");
     assert!(
-        web_row.contains("[ ]"),
-        "inactive marker on web_search row: {web_row}"
+        web_row.contains("[x]"),
+        "active marker on web_search row: {web_row}"
     );
     let read_row = text
         .lines()
         .find(|l| l.contains("read_file"))
         .expect("read_file row present");
     assert!(
-        read_row.contains("[x]"),
-        "active marker on read_file row: {read_row}"
+        read_row.contains("[ ]"),
+        "inactive marker on read_file row (default): {read_row}"
     );
 }
 

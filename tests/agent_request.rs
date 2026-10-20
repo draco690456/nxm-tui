@@ -1,13 +1,14 @@
-//! Agent request-body tests (T1 DoD): the `tools` payload sent to the model
-//! is `registry.manifest_selected()` — a disabled tool must NOT appear in the
-//! request body.
+//! Agent request-body tests (MT-3): the `tools` payload sent to the model
+//! is `registry.manifest_for(task)` — the automatic per-task selection
+//! (Core tools + keyword match) union the manually enabled tools. The
+//! manual `enabled` set starts empty.
 
 use nxm_tui::agent::Agent;
+use nxm_tui::app::{Message, Role};
 use nxm_tui_tools::{default_registry, Registry};
 use reqwest::Client;
 
-/// Build an agent over a caller-supplied registry (the T1 seam: `App` owns
-/// the selection and hands a snapshot to the agent at spawn).
+/// Build an agent over a caller-supplied registry with an empty transcript.
 fn agent_over(reg: Registry, client: &Client) -> Agent<'_> {
     Agent::new(
         client,
@@ -15,6 +16,19 @@ fn agent_over(reg: Registry, client: &Client) -> Agent<'_> {
         "test-model",
         None,
         Vec::new(),
+        None,
+        reg,
+    )
+}
+
+/// Build an agent whose last user message is `task`.
+fn agent_with_task<'a>(reg: Registry, task: &str, client: &'a Client) -> Agent<'a> {
+    Agent::new(
+        client,
+        "http://localhost:1",
+        "test-model",
+        None,
+        vec![Message::new(Role::User, task.to_string())],
         None,
         reg,
     )
@@ -32,42 +46,36 @@ fn tool_names(body: &serde_json::Value) -> Vec<String> {
 }
 
 #[test]
-fn default_registry_body_lists_every_tool() {
+fn request_body_failsafe_core_only() {
+    // R3: no user message → fail-safe = Core tools only.
     let client = Client::new();
     let agent = agent_over(default_registry(), &client);
     let names = tool_names(&agent.request_body());
-    assert_eq!(names.len(), 6);
-    assert!(names.iter().any(|n| n == "read_file"));
-    assert!(names.iter().any(|n| n == "list_resources"));
-    assert!(names.iter().any(|n| n == "web_search"));
-    assert!(names.iter().any(|n| n == "web_fetch"));
-    assert!(names.iter().any(|n| n == "grep"));
-    assert!(names.iter().any(|n| n == "search_replace"));
+    assert_eq!(names, vec!["read_file", "list_resources"]);
 }
 
 #[test]
-fn disabled_tool_is_absent_from_the_request_body() {
-    let mut reg = default_registry();
-    reg.set_enabled("web_search", false);
+fn request_body_uses_per_task_selection() {
+    // R3: the last user message drives the automatic selection.
     let client = Client::new();
-    let agent = agent_over(reg, &client);
-
-    let body = agent.request_body();
-    let names = tool_names(&body);
-    assert!(
-        !names.iter().any(|n| n == "web_search"),
-        "disabled tool must not appear in body.tools, got {names:?}"
-    );
-    assert!(names.iter().any(|n| n == "read_file"));
-    assert!(names.iter().any(|n| n == "list_resources"));
-}
-
-#[test]
-fn all_tools_disabled_sends_an_empty_tools_array() {
-    let mut reg = default_registry();
-    reg.disable_all();
-    let client = Client::new();
-    let agent = agent_over(reg, &client);
+    let agent = agent_with_task(default_registry(), "edit this file", &client);
     let names = tool_names(&agent.request_body());
-    assert!(names.is_empty(), "empty selection, got {names:?}");
+    assert!(names.iter().any(|n| n == "search_replace")); // keyword "edit"
+    assert!(names.iter().any(|n| n == "read_file")); // Core
+    assert!(names.iter().any(|n| n == "list_resources")); // Core
+    assert_eq!(names.len(), 3);
+}
+
+#[test]
+fn request_body_includes_manual_addition() {
+    // R4: a manually enabled tool is added on top of the automatic selection
+    // even when the task does not match it.
+    let mut reg = default_registry();
+    reg.set_enabled("web_fetch", true);
+    let client = Client::new();
+    let agent = agent_with_task(reg, "hello how are you", &client); // no keyword match
+    let names = tool_names(&agent.request_body());
+    assert!(names.iter().any(|n| n == "web_fetch")); // manual addition
+    assert!(names.iter().any(|n| n == "read_file")); // Core fail-safe
+    assert_eq!(names.len(), 3);
 }

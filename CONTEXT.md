@@ -282,3 +282,23 @@ an interactive chat interface in the terminal.
   in the registry; no runtime change.
 - Branch `work/37-todo-mt1` on `feat/tools-todo` (from `main`); to consolidate
   with `--ff-only` after external review. No commit on `main`/`develop`.
+
+## MT-2 — todo tool mutating shared TodoList state
+
+- `src/todo_tool.rs` (new): `struct Todo { pub todos: TodoListHandle }`
+  implementing `nxm_tui_tools::Tool`. Schema: `action` (required) + optional
+  `text`/`index`. Actions: `add`, `complete` (by index or text), `list`.
+  Missing/unknown action → `ToolResult::err`. Mutex lock poisoning handled
+  without `unwrap`/`panic`. `tracing::info!` (target `nexum::todo::tool`) on
+  `run`. `kind() == Other` with keywords `todo, task, plan, checklist, lista,
+  piano` so per-task `select` includes it on planning tasks.
+- `src/lib.rs`: `pub mod todo_tool;`.
+- `src/app.rs`: `App` creates one `TodoListHandle` (via `todo_list_handle()`),
+  clones it into the `todo` tool registered in `tool_registry`, and keeps the
+  handle in `App.todo_handle` for the MT-3 UI. Same handle shared App↔tool.
+- Test: `tests/todo_tool.rs` (7 tests, R1..R6).
+- NOT touched: `agent.rs`, overlay, `nxm-tui-tools`, `src/md/`; no new
+  dependency; `Todo` is not in `default_registry()` so existing selection
+  tests are unaffected.
+- Branch `work/38-todo-mt2` on `feat/tools-todo`; to consolidate with
+  `--ff-only` after external review. No commit on `main`/`develop`.

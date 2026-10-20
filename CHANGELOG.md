@@ -1,6 +1,36 @@
 # Changelog
 # 2026-10-21
 
+## feat(todo): add todo tool mutating shared TodoList (MT-2)
+
+Expose a `todo` tool that mutates the shared `Arc<Mutex<TodoList>>` state
+(from MT-1) and returns `render()` to the model. No UI/overlay yet (MT-3).
+- `src/todo_tool.rs` (new): `struct Todo { todos: TodoListHandle }`
+  implementing `nxm_tui_tools::Tool`. Schema: `action` (required) + optional
+  `text`/`index`. Actions: `add`, `complete` (by index or text), `list`.
+  Missing/unknown action → `ToolResult::err`. Mutex lock poisoning handled
+  without `unwrap`/`panic`. `tracing::info!` (target `nexum::todo::tool`) on
+  `run` (action + outcome). Classified `kind() == Other` with keywords
+  `todo, task, plan, checklist, lista, piano` so per-task `select` includes it
+  on planning tasks.
+- `src/lib.rs`: `pub mod todo_tool;`.
+- `src/app.rs`: `App` creates one `TodoListHandle` (via `todo_list_handle()`),
+  clones it into the `todo` tool registered in `tool_registry`, and keeps the
+  handle in `App.todo_handle` for the MT-3 UI. Same handle shared App↔tool.
+- Test: `tests/todo_tool.rs` (7 tests: `todo_tool_schema` R1,
+  `todo_tool_add` R2, `todo_tool_complete` + `todo_tool_complete_invalid` R3,
+  `todo_tool_list` R4, `todo_tool_bad_action` R5,
+  `todo_tool_shares_state_with_handle` R6).
+- NOT touched: `agent.rs`, overlay, `nxm-tui-tools`, `src/md/`, no new
+  dependency, no change to existing tool behavior or per-task selection
+  (`Todo` is not in `default_registry()`, so existing selection tests are
+  unaffected).
+- Gate: `cargo test --test todo` 7/7; `cargo test --test todo_tool` 7/7;
+  `cargo test --workspace` green; `cargo clippy --all-targets` 0 new warnings;
+  `cargo fmt` on touched files ok.
+- Branch `work/38-todo-mt2` on `feat/tools-todo`; no commit on `main`/`develop`.
+
+
 ## feat(todo): add TodoList + shared state (MT-1, types & logic only)
 
 Todo-list types and shared state for the agent, pure testable logic,

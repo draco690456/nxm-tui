@@ -1,6 +1,7 @@
 use std::cell::Cell;
 use std::time::Instant;
 
+use crate::{todo::todo_list_handle, todo_tool::Todo};
 use nxm_tui_tools::{default_registry, Registry};
 use zeroize::Zeroizing;
 
@@ -303,6 +304,9 @@ pub struct App {
     /// sees. Owned here (the overlay mutates it); a snapshot is handed to
     /// each spawned `Agent`, which sends `manifest_selected()` in its body.
     pub tool_registry: Registry,
+    /// Shared todo-list handle (MT-2): owned here, cloned into the `todo`
+    /// tool registered in `tool_registry`; read by the TUI overlay in MT-3.
+    pub todo_handle: crate::todo::TodoListHandle,
     pub pending_approval: Option<PendingApproval>,
     pub max_context: u32,
     pub metrics: Metrics,
@@ -373,6 +377,7 @@ pub struct SetKeyEntry {
 
 impl App {
     pub fn new() -> Self {
+        let todo_handle = todo_list_handle();
         Self {
             state: RunState::Running,
             input: String::new(),
@@ -398,7 +403,14 @@ impl App {
             show_approval: false,
             show_tools: false,
             tools_cursor: 0,
-            tool_registry: default_registry(),
+            tool_registry: {
+                let mut reg = default_registry();
+                reg.register(Todo {
+                    todos: todo_handle.clone(),
+                });
+                reg
+            },
+            todo_handle,
             pending_approval: None,
             max_context: 8192,
             metrics: Metrics::new(),

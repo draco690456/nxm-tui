@@ -90,3 +90,119 @@ fn registering_a_new_tool_defaults_it_to_enabled() {
     reg.register(nxm_tui_tools::ListResources);
     assert!(reg.is_enabled("list_resources"));
 }
+
+// === MT-2: automatic per-task selection (`select` / `manifest_for`) ===
+// The manual (enabled) set is zeroed with `disable_all()` so the automatic
+// part is isolated — until MT-3 flips the default, `manifest_for` on a
+// default registry still returns everything (all enabled).
+
+#[test]
+fn select_always_includes_core() {
+    let mut reg = default_registry();
+    reg.disable_all();
+    let sel = reg.select("something generic with no keyword");
+    let names: Vec<&str> = sel.iter().map(|t| t.name()).collect();
+    assert_eq!(names, vec!["read_file", "list_resources"]);
+}
+
+#[test]
+fn select_keyword_case_insensitive() {
+    let mut reg = default_registry();
+    reg.disable_all();
+
+    let sel = reg.select("Please GREP for foo");
+    let names: Vec<&str> = sel.iter().map(|t| t.name()).collect();
+    assert!(names.contains(&"grep"));
+    assert!(names.contains(&"read_file")); // Core still there
+
+    let sel = reg.select("do a web SEARCH");
+    let names: Vec<&str> = sel.iter().map(|t| t.name()).collect();
+    assert!(names.contains(&"web_search")); // keyword "web search"
+
+    let sel = reg.select("fammi una ricerca web");
+    let names: Vec<&str> = sel.iter().map(|t| t.name()).collect();
+    assert!(names.contains(&"web_search")); // keyword "ricerca web" (Italian)
+}
+
+#[test]
+fn select_failsafe_core_only() {
+    let mut reg = default_registry();
+    reg.disable_all();
+    let sel = reg.select("hello how are you");
+    let names: Vec<&str> = sel.iter().map(|t| t.name()).collect();
+    assert_eq!(names, vec!["read_file", "list_resources"]);
+}
+
+#[test]
+fn manifest_for_unions_auto_and_manual() {
+    let mut reg = default_registry();
+    reg.disable_all();
+    reg.set_enabled("web_fetch", true);
+
+    let man = reg.manifest_for("edit this file");
+    let names: Vec<&str> = man
+        .iter()
+        .filter_map(|v| v["function"]["name"].as_str())
+        .collect();
+    assert_eq!(
+        names,
+        vec!["read_file", "list_resources", "web_fetch", "search_replace"]
+    );
+    assert!(names.contains(&"search_replace")); // auto, keyword "edit"
+    assert!(names.contains(&"read_file")); // Core
+    assert!(names.contains(&"web_fetch")); // manual
+    assert_eq!(
+        names.iter().filter(|n| **n == "search_replace").count(),
+        1,
+        "no duplicates"
+    );
+}
+
+#[test]
+fn manifest_for_dedup_and_order() {
+    let mut reg = default_registry();
+    reg.disable_all();
+    reg.set_enabled("search_replace", true); // both auto ("edit") and enabled
+    reg.set_enabled("web_fetch", true); // manual only
+
+    let man = reg.manifest_for("edit this file");
+    let names: Vec<&str> = man
+        .iter()
+        .filter_map(|v| v["function"]["name"].as_str())
+        .collect();
+    assert_eq!(
+        names,
+        vec!["read_file", "list_resources", "web_fetch", "search_replace"]
+    );
+    assert_eq!(
+        names.iter().filter(|n| **n == "search_replace").count(),
+        1,
+        "auto + enabled tool appears once"
+    );
+    // Registration order, not HashSet order.
+    assert_eq!(names[0], "read_file");
+    assert_eq!(names[3], "search_replace");
+}
+
+#[test]
+fn manifest_for_default_registry_returns_all_until_mt3() {
+    // Until MT-3 flips the default, every tool is enabled, so manifest_for
+    // returns the full set regardless of the task (no behavior change yet).
+    let reg = default_registry();
+    let man = reg.manifest_for("hello how are you");
+    let names: Vec<&str> = man
+        .iter()
+        .filter_map(|v| v["function"]["name"].as_str())
+        .collect();
+    assert_eq!(
+        names,
+        vec![
+            "read_file",
+            "list_resources",
+            "web_search",
+            "web_fetch",
+            "grep",
+            "search_replace"
+        ]
+    );
+}

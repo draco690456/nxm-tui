@@ -2,6 +2,35 @@
 # 2026-10-21
 
 
+## feat(tools): add Registry::select + manifest_for per-task selection (MT-2)
+
+Selezione automatica per-task in `nxm-tui-tools` come logica pura e testabile,
+SENZA cambiamenti a runtime (`agent.rs`/overlay/default `enabled` restano a MT-3;
+`manifest()`/`manifest_selected()` invariati).
+- `nxm-tui-tools/src/selection.rs` (nuovo, ~115 righe ≤ cap 300): `select(registry, task)`
+  include sempre i `ToolKind::Core` (`read_file`, `list_resources`) più i tool con
+  almeno una `keywords()` contenuta come substring case-insensitive in `task`
+  (`task.to_lowercase().contains(&kw.to_lowercase())`); fail-safe = solo Core quando
+  nessun non-Core matcha; ordine = registrazione. `manifest_for(registry, task)` =
+  unione `select(task) ∪ {tool abilitati}` per nome, niente duplicati, ordine di
+  registrazione. Logging `tracing::debug!` (target `nexum::tools::runtime`) su quali
+  tool auto-selezionati + se fail-safe.
+- `nxm-tui-tools/src/lib.rs`: `mod selection`; `pub fn Registry::select` e
+  `pub fn Registry::manifest_for` che delegano a `selection`, doc `///` con esempio
+  doctest ciascuno.
+- Test: `nxm-tui-tools/tests/selection.rs` (7 nuovi: `select_always_includes_core`
+  R1, `select_keyword_case_insensitive` R2, `select_failsafe_core_only` R3,
+  `manifest_for_unions_auto_and_manual` R4, `manifest_for_dedup_and_order` R5,
+  `manifest_for_default_registry_returns_all_until_mt3` R6); isolamento della parte
+  automatica con `disable_all()` + `set_enabled(...)` mirati.
+- NON toccate: `agent.rs`, overlay, default di `enabled`/`register()`,
+  `manifest()`/`manifest_selected()`, `src/md/`; nessuna nuova dipendenza.
+- Gate: `cargo test -p nxm-tui-tools` verde; `cargo test --workspace` verde;
+  `cargo clippy --all-targets` 0 nuovi warning; `cargo fmt -p nxm-tui-tools -- --check` ok.
+- Branch `work/34-select-mt2` su `feat/tools-select-mechanism`; nessun commit su
+  `main`/`develop`.
+
+
 ## feat(tools): add search_replace tool (exact unique find→replace)
 
 Nuovo tool nativo `search_replace` in `nxm-tui-tools`: dato `path`, `old`,

@@ -242,3 +242,19 @@ an interactive chat interface in the terminal.
 ## NOT included
 - Inference logic (connects to external server)
 - Model loading (that's the engine's job)
+
+## MT-2 — selezione automatica per-task (`select`/`manifest_for`, logica pura)
+
+- `nxm-tui-tools/src/selection.rs` (nuovo): `select(registry, task)` — Core sempre
+  (fail-safe) + keyword match case-insensitive substring, fail-safe = solo Core,
+  ordine registrazione; `manifest_for(registry, task)` — unione `select ∪ enabled`
+  per nome, no duplicati, ordine registrazione. Logging `tracing::debug!`
+  (target `nexum::tools::runtime`) su select. `Registry::select` /
+  `Registry::manifest_for` deleganti in `lib.rs` con doc `///` + doctest.
+- Nessun cambio a runtime: `agent.rs`, overlay, default `enabled`/`register()`,
+  `manifest()`/`manifest_selected()` invariati (MT-3). Su registry default
+  `manifest_for` restituisce ancora tutti i tool (tutti abilitati).
+- Test: `nxm-tui-tools/tests/selection.rs` — 7 nuovi test (R1..R6), isolano
+  l'automatica con `disable_all()` + `set_enabled(...)` mirati.
+- Branch `work/34-select-mt2` su `feat/tools-select-mechanism`; da consolidare
+  con `--ff-only` dopo review esterna. Nessun commit su `main`/`develop`.

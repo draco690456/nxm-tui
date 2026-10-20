@@ -5,7 +5,7 @@
 
 use std::fs;
 
-use nxm_tui_tools::{default_registry, Tool};
+use nxm_tui_tools::default_registry;
 use serde_json::json;
 
 fn write_temp_file(dir: &tempfile::TempDir, name: &str, content: &str) -> std::path::PathBuf {

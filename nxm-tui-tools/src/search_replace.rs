@@ -21,7 +21,28 @@ use serde_json::{json, Value};
 
 use crate::{Tool, ToolResult, TARGET};
 
-/// Search and replace exactly one occurrence in a file.
+/// Replace exactly one occurrence of `old` with `new` in a file.
+///
+/// # Example
+/// ```
+/// use std::fs;
+/// use tempfile::tempdir;
+/// use nxm_tui_tools::{Tool, SearchReplace};
+///
+/// let dir = tempdir().unwrap();
+/// let path = dir.path().join("test.txt");
+/// fs::write(&path, "hello world").unwrap();
+///
+/// let tool = SearchReplace;
+/// let args = serde_json::json!({
+///     "path": path.to_string_lossy(),
+///     "old": "world",
+///     "new": "rust"
+/// });
+/// let res = tool.run(&args).unwrap();
+/// assert!(res.ok);
+/// assert_eq!(fs::read_to_string(&path).unwrap(), "hello rust");
+/// ```
 pub struct SearchReplace;
 
 impl Tool for SearchReplace {
@@ -99,8 +120,11 @@ impl Tool for SearchReplace {
         ));
         fs::write(&temp_path, new_content)
             .with_context(|| format!("write temp file {}", temp_path.display()))?;
-        fs::rename(&temp_path, path)
-            .with_context(|| format!("rename temp file to {}", path.display()))?;
+        if let Err(e) = fs::rename(&temp_path, path) {
+            // Clean up temp file on rename failure
+            let _ = fs::remove_file(&temp_path);
+            return Err(e).with_context(|| format!("rename temp file to {}", path.display()));
+        }
 
         Ok(ToolResult::ok(format!(
             "1 replacement in {}",

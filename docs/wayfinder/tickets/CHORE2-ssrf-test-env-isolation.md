@@ -2,7 +2,7 @@
 
 - **Label:** `wayfinder:chore`
 - **Type:** Chore (correttezza test)
-- **Status:** 📋 Aperto 2026-10-19
+- **Status:** ✅ Risolto 2026-10-20 — `#[serial]` (serial_test) sui test che toccano la env var (commit `3039700`); suite `web_fetch` ~30s → ~1.9s, deterministica (3 run verdi). Zero tocchi al codice di produzione.
 - **Priority:** MEDIA (non è un bug di produzione, ma rende la suite flaky e lenta)
 - **Related:** `TOOLS-2-web-fetch-ssrf-guard.md` (feature mergiata con `984b1aa`).
 

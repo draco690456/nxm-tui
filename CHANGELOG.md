@@ -1,6 +1,34 @@
 # Changelog
 # 2026-10-21
 
+## feat(todo): add TodoList + shared state (MT-1, types & logic only)
+
+Todo-list types and shared state for the agent, pure testable logic,
+WITHOUT exposing a tool or touching the UI (MT-2 = tool, MT-3 = overlay).
+- `src/todo.rs` (new, ~130 lines ≤ 300 cap): `TodoItem { text, done }` and
+  `TodoList` (wrapper over `Vec<TodoItem>`) with `add(text)`,
+  `complete_by_index(index)` / `complete_by_text(text)` (domain errors,
+  no panic), `list() -> &[TodoItem]`, `render() -> String`
+  (`- [x]` / `- [ ]`, registration order, deterministic). Typed `TodoError`
+  (`IndexOutOfRange` / `NotFound`) without `thiserror`
+  (not a workspace dependency; `std::error::Error` implemented by hand).
+  `tracing::debug!` logging (target `nexum::todo::state`) on `add`/`complete_*`.
+- `src/lib.rs`: `pub mod todo;`.
+- Shared state: `TodoListHandle = Arc<Mutex<TodoList>>` + `todo_list_handle()`
+  (same pattern as `tool_registry`, shared App↔Agent).
+- Test: `tests/todo.rs` (7 tests: `todo_add_appends` R1,
+  `todo_complete_by_index` + `todo_complete_out_of_range` R2,
+  `todo_complete_by_text` R3, `todo_render_format` R4,
+  `todo_complete_idempotent` (done idempotent edge case),
+  `todo_shared_state_via_arc_mutex` R5).
+- NOT touched: `agent.rs`, overlay, `nxm-tui-tools`, `src/md/`, no new
+  dependency, no new tool in the registry (R6).
+- Gate: `cargo test --test todo` 7/7; `cargo test --workspace` green;
+  `cargo clippy --all-targets` 0 new warnings; `cargo fmt` on touched files ok.
+- Branch `work/37-todo-mt1` on `feat/tools-todo` (from `main`); no commit on
+  `main`/`develop`.
+
+
 ## fix(agent): do not log user message content in request_body (privacy)
 
 `request_body` logged `task = %task` at `info` — i.e. the full user message

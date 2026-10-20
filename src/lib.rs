@@ -36,6 +36,7 @@ pub mod search_ui;
 pub mod server_proc;
 pub mod session;
 pub mod sidebar;
+pub mod todo;
 pub mod tool_overlay;
 pub mod tool_types;
 pub mod tools_overlay;

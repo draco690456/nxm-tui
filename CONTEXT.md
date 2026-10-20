@@ -267,3 +267,18 @@ an interactive chat interface in the terminal.
 - Test aggiornati: `selection.rs` (default vuoto, registration non abilita), `grep`/`web_fetch`/`search_replace` `*_in_default_registry` (via `tool_names()`), `agent_request.rs` (R3: failsafe core-only + per-task selection; R4: manual addition), `tools_overlay_keys.rs` + `tools_overlay.rs` (default `[ ]`).
 - `manifest_selected()` mantenuto (usato dai test); `agent.rs` non lo chiama più.
 - Branch `work/35-select-mt3` su `feat/tools-select-mechanism`; da consolidare con `--ff-only` dopo review esterna. Nessun commit su `main`/`develop`.
+
+## MT-1 — TodoList types + shared state (todo tool, pure logic, no tool/UI)
+
+- `src/todo.rs` (new): `TodoItem { text, done }`, `TodoList` (wrapper over
+  `Vec<TodoItem>`) with `add`, `complete_by_index`, `complete_by_text`,
+  `list()`, `render()`; typed `TodoError`; `tracing::debug!` logging
+  (target `nexum::todo::state`) on `add`/`complete_*`. `TodoListHandle =
+  Arc<Mutex<TodoList>>` + `todo_list_handle()` (shared App↔Agent, same
+  pattern as `tool_registry`).
+- `src/lib.rs`: `pub mod todo;`.
+- Test: `tests/todo.rs` (7 tests, R1..R5).
+- Does not touch `agent.rs`, overlay, `nxm-tui-tools`, `src/md/`; no new tool
+  in the registry; no runtime change.
+- Branch `work/37-todo-mt1` on `feat/tools-todo` (from `main`); to consolidate
+  with `--ff-only` after external review. No commit on `main`/`develop`.

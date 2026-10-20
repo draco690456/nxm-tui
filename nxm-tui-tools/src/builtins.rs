@@ -10,7 +10,7 @@ use anyhow::Result;
 use serde_json::{json, Value};
 use tracing::warn;
 
-use crate::{ssrf, Tool, ToolResult};
+use crate::{ssrf, Tool, ToolKind, ToolResult};
 
 /// Read the full contents of a file (`args.path`).
 pub struct ReadFile;
@@ -21,6 +21,10 @@ impl Tool for ReadFile {
     }
     fn description(&self) -> &str {
         "Read the full contents of a file on disk."
+    }
+    /// Core: read access only, no write, no network — fail-safe set member.
+    fn kind(&self) -> ToolKind {
+        ToolKind::Core
     }
     fn schema(&self) -> Value {
         json!({
@@ -50,6 +54,10 @@ impl Tool for ListResources {
     }
     fn description(&self) -> &str {
         "List files and directories in a path."
+    }
+    /// Core: read/navigate only, no write, no network — fail-safe set member.
+    fn kind(&self) -> ToolKind {
+        ToolKind::Core
     }
     fn schema(&self) -> Value {
         json!({
@@ -101,6 +109,21 @@ impl Tool for WebSearch {
     fn description(&self) -> &str {
         "Search the web via a configured HTTP search endpoint."
     }
+    /// Network egress — pulled in by keyword match only (never in the fail-safe).
+    fn kind(&self) -> ToolKind {
+        ToolKind::Web
+    }
+    /// English + Italian task keywords (lowercase; matched case-insensitively).
+    fn keywords(&self) -> &[&str] {
+        &[
+            "web search",
+            "search online",
+            "google",
+            "lookup online",
+            "cerca sul web",
+            "ricerca web",
+        ]
+    }
     fn schema(&self) -> Value {
         json!({
             "type": "object",
@@ -148,6 +171,16 @@ impl Tool for WebFetch {
     }
     fn description(&self) -> &str {
         "Fetch an URL via HTTP GET and return the body as plain text."
+    }
+    /// Network egress — pulled in by keyword match only (never in the fail-safe).
+    fn kind(&self) -> ToolKind {
+        ToolKind::Web
+    }
+    /// English + Italian task keywords (lowercase; matched case-insensitively).
+    fn keywords(&self) -> &[&str] {
+        &[
+            "fetch", "download", "url", "http", "https", "page", "scarica", "pagina",
+        ]
     }
     fn schema(&self) -> Value {
         json!({

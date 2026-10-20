@@ -218,6 +218,27 @@ an interactive chat interface in the terminal.
 - Overlay "Tools": `src/tools_overlay.rs` `render_tools` (checkbox `[x]`/`[ ]`, cursore `>`), stato in `App` (`show_tools`, `tools_cursor`). Tasti in `tools_overlay::handle_tools_key` (chiamato da `handler.rs`): Ctrl+E apre/chiude (Ctrl+T era già sessions), ↑/↓ muovono il cursore con wrap, Space toggola il tool sotto il cursore, `a` = enable_all, `n` = disable_all, Esc chiude. L'overlay è MODALE: mentre è aperto nessun tasto raggiunge il prompt (stesso contratto della ricerca). Lista piatta: il raggruppamento per sorgente serve con MCP → T2.
 - Fuori scope T1: tool MCP / `McpTool` proxy / async (T2), persistenza TOML (fase 2), profili/preset.
 
+## MT-1 — taxonomia per-task (ToolKind + kind()/keywords(), groundwork)
+
+- `nxm-tui-tools/src/taxonomy.rs`: `enum ToolKind { Read, Search, Edit, Core, Web, Other }`
+  (derive `Debug, Clone, Copy, PartialEq, Eq`), puro groundwork della selezione
+  per-task (obiettivo: MT-2 `select(task)`/`manifest_for(task)` + fail-safe Core,
+  MT-3 aggancio `agent.rs`). `Core` = `read_file` + `list_resources` (sempre
+  inclusi dall'automatica E set fail-safe); `grep`=`Search`, `search_replace`=`Edit`,
+  `web_fetch`/`web_search`=`Web`; `Read` riservato (nessun tool built-in lo usa);
+  `Other` è il default del trait.
+- Trait `Tool` (in `lib.rs`): metodi default `kind() -> ToolKind` e
+  `keywords() -> &[&str]`, entrambi con doc `///` + doctest; ovveride nei blocchi
+  `impl Tool` di ciascun tool. Keywords EN+IT lowercase per i non-Core
+  (match case-insensitivo deciso, a MT-2); i Core non hanno keyword (non
+  dipendono dal match). Set finale mandato al modello = unione `automatica ∪
+  manuale` (unione con l'overlay T1, non intersezione).
+- **Nessun comportamento nuovo**: `manifest()`/`manifest_selected()` e l'overlay
+  T1 IDENTICI (nessun bump conteggi); suites `tools.rs`/`selection.rs`/
+  `agent_request.rs` verdi senza modifiche. MT-2/MT-3 NON implementati qui.
+- Test: `nxm-tui-tools/tests/taxonomy.rs` (5). Branch `work/33-select-mt1` su
+  `feat/tools-select-mechanism` (da main); da consolidare dopo review esterna.
+
 ## NOT included
 - Inference logic (connects to external server)
 - Model loading (that's the engine's job)

@@ -1,6 +1,6 @@
 # Changelog
-
 # 2026-10-21
+
 
 ## feat(tools): add search_replace tool (exact unique find→replace)
 
@@ -30,6 +30,51 @@ riscrive il file in modo **atomico** (tmp + rename same-dir). Registrato in
   `cargo fmt -- --check` 0 diff sui file toccati.
 - Branch `work/31-tools-search-replace` su `feat/tools-search-replace`; nessun commit
   su `main`/`develop`.
+
+
+# 2026-10-20
+
+## feat(tools): add ToolKind + kind()/keywords() taxonomy (MT-1, no behavior change)
+
+Groundwork della selezione per-task (TOOLS-1 Parte A, MT-1): tassonomia dei tool
+in `nxm-tui-tools` SENZA cambiamenti osservabili — `manifest()` e
+`manifest_selected()` producono lo stesso output di prima.
+- `nxm-tui-tools/src/taxonomy.rs` (nuovo, 43 righe ≤ cap 300): `enum ToolKind`
+  (`Read`/`Search`/`Edit`/`Core`/`Web`/`Other`, derive `Debug, Clone, Copy,
+  PartialEq, Eq`), doc `///` con esempio doctest. `Read` è riservato a futuri
+  tool di sola lettura NON nel fail-safe (nessun tool built-in lo usa ora: i
+  read/navigate sono `Core`).
+- `nxm-tui-tools/src/lib.rs`: `mod taxonomy` + re-export `ToolKind`; due metodi
+  default sul trait `Tool` — `kind() -> ToolKind` (default `Other`) e
+  `keywords() -> &[&str]` (default `&[]`), entrambi con doc `///` + doctest.
+  I tool futuri compilano senza override.
+- Classificazione decisa (decisioni utente 2026-10-20): `read_file`/`list_resources`
+  = `Core` (sempre inclusi dall'automatica + set fail-safe; `keywords()` vuoto —
+  non dipendono dal match); `grep` = `Search`; `search_replace` = `Edit`;
+  `web_fetch`/`web_search` = `Web`. Keywords EN+IT lowercase (match
+  case-insensitivo a partire da MT-2; esempi per tool nel commit/ticket
+  `prompts/33-*`); override `kind()`/`keywords()` direttamente nei blocchi
+  `impl Tool` di ciascun tool (`builtins.rs`/`grep.rs`/`search_replace.rs`).
+- NON implementate: `select(task)`/`manifest_for(task)`/fail-safe/unione
+  automatica∪manuale, `agent.rs` — sono MT-2/MT-3.
+- Test: `nxm-tui-tools/tests/taxonomy.rs` (5: `kind_defaults` con dummy tool
+  senza override, `core_tools_classified`, `tools_kinds`,
+  `keyword_tools_have_keywords`, `registry_tools_all_kinds_known`); suite
+  esistenti (`tools.rs`, `selection.rs`, doctest) verdi SENZA modifiche —
+  nessun bump di conteggi manifest.
+- Gate: `cargo test -p nxm-tui-tools` verde (0 warning lib; i warning
+  pre-esistenti in `tests/web_fetch_ssrf.rs` restano invariati);
+  `cargo test --workspace` verde; `cargo clippy --all-targets` 0 nuovi warning;
+  `cargo fmt -- --check` 0 diff sui file toccati (i diff pre-esistenti in
+  `src/md/*.rs` — file verbatim-copy — sono su `main` e fuori scope).
+  `run_gate` (nxm-mcp-exec): verdict NO-GO **solo** per `cargo_fmt_check` su
+  20 file `src/md/*.rs` pre-esistenti — set di file difformi **identico** su una
+  copia pulita di `main` (verificato con `git archive`): NO-GO è la baseline,
+  non introdotto da questo cambio; `src/md` intoccabile per Divieti →
+  eccezione documentata e rimessa alla revisione esterna.
+- Branch `work/33-select-mt1` su `feat/tools-select-mechanism`; nessun commit
+  su `main`/`develop`; da consolidare nel feature branch dopo review.
+
 
 # 2026-10-20
 

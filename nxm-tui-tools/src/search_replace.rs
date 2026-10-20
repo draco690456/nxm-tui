@@ -19,7 +19,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde_json::{json, Value};
 
-use crate::{Tool, ToolResult, TARGET};
+use crate::{Tool, ToolKind, ToolResult, TARGET};
 
 /// Replace exactly one occurrence of `old` with `new` in a file.
 ///
@@ -51,6 +51,25 @@ impl Tool for SearchReplace {
     }
     fn description(&self) -> &str {
         "Replace exactly one occurrence of a string in a file (exact match, atomic write)."
+    }
+    /// File mutation — pulled in by keyword match only (never fail-safe).
+    fn kind(&self) -> ToolKind {
+        ToolKind::Edit
+    }
+    /// English + Italian task keywords (lowercase; matched case-insensitively).
+    fn keywords(&self) -> &[&str] {
+        &[
+            "edit",
+            "replace",
+            "modify",
+            "change",
+            "rewrite",
+            "fix",
+            "insert",
+            "sostituisci",
+            "modifica",
+            "cambia",
+        ]
     }
     fn schema(&self) -> Value {
         json!({

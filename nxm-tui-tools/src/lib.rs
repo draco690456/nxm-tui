@@ -18,12 +18,14 @@ mod builtins;
 mod grep;
 mod search_replace;
 mod ssrf;
+mod taxonomy;
 pub use builtins::{ListResources, ReadFile, WebFetch, WebSearch};
 pub use grep::Grep;
 pub use search_replace::SearchReplace;
 pub use ssrf::{
     fetch_with_ssrf_guard, is_allowed_scheme, is_blocked_addr, validate_host, validate_url,
 };
+pub use taxonomy::ToolKind;
 
 /// Tracing target per `RULES.md` (`nexum::<module>::<feature>`).
 pub const TARGET: &str = "nexum::tools::runtime";
@@ -60,6 +62,32 @@ pub trait Tool: Send + Sync {
     fn schema(&self) -> Value;
     /// Execute the tool. Synchronous in v0.1 (P2-proper: make `async`).
     fn run(&self, args: &Value) -> Result<ToolResult>;
+    /// Task kind of the tool ([`ToolKind::Other`] by default). MT-2's
+    /// automatic selection groups the manifest on this; `Core` tools are
+    /// always included and also form the fail-safe set.
+    ///
+    /// ```
+    /// use nxm_tui_tools::{Tool, ToolKind, WebFetch};
+    ///
+    /// assert_eq!(WebFetch.kind(), ToolKind::Web);
+    /// ```
+    fn kind(&self) -> ToolKind {
+        ToolKind::Other
+    }
+    /// Lower-case English/Italian task keywords that pull the tool into the
+    /// automatic per-task selection (MT-2). Matching is case-insensitive at
+    /// the call site; empty here, so defaulted tools are only selected via
+    /// manual toggle.
+    ///
+    /// ```
+    /// use nxm_tui_tools::{Grep, Tool};
+    ///
+    /// assert!(Grep.keywords().contains(&"grep"));
+    /// assert!(nxm_tui_tools::ReadFile.keywords().is_empty());
+    /// ```
+    fn keywords(&self) -> &[&str] {
+        &[]
+    }
 }
 
 /// Registry of available tools + OpenAI manifest builder.

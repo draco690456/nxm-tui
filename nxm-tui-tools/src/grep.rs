@@ -10,7 +10,7 @@ use anyhow::{Context, Result};
 use regex::Regex;
 use serde_json::{json, Value};
 
-use crate::{Tool, ToolResult};
+use crate::{Tool, ToolKind, ToolResult};
 
 /// Maximum number of matching lines returned before truncation.
 const MAX_MATCHES: usize = 1000;
@@ -35,6 +35,24 @@ impl Tool for Grep {
     }
     fn description(&self) -> &str {
         "Search files for lines matching a regex; results as `file:line:text`."
+    }
+    /// Filesystem search — pulled in by keyword match only (never fail-safe).
+    fn kind(&self) -> ToolKind {
+        ToolKind::Search
+    }
+    /// English + Italian task keywords (lowercase; matched case-insensitively).
+    fn keywords(&self) -> &[&str] {
+        &[
+            "search",
+            "find",
+            "grep",
+            "locate",
+            "occurrence",
+            "cerca",
+            "trova",
+            "regex",
+            "pattern",
+        ]
     }
     fn schema(&self) -> Value {
         json!({

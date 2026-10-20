@@ -23,17 +23,6 @@ use crate::{manifest_entry, Tool, ToolKind, TARGET};
 /// (not all of them).
 ///
 /// Output order follows tool registration order (deterministic).
-///
-/// ```
-/// use nxm_tui_tools::{default_registry, Registry};
-///
-/// let mut reg = default_registry();
-/// reg.disable_all(); // isolate the automatic part
-/// let sel = reg.select("Please GREP for foo");
-/// let names: Vec<&str> = sel.iter().map(|t| t.name()).collect();
-/// assert!(names.contains(&"read_file")); // Core, always included
-/// assert!(names.contains(&"grep"));      // keyword match (case-insensitive)
-/// ```
 pub fn select(registry: &crate::Registry, task: &str) -> Vec<Arc<dyn Tool>> {
     let task_lower = task.to_lowercase();
     let mut selected: Vec<Arc<dyn Tool>> = Vec::new();
@@ -76,27 +65,6 @@ pub fn select(registry: &crate::Registry, task: &str) -> Vec<Arc<dyn Tool>> {
 
 /// OpenAI manifest for `task`: union of [`select`] and the manually enabled
 /// tools, by name, without duplicates, in registration order.
-///
-/// ```
-/// use nxm_tui_tools::{default_registry, Registry};
-///
-/// let mut reg = default_registry();
-/// reg.disable_all();
-/// reg.set_enabled("web_fetch", true);
-/// let man = reg.manifest_for("edit this file");
-/// let names: Vec<&str> = man
-///     .iter()
-///     .filter_map(|v| v["function"]["name"].as_str())
-///     .collect();
-/// assert!(names.contains(&"search_replace")); // auto, keyword "edit"
-/// assert!(names.contains(&"read_file"));      // Core
-/// assert!(names.contains(&"web_fetch"));      // manual
-/// assert_eq!(
-///     names.iter().filter(|n| **n == "search_replace").count(),
-///     1,
-///     "no duplicates"
-/// );
-/// ```
 pub fn manifest_for(registry: &crate::Registry, task: &str) -> Vec<Value> {
     let auto: HashSet<String> = select(registry, task)
         .iter()

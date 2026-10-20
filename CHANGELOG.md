@@ -18,11 +18,12 @@ SENZA cambiamenti a runtime (`agent.rs`/overlay/default `enabled` restano a MT-3
 - `nxm-tui-tools/src/lib.rs`: `mod selection`; `pub fn Registry::select` e
   `pub fn Registry::manifest_for` che delegano a `selection`, doc `///` con esempio
   doctest ciascuno.
-- Test: `nxm-tui-tools/tests/selection.rs` (7 nuovi: `select_always_includes_core`
+- Test: `nxm-tui-tools/tests/selection.rs` (6 nuovi: `select_always_includes_core`
   R1, `select_keyword_case_insensitive` R2, `select_failsafe_core_only` R3,
   `manifest_for_unions_auto_and_manual` R4, `manifest_for_dedup_and_order` R5,
   `manifest_for_default_registry_returns_all_until_mt3` R6); isolamento della parte
-  automatica con `disable_all()` + `set_enabled(...)` mirati.
+  automatica con `disable_all()` + `set_enabled(...)` mirati. R6 è verifica sui
+  test esistenti invariati, non un nuovo test.
 - NON toccate: `agent.rs`, overlay, default di `enabled`/`register()`,
   `manifest()`/`manifest_selected()`, `src/md/`; nessuna nuova dipendenza.
 - Gate: `cargo test -p nxm-tui-tools` verde; `cargo test --workspace` verde;

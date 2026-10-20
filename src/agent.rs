@@ -118,10 +118,12 @@ impl<'a> Agent<'a> {
             .map(|m| m.content.as_str())
             .unwrap_or("");
         let tools = self.registry.manifest_for(task);
+        // Privacy: log the task length, never its content (the user message can
+        // carry sensitive data). Content stays out of logs by design.
         tracing::info!(
             target: "nexum::agent::request",
             tool_count = tools.len(),
-            task = %task,
+            task_len = task.len(),
             "request body built (per-task selection)"
         );
         serde_json::json!({

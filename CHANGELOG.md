@@ -1,6 +1,12 @@
 # Changelog
 # 2026-10-21
 
+## fix(agent): do not log user message content in request_body (privacy)
+
+`request_body` logged `task = %task` at `info` — i.e. the full user message
+content on every request. Replaced with `task_len` (length only): diagnostics
+preserved, no user content in logs. Verified via a `tracing` subscriber test
+asserting a secret in the user message never reaches the log output.
 
 ## feat(tools): activate per-task tool selection — manifest_for wired, manual set empty by default (MT-3)
 

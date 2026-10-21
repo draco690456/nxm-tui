@@ -99,11 +99,14 @@ adattata sarà MOLTO più piccola per molti). nxm-tui HA GIÀ: `read_file`,
 | `enter_plan_mode` / `exit_plan_mode` | 711 / 409 | Modalità pianificazione |
 
 > **🚧 `todo` IN CORSO (2026-10-20)** — design (utente): stato della todo-list in `App`,
+> **✅ `todo` COMPLETO (2026-10-21, @ `c280052`)** — stato della todo-list in `App`,
 > **esposto nella TUI**. `trait Tool` resta stateless; lo stato è `Arc<Mutex<TodoList>>`
-> condiviso Agent↔App (stesso pattern di `tool_registry`). Delega in 3 micro-task su
-> `feat/tools-todo`: MT-1 (`src/todo.rs`: `TodoItem`/`TodoList` + stato condiviso + logica,
-> `prompts/37-*`), MT-2 (tool `todo` nel Registry + dispatch nell'Agent che muta lo stato e
-> ritorna `render()` al modello), MT-3 (overlay TUI della lista).
+> condiviso Agent↔App (stesso pattern di `tool_registry`). 3 micro-task su `feat/tools-todo`
+> poi FF su main: MT-1 (`src/todo.rs` TodoList+handle, `3dcbacb`), MT-2 (`src/todo_tool.rs`
+> tool `todo` add/complete/list che muta l'handle condiviso, `968c489`), MT-3
+> (`src/todo_overlay.rs` overlay read-only, toggle `Ctrl+D`, `c280052`). Nota pulizia:
+> `handle_todo_key` è dead code innocuo (pub, mai chiamato, nessun warning) — lasciato,
+> eventuale chore futuro. Prossimi planning P4: `update_goal`, `enter/exit_plan_mode`.
 | `task` | 3654 | Spawn di sub-task/sub-agenti |
 | `task_output` / `kill_task` / `scheduler` / `monitor` | 2852 / 824 / 19 / 4 | Gestione task asincroni |
 | `send_subagent_message` | 304 | Comunicazione tra sub-agenti |

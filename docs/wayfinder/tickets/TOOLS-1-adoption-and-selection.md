@@ -98,7 +98,6 @@ adattata sarà MOLTO più piccola per molti). nxm-tui HA GIÀ: `read_file`,
 | `update_goal` | 503 | Aggiorna il goal corrente |
 | `enter_plan_mode` / `exit_plan_mode` | 711 / 409 | Modalità pianificazione |
 
-> **🚧 `todo` IN CORSO (2026-10-20)** — design (utente): stato della todo-list in `App`,
 > **✅ `todo` COMPLETO (2026-10-21, @ `c280052`)** — stato della todo-list in `App`,
 > **esposto nella TUI**. `trait Tool` resta stateless; lo stato è `Arc<Mutex<TodoList>>`
 > condiviso Agent↔App (stesso pattern di `tool_registry`). 3 micro-task su `feat/tools-todo`
@@ -106,7 +105,14 @@ adattata sarà MOLTO più piccola per molti). nxm-tui HA GIÀ: `read_file`,
 > tool `todo` add/complete/list che muta l'handle condiviso, `968c489`), MT-3
 > (`src/todo_overlay.rs` overlay read-only, toggle `Ctrl+D`, `c280052`). Nota pulizia:
 > `handle_todo_key` è dead code innocuo (pub, mai chiamato, nessun warning) — lasciato,
-> eventuale chore futuro. Prossimi planning P4: `update_goal`, `enter/exit_plan_mode`.
+> eventuale chore futuro.
+>
+> **✅ `update_goal` COMPLETO (2026-10-21, @ `fbd7479`)** — goal corrente (singola stringa)
+> in `App` via `GoalHandle = Arc<Mutex<Option<String>>>` (`src/goal.rs`), tool
+> `UpdateGoal` (`src/update_goal.rs`) che lo setta, mostrato **inline nella mode_bar**
+> (`🎯 <goal>`, troncato ~40 col, niente se `None`) — NO overlay (decisione utente: singolo
+> valore sempre visibile). Micro-task singolo (superfici triviali accoppiate). Privacy:
+> logga `goal_len`, non il contenuto. Prossimi planning P4: `enter/exit_plan_mode`.
 | `task` | 3654 | Spawn di sub-task/sub-agenti |
 | `task_output` / `kill_task` / `scheduler` / `monitor` | 2852 / 824 / 19 / 4 | Gestione task asincroni |
 | `send_subagent_message` | 304 | Comunicazione tra sub-agenti |

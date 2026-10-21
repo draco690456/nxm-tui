@@ -128,6 +128,7 @@ fn overlay_disable_all_keeps_core_in_body() {
         Vec::new(),
         None,
         app.tool_registry.clone(),
+        app.plan_mode_handle.clone(),
     );
     let body = agent.request_body();
     let names: Vec<&str> = body["tools"]

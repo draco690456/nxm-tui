@@ -5,6 +5,7 @@
 
 use nxm_tui::agent::Agent;
 use nxm_tui::app::{Message, Role};
+use nxm_tui::plan_mode::plan_mode_handle;
 use nxm_tui_tools::{default_registry, Registry};
 use reqwest::Client;
 
@@ -18,6 +19,7 @@ fn agent_over(reg: Registry, client: &Client) -> Agent<'_> {
         Vec::new(),
         None,
         reg,
+        plan_mode_handle(),
     )
 }
 
@@ -31,6 +33,7 @@ fn agent_with_task<'a>(reg: Registry, task: &str, client: &'a Client) -> Agent<'
         vec![Message::new(Role::User, task.to_string())],
         None,
         reg,
+        plan_mode_handle(),
     )
 }
 

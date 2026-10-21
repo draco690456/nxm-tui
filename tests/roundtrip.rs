@@ -120,6 +120,7 @@ async fn agent_real_round_trip_read_file() {
         initial,
         None,
         nxm_tui_tools::default_registry(),
+        nxm_tui::plan_mode::plan_mode_handle(),
     );
 
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();

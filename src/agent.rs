@@ -15,9 +15,11 @@
 //! Rule: no `unwrap`/`expect` in prod — fallible parsing maps to `String` errors.
 
 use std::collections::HashMap;
+use std::sync::atomic::Ordering;
 
+use crate::plan_mode::PlanModeHandle;
 use futures::StreamExt;
-use nxm_tui_tools::Registry;
+use nxm_tui_tools::{Registry, ToolKind};
 use reqwest::Client;
 use serde_json::Value;
 use tokio::sync::mpsc;
@@ -34,6 +36,7 @@ pub struct Agent<'a> {
     /// The tool registry the agent dispatches through. Built by `App` (which
     /// owns the T1 selection) and handed over as a snapshot at spawn time.
     registry: Registry,
+    plan_mode: PlanModeHandle,
     /// Growing transcript. Cloned from `app.messages` at spawn and evolved
     /// across turns (assistant tool-call messages + their `role:"tool"` results)
     /// so each request serializes the full conversation.
@@ -60,6 +63,7 @@ impl<'a> Agent<'a> {
         initial_messages: Vec<Message>,
         approval_tx: Option<mpsc::UnboundedSender<ApprovalRequest>>,
         registry: Registry,
+        plan_mode: PlanModeHandle,
     ) -> Self {
         Self {
             client,
@@ -68,6 +72,7 @@ impl<'a> Agent<'a> {
             api_key,
             registry,
             transcript: initial_messages,
+            plan_mode,
             approval_tx,
             in_thinking: false,
             thinking_content: String::new(),
@@ -104,7 +109,7 @@ impl<'a> Agent<'a> {
     /// use reqwest::Client;
     ///
     /// let client = Client::new();
-    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry());
+    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry(), nxm_tui::plan_mode::plan_mode_handle());
     /// let body = agent.request_body();
     /// // No user message → fail-safe: Core tools only.
     /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(2));
@@ -117,7 +122,30 @@ impl<'a> Agent<'a> {
             .find(|m| m.role == Role::User)
             .map(|m| m.content.as_str())
             .unwrap_or("");
-        let tools = self.registry.manifest_for(task);
+        let mut tools = self.registry.manifest_for(task);
+
+        // Plan mode: when active, mechanically abstain from write tools
+        // (Edit, Web) so the Agent can only analyze and produce a task list
+        // via `todo`. Filtering is done per entry by looking up each tool's
+        // kind in the registry (name → kind), without changing the semantics
+        // of `select`/`manifest_for` themselves.
+        if self.plan_mode.load(Ordering::Relaxed) {
+            tools = tools
+                .into_iter()
+                .filter(|entry| {
+                    let name = entry
+                        .get("function")
+                        .and_then(|f| f.get("name"))
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("");
+                    match self.registry.get(name) {
+                        Some(tool) => !matches!(tool.kind(), ToolKind::Edit | ToolKind::Web),
+                        None => true, // keep unknown entries (fail-safe)
+                    }
+                })
+                .collect();
+        }
+
         // Privacy: log the task length, never its content (the user message can
         // carry sensitive data). Content stays out of logs by design.
         tracing::info!(

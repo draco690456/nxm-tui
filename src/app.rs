@@ -1,7 +1,10 @@
 use std::cell::Cell;
 use std::time::Instant;
 
-use crate::{goal::goal_handle, todo::todo_list_handle, todo_tool::Todo, update_goal::UpdateGoal};
+use crate::{
+    enter_plan_mode::EnterPlanMode, exit_plan_mode::ExitPlanMode, goal::goal_handle,
+    plan_mode::plan_mode_handle, todo::todo_list_handle, todo_tool::Todo, update_goal::UpdateGoal,
+};
 use nxm_tui_tools::{default_registry, Registry};
 use zeroize::Zeroizing;
 
@@ -313,6 +316,11 @@ pub struct App {
     /// the `update_goal` tool registered in `tool_registry`; read by the
     /// mode bar to display the current goal.
     pub goal_handle: crate::goal::GoalHandle,
+    /// Plan mode handle (MT-2 plan mode): owned here, cloned into the
+    /// `enter_plan_mode`/`exit_plan_mode` tools registered in `tool_registry`;
+    /// read by the Agent (`request_body`) to filter write tools when plan
+    /// mode is ON. Same pattern as `todo_handle`/`goal_handle`.
+    pub plan_mode_handle: crate::plan_mode::PlanModeHandle,
     pub pending_approval: Option<PendingApproval>,
     pub max_context: u32,
     pub metrics: Metrics,
@@ -385,6 +393,7 @@ impl App {
     pub fn new() -> Self {
         let todo_handle = todo_list_handle();
         let goal_handle = goal_handle();
+        let plan_mode_handle = plan_mode_handle();
         Self {
             state: RunState::Running,
             input: String::new(),
@@ -419,10 +428,17 @@ impl App {
                 reg.register(UpdateGoal {
                     goal: goal_handle.clone(),
                 });
+                reg.register(EnterPlanMode {
+                    goal: plan_mode_handle.clone(),
+                });
+                reg.register(ExitPlanMode {
+                    goal: plan_mode_handle.clone(),
+                });
                 reg
             },
             todo_handle,
             goal_handle,
+            plan_mode_handle,
             pending_approval: None,
             max_context: 8192,
             metrics: Metrics::new(),

@@ -1,6 +1,47 @@
 # Changelog
 # 2026-10-21
 
+## feat(plan): add enter/exit_plan_mode + write-abstaining manifest filter
+
+Introduce plan mode: when ON, the Agent mechanically abstains from write tools
+(Edit, Web) and can only analyze and produce a task list via the existing
+`todo` tool. Two tools `enter_plan_mode`/`exit_plan_mode` toggle the flag;
+the state is shown in the mode_bar; the abstention is mechanical (manifest
+filter in `Agent::request_body`). Same shared-state pattern as `todo`/`goal`.
+- `src/plan_mode.rs` (new): `PlanModeHandle = Arc<AtomicBool>` type +
+  `plan_mode_handle()` factory with doc `///` + doctest.
+- `src/enter_plan_mode.rs` (new): `struct EnterPlanMode { goal: PlanModeHandle }`
+  implementing `nxm_tui_tools::Tool`. Sets flag to `true`. `kind() == Other`,
+  keywords `plan, analyze, mode`. Doc `///` + doctest.
+- `src/exit_plan_mode.rs` (new): `struct ExitPlanMode { goal: PlanModeHandle }`
+  implementing `nxm_tui_tools::Tool`. Sets flag to `false`. `kind() == Other`,
+  keywords `plan, exit, normal`. Doc `///` + doctest.
+- `src/agent.rs`: `Agent` gains `plan_mode: PlanModeHandle` field (param in
+  `Agent::new`). `request_body()` filters out `search_replace`/`web_fetch`/
+  `web_search` (kind Edit/Web) from the manifest when plan mode is ON, by
+  looking up each entry's name→kind via `registry.get(name).kind()`.
+  `select`/`manifest_for` semantics unchanged. `tracing::info!` on request.
+- `src/app.rs`: `App` creates one `plan_mode_handle`, clones it into the
+  `enter_plan_mode`/`exit_plan_mode` tools registered in `tool_registry`,
+  keeps it in `App.plan_mode_handle` for the Agent and mode_bar.
+- `src/mode_bar.rs`: `render` appends ` 🅿️ PLAN` when `plan_mode_handle` is
+  ON; nothing when OFF.
+- `src/lib.rs`: `pub mod plan_mode;`, `pub mod enter_plan_mode;`,
+  `pub mod exit_plan_mode;`.
+- `src/main.rs`: passes `app.plan_mode_handle` to `Agent::new()`.
+- Test: `tests/plan_mode.rs` (7 tests: `plan_mode_tools_schema` R1,
+  `plan_mode_enter_exit` R2, `plan_mode_shares_state` R3,
+  `request_body_plan_mode_excludes_writes` R4,
+  `request_body_plan_mode_off_unchanged` R5, `mode_bar_shows_plan` +
+  `mode_bar_no_plan_when_off` R6).
+- NOT touched: `agent.rs` base `select`/`manifest_for` semantics, `todo`,
+  `update_goal`, `src/md/`; no new dependency.
+- Gate: `cargo test --test plan_mode` 7/7; `cargo test --workspace` green;
+  `cargo clippy --all-targets` 0 new warnings on plan_mode code;
+  `cargo fmt -- --check` ok.
+- Branch `work/41-plan-mode` on `feat/tools-plan-mode`; to consolidate with
+  `--ff-only` after external review. No commit on `main`/`develop`.
+
 ## feat(goal): add update_goal tool + current goal in mode_bar
 
 Expose `update_goal` tool that sets the agent's current goal (single string) in

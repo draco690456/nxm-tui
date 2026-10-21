@@ -354,6 +354,8 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         // T1: hand the agent a snapshot of the tool selection
                         // (toggles in the Tools overlay apply from the next spawn).
                         let tool_registry = app.tool_registry.clone();
+                        // T2: plan mode handle — shared with Agent for write-abstaining filter
+                        let plan_mode_handle = app.plan_mode_handle.clone();
 
                         // Resolve API key for the active provider (once per agent spawn)
                         let api_key = if let Some(ref p) = active_provider {
@@ -393,6 +395,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                 initial_msgs,
                                 Some(approval),
                                 tool_registry,
+                                plan_mode_handle,
                             );
                             agent.run(&tx).await.unwrap_or_else(|e| {
                                 tracing::error!("agent error: {e}");

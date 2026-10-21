@@ -69,6 +69,13 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
         };
         spans.push(Span::raw(format!(" 🎯 {goal}")));
     }
+    // Indicatore plan mode: mostrato nella mode_bar quando il flag è ON.
+    if app
+        .plan_mode_handle
+        .load(std::sync::atomic::Ordering::Relaxed)
+    {
+        spans.push(Span::raw(" 🅿️ PLAN"));
+    }
 
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }

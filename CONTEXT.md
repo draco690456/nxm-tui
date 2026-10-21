@@ -2,16 +2,18 @@
 
 Terminal UI client for NXM inference servers. Built with ratatui + crossterm.
 
-## In progress (micro-task 40 — not yet merged)
+## In progress (micro-task 41 — not yet merged)
 
-`feat/tools-update-goal` / work branch `work/40-update-goal`: `update_goal` tool
-setting the agent's current goal in shared `App.goal_handle` (`Arc<Mutex<Option<String>>>`),
-rendered inline in the mode bar (` 🎯 <goal>`, truncated ~40 col, only when
-Some/non-empty). No overlay/key. `src/goal.rs`, `src/update_goal.rs` new;
-`src/app.rs`, `src/mode_bar.rs`, `src/lib.rs` touched; `tests/update_goal.rs`
-(7 tests, R1..R5). Gate green (`cargo test --test update_goal` 7/7,
-`cargo test --workspace`, clippy 0 new warnings, fmt ok). Pending external
-review before `--ff-only` into `feat/tools-update-goal`. No commit on
+`feat/tools-plan-mode` / work branch `work/41-plan-mode`: plan mode with
+`enter_plan_mode`/`exit_plan_mode` tools, shared `PlanModeHandle =
+Arc<AtomicBool>`, mechanical write-abstaining manifest filter in
+`Agent::request_body` (excludes Edit/Web tools when ON), and `🅿️ PLAN`
+indicator in mode_bar. `src/plan_mode.rs`, `src/enter_plan_mode.rs`,
+`src/exit_plan_mode.rs` new; `src/agent.rs`, `src/app.rs`, `src/lib.rs`,
+`src/main.rs`, `src/mode_bar.rs` touched; `tests/plan_mode.rs` (7 tests,
+R1..R7). Gate green (`cargo test --test plan_mode` 7/7, `cargo test
+--workspace`, clippy 0 new warnings on plan_mode code, fmt ok). Pending
+external review before `--ff-only` into `feat/tools-plan-mode`. No commit on
 `main`/`develop`.
 
 ## Purpose

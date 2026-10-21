@@ -1,6 +1,39 @@
 # Changelog
 # 2026-10-21
 
+## feat(goal): add update_goal tool + current goal in mode_bar
+
+Expose `update_goal` tool that sets the agent's current goal (single string) in
+shared state (`App.goal_handle`, `Arc<Mutex<Option<String>>>`) and shows it
+inline in the mode bar (no overlay/key). Same shared-state pattern as `todo`.
+- `src/goal.rs` (new): `GoalHandle` type + `goal_handle()` factory with doc
+  `///` + doctest; `tracing::debug!` on creation.
+- `src/update_goal.rs` (new): `struct UpdateGoal { goal: GoalHandle }`
+  implementing `nxm_tui_tools::Tool`. Schema: `goal` (string, required).
+  `run` sets `Some(text)`, returns `ToolResult::ok` with confirmation; empty /
+  missing `goal` → `ToolResult::err`, state unchanged; lock poisoning handled
+  without `unwrap`/`panic`. `kind() == Other`, keywords
+  `goal, objective, obiettivo, target, aim, plan`. `tracing::info!` on `run`
+  logging only `goal_len` (never the full goal content, privacy). Doc `///` +
+  doctest on `name`/`description`/`schema`/`run`.
+- `src/app.rs`: `App` creates one `goal_handle`, clones it into the
+  `UpdateGoal` tool registered in `tool_registry`, keeps it in
+  `App.goal_handle` for the mode bar.
+- `src/mode_bar.rs`: `render` appends ` 🎯 <goal>` (truncated to ~40 col with
+  `…`) only when the goal is `Some` and non-empty; nothing when `None`.
+- `src/lib.rs`: `pub mod goal;` + `pub mod update_goal;`.
+- Test: `tests/update_goal.rs` (7 tests: `update_goal_schema` R1,
+  `update_goal_sets` R2, `update_goal_empty` + `update_goal_missing` R3,
+  `update_goal_shares_state` R4, `mode_bar_shows_goal` +
+  `mode_bar_no_goal_when_none` R5).
+- NOT touched: `agent.rs`, `nxm-tui-tools`, `src/md/`, `Todo`/`todo`; no new
+  dependency; `select` classification `Other` does not change existing
+  selection behavior (no keyword collision with Core tools).
+- Gate: `cargo test --test update_goal` 7/7; `cargo test --workspace` green;
+  `cargo clippy --all-targets` 0 new warnings; `cargo fmt -- --check` ok.
+- Branch `work/40-update-goal` on `feat/tools-update-goal`; to consolidate
+  with `--ff-only` after external review. No commit on `main`/`develop`.
+
 ## feat(todo): add todo overlay (TUI, read-only) (MT-3)
 
 Read-only todo overlay for the agent's todo list. Shows `App.todo_handle`

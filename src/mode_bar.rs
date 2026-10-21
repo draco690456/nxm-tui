@@ -35,7 +35,7 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
     let bar = "▓".repeat(filled) + &"░".repeat(bar_w.saturating_sub(filled));
 
     let model_display = app.model_name.as_deref().unwrap_or("—");
-    let spans = vec![
+    let mut spans = vec![
         Span::styled(" M", mode_style.bold()),
         Span::styled(format!(" {}", app.mode.label()), mode_style),
         Span::styled(
@@ -53,6 +53,22 @@ pub fn render(f: &mut Frame, app: &App, area: Rect) {
             Style::default().fg(Color::Rgb(120, 120, 120)),
         ),
     ];
+
+    // Goal corrente (impostato via `update_goal`): inline nella mode_bar,
+    // niente overlay/tasto. Solo se Some e non vuoto; troncato a ~40 col.
+    if let Some(goal) = app
+        .goal_handle
+        .lock()
+        .ok()
+        .and_then(|g| g.as_ref().filter(|s| !s.is_empty()).cloned())
+    {
+        let goal = if goal.len() > 40 {
+            format!("{}…", goal.chars().take(40).collect::<String>())
+        } else {
+            goal
+        };
+        spans.push(Span::raw(format!(" 🎯 {goal}")));
+    }
 
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }

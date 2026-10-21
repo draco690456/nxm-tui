@@ -1,7 +1,7 @@
 use std::cell::Cell;
 use std::time::Instant;
 
-use crate::{todo::todo_list_handle, todo_tool::Todo};
+use crate::{goal::goal_handle, todo::todo_list_handle, todo_tool::Todo, update_goal::UpdateGoal};
 use nxm_tui_tools::{default_registry, Registry};
 use zeroize::Zeroizing;
 
@@ -309,6 +309,10 @@ pub struct App {
     /// Shared todo-list handle (MT-2): owned here, cloned into the `todo`
     /// tool registered in `tool_registry`; read by the TUI overlay in MT-3.
     pub todo_handle: crate::todo::TodoListHandle,
+    /// Shared current-goal handle (MT-1 goal tool): owned here, cloned into
+    /// the `update_goal` tool registered in `tool_registry`; read by the
+    /// mode bar to display the current goal.
+    pub goal_handle: crate::goal::GoalHandle,
     pub pending_approval: Option<PendingApproval>,
     pub max_context: u32,
     pub metrics: Metrics,
@@ -380,6 +384,7 @@ pub struct SetKeyEntry {
 impl App {
     pub fn new() -> Self {
         let todo_handle = todo_list_handle();
+        let goal_handle = goal_handle();
         Self {
             state: RunState::Running,
             input: String::new(),
@@ -411,9 +416,13 @@ impl App {
                 reg.register(Todo {
                     todos: todo_handle.clone(),
                 });
+                reg.register(UpdateGoal {
+                    goal: goal_handle.clone(),
+                });
                 reg
             },
             todo_handle,
+            goal_handle,
             pending_approval: None,
             max_context: 8192,
             metrics: Metrics::new(),

@@ -13,7 +13,7 @@ Option<u32>` (`#[serde(default)]`, default `None` al call site in
 `main.rs`). Test: `tests/bounded.rs` (6, gate server fake), `tests/config.rs`
 (2). Suite green, clippy 0 nuovi warning, fmt ok. Merged su `main`.
 
-## In progress (loopeng-01-02 — branch `work/loopeng-01-02-circuit-breaker`, pending external review)
+## Done (loopeng-01-02 — branch `work/loopeng-01-02-circuit-breaker`, commit 7c5c8cb, pending external review)
 
 Circuit breaker sulla stagnazione in `Agent::run` (loopeng-01-02): se il
 modello ripete la stessa tool call (nome + args) per N cicli consecutivi
@@ -44,6 +44,27 @@ ritorna `Ok(())` senza panicare. Complemento del cap sulle iterazioni.
   resume/ask-to-continue, Ralph loop, `run_gate`, token budget.
 - Gate: `cargo test` green (52 passati, 0 falliti), clippy 0 nuovi warning
   sul codice toccato, fmt ok sui file toccati.
+- Da validare via review esterna prima del merge.
+
+## In progress (loopeng-01-03 — branch `work/loopeng-01-03-continue-after-halt`)
+
+Continue-after-halt: comando UI `/continue` (alias `/cont`) che, solo dopo
+un hard-stop (cap o breaker), ri-spawn un nuovo `Agent` con il transcript
+corrente e budget fresco. Riutilizza il blocco "Start inference" esistente
+in `main.rs` tramite `pending_message` + `RunState::Thinking`; non duplica
+la logica di spawn, non tocca `Agent`/`bounded.rs`/`circuit_breaker.rs`, non
+è un tool del modello.
+- `src/commands.rs`: `Command::Continue`; `parse_command` riconosce
+  `/continue` e `/cont`.
+- `src/app.rs`: `pub halted: bool` (default `false`); `mark_halted()`;
+  `continue_loop() -> bool` (ripresa solo dopo halt, no-op con messaggio al
+trimenti). Doc `///` + doctest.
+- `src/handler.rs`: ramo `Command::Continue` → `app.continue_loop()`.
+- `src/main.rs`: `mark_halted()` nel ramo `ToolPart::LoopHalted`; reset
+  `app.halted = false` nel blocco "Start inference".
+- Test: `tests/continue_after_halt.rs` (5 — R1 parsing, R2 default/set,
+  R3 resume dopo halt e no-op senza halt).
+- Gate da completare: `cargo test`, clippy, fmt sui file toccati.
 - NON committato su `main`/`develop`: da validare via review esterna prima
   del merge.
 

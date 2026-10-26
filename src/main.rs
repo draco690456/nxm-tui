@@ -347,6 +347,9 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                         // send and Esc cancels it (handler.rs).
                         app.request_passphrase();
                     } else if let Some(_msg) = app.pending_message.take() {
+                        // Nuova inferenza (invio utente o /continue): il flag
+                        // di halt si azzera — il budget fresco parte da zero.
+                        app.halted = false;
                         app.start_operation("Thinking");
                         app.metrics.start_response();
                         app.metrics.session_user_msgs += 1;
@@ -458,6 +461,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                     vec![ToolPart::LoopHalted { reason, steps }],
                                 ));
                                 app.set_status(status);
+                                app.mark_halted(); // abilita /continue
                             }
                         }
                         changed = true;

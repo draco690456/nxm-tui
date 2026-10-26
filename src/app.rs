@@ -369,6 +369,9 @@ pub struct App {
     /// passphrase situation is resolved (EncryptedFile mode may need the
     /// prompt first), or cleared when the user declines the prompt.
     pub mcp_connect_pending: bool,
+    /// L'ultimo turno è finito con un hard-stop (cap o breaker). `/continue`
+    /// ha effetto solo quando questo è `true`.
+    pub halted: bool,
 }
 
 /// Entry for the session passphrase prompt.
@@ -462,6 +465,7 @@ impl App {
             passphrase: None,
             passphrase_pending: None,
             mcp_connect_pending: false,
+            halted: false,
         }
     }
 
@@ -556,6 +560,59 @@ impl App {
         self.mode = AgentMode::Chat;
         self.metrics.reset_session();
         self.set_status("New session started".into());
+    }
+
+    /// Segna che l'ultimo turno è finito con un hard-stop (cap o breaker).
+    /// Impostato dalla UI quando consuma `ToolPart::LoopHalted`; abilita `/continue`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nxm_tui::app::App;
+    ///
+    /// let mut app = App::new();
+    /// assert!(!app.halted);
+    /// app.mark_halted();
+    /// assert!(app.halted);
+    /// ```
+    pub fn mark_halted(&mut self) {
+        self.halted = true;
+        tracing::info!(target: "nexum::app::halt", "loop halted — /continue available");
+    }
+
+    /// Riprende il loop dopo un halt, se ce n'è stato uno.
+    ///
+    /// Ritorna `true` se la ripresa è stata avviata (stato → `Thinking`,
+    /// `pending_message` valorizzato, `halted` azzerato). Ritorna `false`
+    /// (no-op con messaggio di stato) quando non c'è alcun halt da riprendere.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use nxm_tui::app::{App, RunState};
+    ///
+    /// let mut app = App::new();
+    /// assert!(!app.continue_loop()); // nessun halt: no-op
+    ///
+    /// app.mark_halted();
+    /// assert!(app.continue_loop()); // dopo halt: riprende
+    /// assert_eq!(app.state, RunState::Thinking);
+    /// assert!(!app.halted);
+    /// ```
+    pub fn continue_loop(&mut self) -> bool {
+        if !self.halted {
+            self.set_status("Nessun loop da riprendere".into());
+            return false;
+        }
+        self.halted = false;
+        // `pending_message` con contenuto vuoto è il marcatore interno per
+        // la ripresa: il blocco di spawn in `main.rs` lo consuma e riusa
+        // `app.messages` come transcript senza aggiungere messaggi utente.
+        self.pending_message = Some(String::new());
+        self.state = RunState::Thinking;
+        self.set_status("Ripresa del loop dopo halt".into());
+        tracing::info!(target: "nexum::app::halt", "loop resumed via /continue");
+        true
     }
 
     pub fn session_display_name(&self) -> String {

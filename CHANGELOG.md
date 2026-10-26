@@ -104,6 +104,38 @@ Niente resume / ask-to-continue (micro-task separato).
   Branch `work/loopeng-01-02-circuit-breaker`, pending external review
   prima del merge.
 
+## feat(ui): continue-after-halt via `/continue` command (loopeng-01-03)
+
+Dopo un hard-stop (cap iterazioni o breaker di stagnazione) il loop termina e
+l'utente non ha modo di ripartire se non reinviare un messaggio. Aggiunto il
+comando UI `/continue` (alias `/cont`) che, solo dopo un halt, ri-spawn un
+nuovo `Agent` con il transcript corrente (`app.messages`) e budget fresco
+(cap e breaker ripartono da zero grazie al ri-spawn esistente).
+- `src/commands.rs`: nuova variant `Command::Continue`; `parse_command`
+  riconosce `/continue` e `/cont`.
+- `src/app.rs`: nuovo campo `pub halted: bool` (default `false`);
+  `mark_halted()` lo imposta quando la UI consuma `ToolPart::LoopHalted`;
+  `continue_loop() -> bool` riprende solo dopo un halt (stato → `Thinking`,
+  `pending_message` valorizzato, `halted` azzerato) ed è no-op con messaggio
+  di stato altrimenti. Doc `///` + doctest su `continue_loop`.
+- `src/handler.rs`: ramo `Command::Continue` che delega a
+  `app.continue_loop()`.
+- `src/main.rs`: nel ramo `ToolPart::LoopHalted` chiama `app.mark_halted()`;
+  nel blocco "Start inference" azzera `app.halted = false` quando parte una
+  nuova inferenza (invio utente o `/continue`).
+- NON tocca `Agent`/`bounded.rs`/`circuit_breaker.rs`: il budget fresco arriva
+  gratis dal ri-spawn. NON duplica la logica di spawn: riusa il blocco
+  "Start inference" tramite `pending_message` + `RunState::Thinking`. NON è
+  un tool del modello (paradosso evitato: dopo l'halt il modello non gira).
+- Test: `tests/continue_after_halt.rs` (5 — R1 parsing `/continue`/`cont`,
+  R2 default `false` + `mark_halted`, R3 resume dopo halt e no-op senza
+  halt). Suite completa green, nessuna regressione.
+- Gate: `cargo test` green; clippy 0 NUOVI warning sui file toccati
+  (2 pre-existing su `app.rs`: `type_complexity` + `new_without_default`);
+  `cargo fmt --check` ok sui file toccati.
+  Branch `work/loopeng-01-03-continue-after-halt`, pending external review
+  prima del merge.
+
 # 2026-10-21
 
 ## feat(plan): add enter/exit_plan_mode + write-abstaining manifest filter

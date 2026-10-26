@@ -575,6 +575,12 @@ pub fn handle_key(app: &mut App, key: KeyEvent) {
                     // Placeholder: compression feature will be added later
                     app.set_status("Compression feature coming soon".to_string());
                 }
+                Command::Continue => {
+                    // /continue riprende il loop solo dopo un halt.
+                    // continue_loop gestisce sia il sì (ripresa) che il no (no-op),
+                    // impostando in entrambi i casi un messaggio di stato chiaro.
+                    app.continue_loop();
+                }
                 Command::Sidebar => {
                     app.sidebar_open = !app.sidebar_open;
                     app.set_status(

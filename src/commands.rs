@@ -19,6 +19,9 @@ pub enum Command {
     LoadSession(String),
     ListSessions,
     Compact,
+    /// `/continue` — riprende il loop dopo un hard-stop (cap o breaker).
+    /// Ri-spawn un nuovo `Agent` con il transcript corrente e budget fresco.
+    Continue,
     Sidebar,
     Server(ServerCommand),
     Provider(ProviderCommand),
@@ -97,6 +100,7 @@ pub fn parse_command(input: &str) -> Command {
             Command::SaveSession(name)
         }
         "/compact" | "/k" | "/comp" => Command::Compact,
+        "/continue" | "/cont" => Command::Continue,
         "/sidebar" => Command::Sidebar,
         "/server" | "/srv" => match tokens.get(1) {
             Some(&"start") | Some(&"on") => Command::Server(ServerCommand::Start),

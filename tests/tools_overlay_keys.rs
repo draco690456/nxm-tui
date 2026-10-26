@@ -130,6 +130,7 @@ fn overlay_disable_all_keeps_core_in_body() {
         app.tool_registry.clone(),
         app.plan_mode_handle.clone(),
         nxm_tui::bounded::DEFAULT_MAX_STEPS,
+        nxm_tui::circuit_breaker::DEFAULT_STALL_THRESHOLD,
     );
     let body = agent.request_body();
     let names: Vec<&str> = body["tools"]

@@ -2,18 +2,50 @@
 
 Terminal UI client for NXM inference servers. Built with ratatui + crossterm.
 
-## In progress (loopeng-01-01 — not yet merged, pending external review)
+## Done (loopeng-01-01 — on `main`, commit bed58d3)
 
-`work/loopeng-01-01-bounded-execution`: bounded execution — hard cap on
-`Agent::run` iterations. New pure module `src/bounded.rs`
+Bounded execution — hard cap su `Agent::run` iterations. `src/bounded.rs`
 (`DEFAULT_MAX_STEPS = 15`, `BudgetTracker` → `Budget::Continue/Halted`);
-`ToolPart::LoopHalted { reason, steps }` + render branch in
-`src/tool_types.rs`; `Agent::new` gains `max_steps` and `run()` hard-stops
-on cap (emits `LoopHalted`, returns `Ok(())`); `TuiConfig.max_steps:
-Option<u32>` (`#[serde(default)]`, default `None`, applied at the call site
-in `main.rs`). Tests: `tests/bounded.rs` (6, incl. fake-server integration
-gate), `tests/config.rs` (2). Suite green, clippy 0 new warnings, fmt ok.
-Next micro-task: loopeng-01-02 (resume tool on user confirmation).
+`ToolPart::LoopHalted { reason, steps }` + render in
+`src/tool_types.rs`; `Agent::new` guadagna `max_steps` e `run()` hard-stoppa
+sul cap (emette `LoopHalted`, restituisce `Ok(())`); `TuiConfig.max_steps:
+Option<u32>` (`#[serde(default)]`, default `None` al call site in
+`main.rs`). Test: `tests/bounded.rs` (6, gate server fake), `tests/config.rs`
+(2). Suite green, clippy 0 nuovi warning, fmt ok. Merged su `main`.
+
+## In progress (loopeng-01-02 — branch `work/loopeng-01-02-circuit-breaker`, pending external review)
+
+Circuit breaker sulla stagnazione in `Agent::run` (loopeng-01-02): se il
+modello ripete la stessa tool call (nome + args) per N cicli consecutivi
+(default 3) senza progresso, il loop hard-stoppa, emette
+`ToolPart::LoopHalted { reason, steps }` con `reason = "stalled: ..."` e
+ritorna `Ok(())` senza panicare. Complemento del cap sulle iterazioni.
+- `src/circuit_breaker.rs` (new, <300 righe): `DEFAULT_STALL_THRESHOLD =
+  3`, `StallDetector::new(threshold)` +
+  `observe(signature) -> Stall::Ok/Tripped { repeats, signature }`,
+  `signature(calls)` puro e ordine-indipendente. Zero I/O, `tracing` su
+  `nexum::circuit_breaker::*`, doc `///` + doctest.
+- `src/bounded.rs`: `BudgetTracker::steps()` accessor (tracing + doc
+  example) per il `steps` di `LoopHalted`.
+- `src/agent.rs`: `Agent::new` guadagna `stall_threshold: u32`; `run()`
+  costruisce uno `StallDetector` fresco all'ingresso (per spec) e, dopo
+  `stream_turn`, osserva la signature; su `Tripped` emette `LoopHalted`
+  + `Ok(())`. Cablaggio minimo.
+- `src/config.rs`: `TuiConfig.stall_threshold: Option<u32>`
+  (`#[serde(default)]`, `None` in `Default`, default al call site in
+  `main.rs`).
+- `src/lib.rs`: `pub mod circuit_breaker;`; `src/main.rs` passa il valore
+  da config.
+- Test: `tests/circuit_breaker.rs` (8 — R1 detector, R2 signature, R3
+  integrazione server fake che ripete lo stesso `tool_calls`),
+  `tests/config.rs` (+2 round-trip). Call-site `Agent::new` aggiornati in
+  7 test file + doctest.
+- NON fuso col `BudgetTracker`; nessun nuovo variant `ToolPart`; niente
+  resume/ask-to-continue, Ralph loop, `run_gate`, token budget.
+- Gate: `cargo test` green (52 passati, 0 falliti), clippy 0 nuovi warning
+  sul codice toccato, fmt ok sui file toccati.
+- NON committato su `main`/`develop`: da validare via review esterna prima
+  del merge.
 
 ## In progress (micro-task 41 — not yet merged)
 

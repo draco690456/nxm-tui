@@ -145,7 +145,8 @@ async fn agent_halts_at_max_steps_and_emits_loop_halted() {
         None, // headless: gated tools auto-approved, never hangs
         default_registry(),
         plan_mode_handle(),
-        2, // max_steps
+        2,                                                 // max_steps
+        nxm_tui::circuit_breaker::DEFAULT_STALL_THRESHOLD, // stall_threshold
     );
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();
 

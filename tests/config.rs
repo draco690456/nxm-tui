@@ -29,3 +29,28 @@ max_context = 8192
     assert_eq!(cfg.max_steps, None);
     assert_eq!(cfg.endpoint, Some("http://localhost:8080".to_string()));
 }
+
+#[test]
+fn stall_threshold_survives_toml_roundtrip() {
+    let cfg = TuiConfig {
+        stall_threshold: Some(5),
+        ..TuiConfig::default()
+    };
+    let s = toml::to_string_pretty(&cfg).unwrap();
+    let back: TuiConfig = toml::from_str(&s).unwrap();
+    assert_eq!(back.stall_threshold, Some(5));
+}
+
+#[test]
+fn missing_stall_threshold_key_loads_none() {
+    // A pre-loopeng-01-02 tui.toml has no `stall_threshold` key: it must
+    // still load, with `stall_threshold` falling back to `None` (default
+    // applied at the call site).
+    let legacy = r#"
+endpoint = "http://localhost:8080"
+model_name = "test-model"
+"#;
+    let cfg: TuiConfig = toml::from_str(legacy).unwrap();
+    assert_eq!(cfg.stall_threshold, None);
+    assert_eq!(cfg.endpoint, Some("http://localhost:8080".to_string()));
+}

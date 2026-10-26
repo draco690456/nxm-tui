@@ -43,6 +43,67 @@ tool / ask-to-continue here: that is loopeng-01-02.
   `cargo fmt --check` ok. Branch `work/loopeng-01-01-bounded-execution`,
   pending external review before merge.
 
+## feat(agent): circuit breaker on stagnation in `Agent::run` (loopeng-01-02)
+
+`Agent::run` hard-stopped solo sul cap delle iterazioni (`bounded`): un
+modello che ripete la stessa tool call poteva girare fino a esaurire il
+budget. Il loop ora trippa anche sulla stagnazione: la stessa *signature*
+di tool call (nome + args, indipendente dall'ordine) per N cicli
+consecutivi (default 3) emette `ToolPart::LoopHalted` e restituisce
+`Ok(())` senza panicare. Complemento del cap: il cap limita la durata
+totale, il breaker interrompe un ciclo bloccato prima che bruci il budget.
+Niente resume / ask-to-continue (micro-task separato).
+- `src/circuit_breaker.rs` (new): logica pura dello stall —
+  `DEFAULT_STALL_THRESHOLD: u32 = 3`,
+  `StallDetector::new(threshold)` +
+  `observe(signature) -> Stall::Ok { repeats } |
+  Stall::Tripped { repeats, signature }` (nomi per spec), e
+  `signature(calls)` puro (deterministico, indipendente dall'ordine).
+  Zero I/O; `tracing` su `nexum::circuit_breaker::*`; doc `///` + doctest
+  sulle API pubbliche.
+- `src/bounded.rs`: `BudgetTracker::steps()` accessor (con tracing +
+  doc example) così il breaker riporta l'indice di iterazione corrente
+  senza accedere al campo privato del tracker (moduli separati).
+- `src/agent.rs`: `Agent::new` guadagna `stall_threshold: u32` (dopo
+  `max_steps`); `run()` costruisce uno `StallDetector` fresco all'ingresso
+  (per spec) e, dopo `stream_turn`, calcola la signature e su `Tripped`
+  emette `ToolPart::LoopHalted { reason, steps }` e hard-stoppa con
+  `Ok(())`. Uscita normale (calls vuote / halt del budget) invariata.
+- `src/tool_types.rs`: NON toccato — si riusa l'esistente
+  `ToolPart::LoopHalted { reason, steps }` (nessun nuovo variant).
+- `src/agent.rs`: `Agent::new` guadagna `stall_threshold: u32` (dopo
+  `max_steps`); `run()` calcola la signature dopo `stream_turn` e, su
+  `Tripped`, emette `ToolPart::LoopHalted { reason, steps }` e hard-stoppa
+  con `Ok(())`. Uscita normale (calls vuote / halt del budget) invariata.
+  Module doc + doctest `request_body()` aggiornati alla nuova firma.
+  `#[allow(clippy::too_many_arguments)]` mantenuto (costruttore a 10 arg).
+- `src/main.rs`: passa
+  `cfg.stall_threshold.unwrap_or(circuit_breaker::DEFAULT_STALL_THRESHOLD)`
+  a `Agent::new`; il main loop specchia già `LoopHalted` in messaggi +
+  status line (nessun cambio necessario).
+- `src/config.rs`: `TuiConfig.stall_threshold: Option<u32>` con
+  `#[serde(default)]`, `Default` = `None` (unica fonte del default resta
+  `circuit_breaker.rs`, applicata al call site).
+- `src/lib.rs`: `pub mod circuit_breaker;`.
+- Test: `tests/circuit_breaker.rs` (8 — R1 puro detector x4 incl. reset su
+  signature diversa e soglia-1 degenera, R2 signature ordine-indipendente /
+  cambio di arg, R3 integrazione: server SSE fake che risponde SEMPRE con
+  lo stesso `tool_calls`, `stall_threshold: 2`, `max_steps: 50` → termina
+  per stagnazione dopo 2 turni emettendo una `LoopHalted` con "stall" nel
+  reason, protetta da `tokio::time::timeout`); `tests/config.rs` (+2 —
+  toml round-trip `Some(5)`, toml legacy senza la chiave carica `None`).
+- Tutti i call-site `Agent::new` aggiornati (7 file di test + `main.rs` +
+  doctest).
+- NON toccato: resume tool / ask-to-continue, fusione col
+  `BudgetTracker`, `run_gate` integration, token budget, `src/md/*`
+  (debito fmt pre-esistente, lasciato intatto).
+- Gate: `cargo test` green (52 passati, 0 falliti, incl. doctest);
+  clippy 0 NUOVI warning sul codice toccato (4 pre-existing su main
+  restano in `metrics.rs`/`agent.rs`/`app.rs`);
+  `cargo fmt --check` ok sui file toccati.
+  Branch `work/loopeng-01-02-circuit-breaker`, pending external review
+  prima del merge.
+
 # 2026-10-21
 
 ## feat(plan): add enter/exit_plan_mode + write-abstaining manifest filter

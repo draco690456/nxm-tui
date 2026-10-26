@@ -15,6 +15,12 @@ pub struct TuiConfig {
     /// `bounded.rs` stays the single source of the default.
     #[serde(default)]
     pub max_steps: Option<u32>,
+    /// Consecutive identical tool-call iterations before the stagnation
+    /// breaker trips (loopeng-01-02). `None` = built-in default
+    /// (`circuit_breaker::DEFAULT_STALL_THRESHOLD`), applied at the call site
+    /// so `circuit_breaker.rs` stays the single source of the default.
+    #[serde(default)]
+    pub stall_threshold: Option<u32>,
     /// User-configured custom providers (persisted). Presets live in
     /// `crate::provider::Provider::presets()` and are never written here.
     /// API keys are NEVER stored on this struct's disk form (see `keys.rs`).
@@ -57,6 +63,7 @@ impl Default for TuiConfig {
             sidebar_open: Some(true),
             max_context: Some(8192),
             max_steps: None,
+            stall_threshold: None,
             providers: Vec::new(),
             mcp: McpConfig::default(),
         }

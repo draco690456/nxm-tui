@@ -27,6 +27,7 @@ use tokio::sync::mpsc;
 
 use crate::app::{apply_token, Message, Role};
 use crate::bounded::{Budget, BudgetTracker};
+use crate::circuit_breaker::{signature, Stall, StallDetector};
 use crate::tool_types::{needs_approval, ApprovalRequest, ToolInvocation, ToolPart, ToolResult};
 
 /// A streaming OpenAI-compatible agent backed by `nexum-tools`.
@@ -57,6 +58,10 @@ pub struct Agent<'a> {
     /// Hard cap on loop iterations (loopeng-01): when the budget is spent the
     /// loop hard-stops instead of spinning forever on a tool-calling model.
     budget: BudgetTracker,
+    /// Stagnation breaker (loopeng-01-02): consecutive identical tool-call
+    /// iterations before the breaker trips. Built into a `StallDetector` at
+    /// the start of each `run()` invocation.
+    stall_threshold: u32,
 }
 
 impl<'a> Agent<'a> {
@@ -74,6 +79,7 @@ impl<'a> Agent<'a> {
         registry: Registry,
         plan_mode: PlanModeHandle,
         max_steps: u32,
+        stall_threshold: u32,
     ) -> Self {
         Self {
             client,
@@ -87,6 +93,7 @@ impl<'a> Agent<'a> {
             in_thinking: false,
             thinking_content: String::new(),
             budget: BudgetTracker::new(max_steps),
+            stall_threshold,
         }
     }
 
@@ -96,6 +103,9 @@ impl<'a> Agent<'a> {
     /// then it hard-stops, emits `ToolPart::LoopHalted` and returns `Ok(())`.
     /// Emits `ToolPart`s for live UI rendering.
     pub async fn run(&mut self, tx: &mpsc::UnboundedSender<ToolPart>) -> Result<(), String> {
+        // Stagnation detector is built here (per spec) rather than at
+        // construction, so each `run()` invocation starts with a fresh count.
+        let mut stall = StallDetector::new(self.stall_threshold);
         loop {
             if let Budget::Halted { steps } = self.budget.tick() {
                 let reason = format!("max iterations reached ({steps})");
@@ -110,6 +120,34 @@ impl<'a> Agent<'a> {
             let calls = self.stream_turn(tx).await?;
             if calls.is_empty() {
                 return Ok(());
+            }
+            // Circuit breaker on stagnation (loopeng-01-02): the same
+            // tool-call signature N consecutive iterations → hard stop before
+            // the iteration budget burns out on a stuck loop.
+            let sig = signature(
+                &calls
+                    .iter()
+                    .map(|c| (c.name.clone(), c.args.clone()))
+                    .collect::<Vec<_>>(),
+            );
+            match stall.observe(&sig) {
+                Stall::Ok { .. } => {}
+                Stall::Tripped { repeats, signature } => {
+                    let reason =
+                        format!("stalled: identical tool call repeated {repeats}× ({signature})");
+                    tracing::warn!(
+                        target: "nexum::agent::stall",
+                        repeats,
+                        signature = %signature,
+                        steps = self.budget.steps(),
+                        "halting ReAct loop: stagnation detected"
+                    );
+                    let _ = tx.send(ToolPart::LoopHalted {
+                        reason,
+                        steps: self.budget.steps(),
+                    });
+                    return Ok(());
+                }
             }
             self.dispatch_tool_calls(tx, calls).await?;
         }
@@ -132,7 +170,7 @@ impl<'a> Agent<'a> {
     /// use reqwest::Client;
     ///
     /// let client = Client::new();
-    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry(), nxm_tui::plan_mode::plan_mode_handle(), nxm_tui::bounded::DEFAULT_MAX_STEPS);
+    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry(), nxm_tui::plan_mode::plan_mode_handle(), nxm_tui::bounded::DEFAULT_MAX_STEPS, nxm_tui::circuit_breaker::DEFAULT_STALL_THRESHOLD);
     /// let body = agent.request_body();
     /// // No user message → fail-safe: Core tools only.
     /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(2));

@@ -76,4 +76,26 @@ impl BudgetTracker {
         );
         Budget::Continue
     }
+
+    /// Number of iterations recorded so far (the current step index).
+    ///
+    /// Exposed so the stagnation breaker (`circuit_breaker`) can report the
+    /// current iteration index in `ToolPart::LoopHalted { steps }` without
+    /// reaching into `BudgetTracker`'s private field — the two modules stay
+    /// separate, per loopeng-01-02.
+    ///
+    /// ```
+    /// use nxm_tui::bounded::BudgetTracker;
+    /// let mut t = BudgetTracker::new(3);
+    /// t.tick();
+    /// assert_eq!(t.steps(), 1);
+    /// ```
+    pub fn steps(&self) -> u32 {
+        tracing::debug!(
+            target: "nexum::bounded::steps",
+            steps = self.steps,
+            "iteration step index read"
+        );
+        self.steps
+    }
 }

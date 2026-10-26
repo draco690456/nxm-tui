@@ -319,6 +319,11 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                     // Hard cap on ReAct iterations (loopeng-01): from config,
                     // falling back to the single source of the default.
                     let max_steps = cfg.max_steps.unwrap_or(nxm_tui::bounded::DEFAULT_MAX_STEPS);
+                    // Stagnation breaker (loopeng-01-02): from config,
+                    // falling back to the single source of the default.
+                    let stall_threshold = cfg
+                        .stall_threshold
+                        .unwrap_or(nxm_tui::circuit_breaker::DEFAULT_STALL_THRESHOLD);
 
                     // Resolve the active provider once (I2): used by the
                     // passphrase gate below and by the key resolution.
@@ -400,6 +405,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                 tool_registry,
                                 plan_mode_handle,
                                 max_steps,
+                                stall_threshold,
                             );
                             agent.run(&tx).await.unwrap_or_else(|e| {
                                 tracing::error!("agent error: {e}");

@@ -155,6 +155,7 @@ fn request_body_plan_mode_excludes_writes() {
         reg,
         plan_handle,
         nxm_tui::bounded::DEFAULT_MAX_STEPS,
+        nxm_tui::circuit_breaker::DEFAULT_STALL_THRESHOLD,
     );
 
     let body = agent.request_body();
@@ -230,6 +231,7 @@ fn request_body_plan_mode_off_unchanged() {
         reg,
         plan_handle,
         nxm_tui::bounded::DEFAULT_MAX_STEPS,
+        nxm_tui::circuit_breaker::DEFAULT_STALL_THRESHOLD,
     );
 
     let body = agent.request_body();

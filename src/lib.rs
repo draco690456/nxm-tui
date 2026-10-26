@@ -10,6 +10,7 @@ pub mod app;
 pub mod autocomplete;
 pub mod bottom;
 pub mod bounded;
+pub mod circuit_breaker;
 pub mod commands;
 pub mod config;
 pub mod connection;

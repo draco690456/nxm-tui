@@ -9,6 +9,7 @@ pub mod agent;
 pub mod app;
 pub mod autocomplete;
 pub mod bottom;
+pub mod bounded;
 pub mod commands;
 pub mod config;
 pub mod connection;

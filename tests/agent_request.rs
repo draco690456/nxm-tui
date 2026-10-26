@@ -20,6 +20,7 @@ fn agent_over(reg: Registry, client: &Client) -> Agent<'_> {
         None,
         reg,
         plan_mode_handle(),
+        nxm_tui::bounded::DEFAULT_MAX_STEPS,
     )
 }
 
@@ -34,6 +35,7 @@ fn agent_with_task<'a>(reg: Registry, task: &str, client: &'a Client) -> Agent<'
         None,
         reg,
         plan_mode_handle(),
+        nxm_tui::bounded::DEFAULT_MAX_STEPS,
     )
 }
 

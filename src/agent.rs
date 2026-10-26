@@ -3,7 +3,8 @@
 //! Replaces the single-turn `connection::chat_stream` path: [`Agent::run`]
 //! streams a response, resolves any `tool_calls` through `nexum-tools`,
 //! appends the `role:"tool"` results to its transcript, and re-queries until
-//! the model emits `finish_reason: "stop"`.
+//! the model emits `finish_reason: "stop"` — or until the hard iteration cap
+//! (`bounded::BudgetTracker`) halts the loop with a `ToolPart::LoopHalted`.
 //!
 //! Concurrency model: the `Agent` lives inside a `tokio::spawn` task and owns
 //! its own transcript (`Vec<Message>`, cloned from `app.messages` at spawn).
@@ -25,6 +26,7 @@ use serde_json::Value;
 use tokio::sync::mpsc;
 
 use crate::app::{apply_token, Message, Role};
+use crate::bounded::{Budget, BudgetTracker};
 use crate::tool_types::{needs_approval, ApprovalRequest, ToolInvocation, ToolPart, ToolResult};
 
 /// A streaming OpenAI-compatible agent backed by `nexum-tools`.
@@ -52,9 +54,16 @@ pub struct Agent<'a> {
     in_thinking: bool,
     #[allow(dead_code)]
     thinking_content: String,
+    /// Hard cap on loop iterations (loopeng-01): when the budget is spent the
+    /// loop hard-stops instead of spinning forever on a tool-calling model.
+    budget: BudgetTracker,
 }
 
 impl<'a> Agent<'a> {
+    // Constructor mirrors the spawn-time snapshot (client, endpoint, key,
+    // transcript, channels, registry, plan mode, budget); a builder would
+    // add boilerplate without removing real coupling.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         client: &'a Client,
         base_url: &'a str,
@@ -64,6 +73,7 @@ impl<'a> Agent<'a> {
         approval_tx: Option<mpsc::UnboundedSender<ApprovalRequest>>,
         registry: Registry,
         plan_mode: PlanModeHandle,
+        max_steps: u32,
     ) -> Self {
         Self {
             client,
@@ -76,14 +86,27 @@ impl<'a> Agent<'a> {
             approval_tx,
             in_thinking: false,
             thinking_content: String::new(),
+            budget: BudgetTracker::new(max_steps),
         }
     }
 
     /// Run a full agentic turn: stream → resolve tool calls via `nexum-tools` →
-    /// append `role:"tool"` results → re-query; loops until the model stops.
+    /// append `role:"tool"` results → re-query; loops until the model stops
+    /// calling tools, or until the hard iteration cap (`max_steps`) is hit —
+    /// then it hard-stops, emits `ToolPart::LoopHalted` and returns `Ok(())`.
     /// Emits `ToolPart`s for live UI rendering.
     pub async fn run(&mut self, tx: &mpsc::UnboundedSender<ToolPart>) -> Result<(), String> {
         loop {
+            if let Budget::Halted { steps } = self.budget.tick() {
+                let reason = format!("max iterations reached ({steps})");
+                tracing::warn!(
+                    target: "nexum::agent::budget",
+                    steps,
+                    "halting ReAct loop: iteration cap reached"
+                );
+                let _ = tx.send(ToolPart::LoopHalted { reason, steps });
+                return Ok(());
+            }
             let calls = self.stream_turn(tx).await?;
             if calls.is_empty() {
                 return Ok(());
@@ -109,7 +132,7 @@ impl<'a> Agent<'a> {
     /// use reqwest::Client;
     ///
     /// let client = Client::new();
-    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry(), nxm_tui::plan_mode::plan_mode_handle());
+    /// let agent = Agent::new(&client, "http://localhost:1", "m", None, Vec::new(), None, default_registry(), nxm_tui::plan_mode::plan_mode_handle(), nxm_tui::bounded::DEFAULT_MAX_STEPS);
     /// let body = agent.request_body();
     /// // No user message → fail-safe: Core tools only.
     /// assert_eq!(body["tools"].as_array().map(|a| a.len()), Some(2));

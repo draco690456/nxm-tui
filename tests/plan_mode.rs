@@ -154,6 +154,7 @@ fn request_body_plan_mode_excludes_writes() {
         None,
         reg,
         plan_handle,
+        nxm_tui::bounded::DEFAULT_MAX_STEPS,
     );
 
     let body = agent.request_body();
@@ -228,6 +229,7 @@ fn request_body_plan_mode_off_unchanged() {
         None,
         reg,
         plan_handle,
+        nxm_tui::bounded::DEFAULT_MAX_STEPS,
     );
 
     let body = agent.request_body();

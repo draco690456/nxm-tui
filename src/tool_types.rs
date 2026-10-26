@@ -102,6 +102,8 @@ pub enum ToolPart {
     /// Error message.
     #[allow(dead_code)] // emitted on the agent error path; asserted in tests
     Error(String),
+    /// The ReAct loop hit its hard iteration cap and was halted (loopeng-01).
+    LoopHalted { reason: String, steps: u32 },
 }
 
 /// Tool invocation metadata.
@@ -195,6 +197,12 @@ impl ToolPart {
                 vec![Line::from(Span::styled(
                     format!("Error: {}", e),
                     Style::default().fg(Color::Red),
+                ))]
+            }
+            ToolPart::LoopHalted { reason, steps } => {
+                vec![Line::from(Span::styled(
+                    format!("\u{26d4} loop halted after {steps} steps \u{2014} {reason}"),
+                    Style::default().fg(Color::Yellow),
                 ))]
             }
         }

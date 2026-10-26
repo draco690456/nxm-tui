@@ -316,6 +316,9 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                     && inference_task.is_none()
                 {
                     let base = app.endpoint.clone();
+                    // Hard cap on ReAct iterations (loopeng-01): from config,
+                    // falling back to the single source of the default.
+                    let max_steps = cfg.max_steps.unwrap_or(nxm_tui::bounded::DEFAULT_MAX_STEPS);
 
                     // Resolve the active provider once (I2): used by the
                     // passphrase gate below and by the key resolution.
@@ -396,6 +399,7 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                 Some(approval),
                                 tool_registry,
                                 plan_mode_handle,
+                                max_steps,
                             );
                             agent.run(&tx).await.unwrap_or_else(|e| {
                                 tracing::error!("agent error: {e}");
@@ -440,6 +444,15 @@ async fn run(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> io::Resul
                                     .push(Message::tool(&res.call_id, res.output.clone()));
                             }
                             ToolPart::Error(e) => app.set_status(e),
+                            ToolPart::LoopHalted { reason, steps } => {
+                                let status =
+                                    format!("loop halted after {steps} steps \u{2014} {reason}");
+                                app.messages.push(Message::with_tool(
+                                    Role::Assistant,
+                                    vec![ToolPart::LoopHalted { reason, steps }],
+                                ));
+                                app.set_status(status);
+                            }
                         }
                         changed = true;
                     }

@@ -2,6 +2,19 @@
 
 Terminal UI client for NXM inference servers. Built with ratatui + crossterm.
 
+## In progress (loopeng-01-01 — not yet merged, pending external review)
+
+`work/loopeng-01-01-bounded-execution`: bounded execution — hard cap on
+`Agent::run` iterations. New pure module `src/bounded.rs`
+(`DEFAULT_MAX_STEPS = 15`, `BudgetTracker` → `Budget::Continue/Halted`);
+`ToolPart::LoopHalted { reason, steps }` + render branch in
+`src/tool_types.rs`; `Agent::new` gains `max_steps` and `run()` hard-stops
+on cap (emits `LoopHalted`, returns `Ok(())`); `TuiConfig.max_steps:
+Option<u32>` (`#[serde(default)]`, default `None`, applied at the call site
+in `main.rs`). Tests: `tests/bounded.rs` (6, incl. fake-server integration
+gate), `tests/config.rs` (2). Suite green, clippy 0 new warnings, fmt ok.
+Next micro-task: loopeng-01-02 (resume tool on user confirmation).
+
 ## In progress (micro-task 41 — not yet merged)
 
 `feat/tools-plan-mode` / work branch `work/41-plan-mode`: plan mode with

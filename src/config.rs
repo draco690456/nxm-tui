@@ -10,6 +10,11 @@ pub struct TuiConfig {
     pub sidebar_open: Option<bool>,
     /// Max context tokens
     pub max_context: Option<u32>,
+    /// Hard cap on `Agent::run` iterations (loopeng-01). `None` = built-in
+    /// default (`bounded::DEFAULT_MAX_STEPS`), applied at the call site so
+    /// `bounded.rs` stays the single source of the default.
+    #[serde(default)]
+    pub max_steps: Option<u32>,
     /// User-configured custom providers (persisted). Presets live in
     /// `crate::provider::Provider::presets()` and are never written here.
     /// API keys are NEVER stored on this struct's disk form (see `keys.rs`).
@@ -51,6 +56,7 @@ impl Default for TuiConfig {
             model_name: None,
             sidebar_open: Some(true),
             max_context: Some(8192),
+            max_steps: None,
             providers: Vec::new(),
             mcp: McpConfig::default(),
         }

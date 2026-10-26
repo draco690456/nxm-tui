@@ -1,4 +1,48 @@
 # Changelog
+# 2026-10-26
+
+## feat(agent): bounded execution — hard iteration cap on `Agent::run` (loopeng-01-01)
+
+`Agent::run` was an unbounded `loop {}`: it exited only when the model stopped
+calling tools. It now has a configurable hard cap on loop iterations (default
+`15`): when reached, the loop hard-stops, emits a new `ToolPart::LoopHalted`
+towards the UI and returns `Ok(())` without panicking. What counts is model
+turns (not tool calls / tokens — token budget is a later phase). No resume
+tool / ask-to-continue here: that is loopeng-01-02.
+- `src/bounded.rs` (new): pure cap logic — `DEFAULT_MAX_STEPS: u32 = 15`,
+  `BudgetTracker::new(max_steps)` + `tick() -> Budget::Continue |
+  Budget::Halted { steps }`. Zero I/O; `tracing` on `nexum::bounded::*`;
+  doc `///` + doctest on both public fns.
+- `src/tool_types.rs`: `ToolPart::LoopHalted { reason, steps }` variant
+  (derives unchanged: Debug, Clone, PartialEq, Eq) + `render_lines()` branch
+  (one yellow warning line with reason and step count).
+- `src/agent.rs`: `Agent::new` gains `max_steps: u32`; `run()` ticks the
+  budget each iteration and on `Halted` emits `ToolPart::LoopHalted` and
+  returns `Ok(())` (hard stop). Module doc + `request_body()` doctest
+  updated to the new signature. `#[allow(clippy::too_many_arguments)]` on
+  `Agent::new` (9-arg spawn-time snapshot constructor).
+- `src/main.rs`: main loop mirrors `LoopHalted` into `app.messages` + status
+  line; passes `cfg.max_steps.unwrap_or(bounded::DEFAULT_MAX_STEPS)` to
+  `Agent::new`.
+- `src/config.rs`: `TuiConfig.max_steps: Option<u32>` with
+  `#[serde(default)]`, `Default` = `None` (single source of the default stays
+  `bounded.rs`, applied at the call site).
+- `src/lib.rs`: `pub mod bounded;`.
+- Tests: `tests/bounded.rs` (6 — R1 pure tracker x4, R2 `render_lines`, R3
+  integration: fake SSE server answering ALWAYS `tool_calls`, `max_steps: 2`
+  → run terminates after exactly 2 turns emitting one `LoopHalted`, guarded
+  by `tokio::time::timeout` so a missing cap fails instead of hanging);
+  `tests/config.rs` (2 — toml round-trip `Some(7)`, legacy toml without the
+  key loads `None`). All existing `Agent::new` call sites updated (7 test
+  files + `main.rs`).
+- NOT touched: resume tool / ask-to-continue, circuit breaker, token budget,
+  `run_gate` integration, `src/md/*`.
+- Gate: `cargo test` 59 binaries green (incl. 49 doctests); clippy 0 NEW
+  warnings (4 pre-existing on main remain: `agent.rs` plan-mode filter
+  `.retain()`, `app.rs` complex type, `app.rs`/`metrics.rs` `Default`);
+  `cargo fmt --check` ok. Branch `work/loopeng-01-01-bounded-execution`,
+  pending external review before merge.
+
 # 2026-10-21
 
 ## feat(plan): add enter/exit_plan_mode + write-abstaining manifest filter

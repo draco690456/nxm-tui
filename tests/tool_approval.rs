@@ -197,6 +197,7 @@ async fn run_turn_with_decision(base: &str, path: &str, allow: bool) -> Vec<Tool
         Some(atx),
         nxm_tui_tools::default_registry(),
         nxm_tui::plan_mode::plan_mode_handle(),
+        nxm_tui::bounded::DEFAULT_MAX_STEPS,
     );
     let (tx, mut rx) = mpsc::unbounded_channel::<ToolPart>();
     let agent_tx = tx.clone();
